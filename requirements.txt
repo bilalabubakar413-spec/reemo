@@ -1,0 +1,2 @@
+# Dit bestand is leeg omdat we alleen standaard Python libraries gebruiken (http.server)
+# Render gebruikt dit bestand om te herkennen dat het een Python app is.
