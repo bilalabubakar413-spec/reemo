@@ -1,2 +1,0 @@
-# Geen externe dependencies nodig.
-# Dit project gebruikt alleen de standaard Python bibliotheken (http.server, etc.).
