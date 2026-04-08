@@ -61,13 +61,21 @@ const logoutBtn = document.getElementById('logout-btn');
 const navItems = document.querySelectorAll('.nav-item[data-target]');
 const screenContents = document.querySelectorAll('.screen-content');
 
+const loginAdminBtn = document.getElementById('login-admin-btn');
+const loginDevBtn = document.getElementById('login-dev-btn');
+const navAdminItems = document.getElementById('nav-admin-items');
+const navDevItems = document.getElementById('nav-dev-items');
+const userProfileAvatar = document.getElementById('user-profile-avatar');
+const userProfileName = document.getElementById('user-profile-name');
+
 // --- Initialization ---
 document.addEventListener('DOMContentLoaded', () => {
     // Initialize Lucide icons
     lucide.createIcons();
 
     // Setup Event Listeners
-    loginForm.addEventListener('submit', handleLogin);
+    loginForm.addEventListener('submit', (e) => handleLogin(e, 'admin'));
+    loginDevBtn.addEventListener('click', (e) => handleLogin(e, 'developer'));
     logoutBtn.addEventListener('click', handleLogout);
     
     // Navigation
@@ -91,10 +99,24 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // --- Authentication ---
-function handleLogin(e) {
+function handleLogin(e, role) {
     e.preventDefault();
     loginScreen.classList.add('hidden');
     appContainer.classList.remove('hidden');
+
+    if (role === 'developer') {
+        navAdminItems.classList.add('hidden');
+        navDevItems.classList.remove('hidden');
+        userProfileAvatar.textContent = 'TA';
+        userProfileName.innerHTML = `<p class="text-sm font-medium truncate">Thomas Anderson</p><p class="text-[10px] text-white-40 truncate">Frontend Lead</p>`;
+        navigateTo('dev-dashboard');
+    } else {
+        navDevItems.classList.add('hidden');
+        navAdminItems.classList.remove('hidden');
+        userProfileAvatar.textContent = 'T';
+        userProfileName.innerHTML = `<p class="text-sm font-medium truncate">Test</p><p class="text-[10px] text-white-40 truncate">Admin</p>`;
+        navigateTo('dashboard');
+    }
 }
 
 function handleLogout() {

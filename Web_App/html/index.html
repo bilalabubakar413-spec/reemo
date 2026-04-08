@@ -31,19 +31,17 @@
             </div>
 
             <form id="login-form" class="space-y-6">
-                <div class="space-y-2">
-                    <label class="text-sm font-medium text-white-60 block text-left">Email Address</label>
-                    <input type="email" required value="admin@reemo.io" class="form-input w-full" placeholder="name@reemo.io">
+                <!-- inputs -->
+                <div class="space-y-4">
+                    <button type="submit" id="login-admin-btn" class="btn-primary w-full py-3 flex flex-col items-center justify-center gap-1">
+                        <span class="text-lg">Login as Admin</span>
+                        <span class="text-[10px] text-white-60 font-normal">Manage clients, devs, and invoices</span>
+                    </button>
+                    <button type="button" id="login-dev-btn" class="w-full bg-white-5 border border-white-10 hover:bg-white-10 text-white font-semibold py-3 rounded-xl transition-all cursor-pointer flex flex-col items-center justify-center gap-1">
+                        <span class="text-lg">Login as Developer</span>
+                        <span class="text-[10px] text-white-40 font-normal">View my projects and log hours</span>
+                    </button>
                 </div>
-                <div class="space-y-2">
-                    <div class="flex justify-between items-center">
-                        <label class="text-sm font-medium text-white-60">Password</label>
-                        <button type="button" class="text-xs text-blue-400 hover-text-blue-300 transition-all cursor-pointer">Forgot password?</button>
-                    </div>
-                    <input type="password" required value="password" class="form-input w-full" placeholder="••••••••">
-                </div>
-
-                <button type="submit" class="btn-primary w-full py-3">Sign In</button>
             </form>
 
             <div class="mt-12 pt-8 border-t text-center">
@@ -65,26 +63,53 @@
             </div>
 
             <nav class="flex-1 px-4 py-4 space-y-1" id="sidebar-nav">
-                <button data-target="dashboard" class="nav-item active">
-                    <i data-lucide="layout-dashboard" class="w-5 h-5 nav-icon"></i>
-                    Dashboard
-                </button>
-                <button data-target="clients" class="nav-item">
-                    <i data-lucide="users" class="w-5 h-5 nav-icon"></i>
-                    Clients
-                </button>
-                <button data-target="developers" class="nav-item">
-                    <i data-lucide="user-circle" class="w-5 h-5 nav-icon"></i>
-                    Developers
-                </button>
-                <button data-target="timesheets" class="nav-item">
-                    <i data-lucide="clock" class="w-5 h-5 nav-icon"></i>
-                    Timesheets
-                </button>
-                <button data-target="invoices" class="nav-item">
-                    <i data-lucide="file-text" class="w-5 h-5 nav-icon"></i>
-                    Invoices
-                </button>
+                <!-- Admin Navigation -->
+                <div id="nav-admin-items" class="space-y-1">
+                    <button data-target="dashboard" class="nav-item active">
+                        <i data-lucide="layout-dashboard" class="w-5 h-5 nav-icon"></i>
+                        Dashboard
+                    </button>
+                    <button data-target="clients" class="nav-item">
+                        <i data-lucide="users" class="w-5 h-5 nav-icon"></i>
+                        Clients
+                    </button>
+                    <button data-target="developers" class="nav-item">
+                        <i data-lucide="user-circle" class="w-5 h-5 nav-icon"></i>
+                        Developers
+                    </button>
+                    <button data-target="cvs" class="nav-item">
+                        <i data-lucide="database" class="w-5 h-5 nav-icon"></i>
+                        CV Database
+                    </button>
+                    <button data-target="timesheets" class="nav-item">
+                        <i data-lucide="clock" class="w-5 h-5 nav-icon"></i>
+                        Timesheets
+                    </button>
+                    <button data-target="invoices" class="nav-item">
+                        <i data-lucide="file-text" class="w-5 h-5 nav-icon"></i>
+                        Invoices
+                    </button>
+                </div>
+
+                <!-- Developer Navigation -->
+                <div id="nav-dev-items" class="space-y-1 hidden">
+                    <button data-target="dev-dashboard" class="nav-item active">
+                        <i data-lucide="layout-dashboard" class="w-5 h-5 nav-icon"></i>
+                        Dashboard
+                    </button>
+                    <button data-target="dev-profile" class="nav-item">
+                        <i data-lucide="user" class="w-5 h-5 nav-icon"></i>
+                        My Profile
+                    </button>
+                    <button data-target="dev-timesheets" class="nav-item">
+                        <i data-lucide="clock" class="w-5 h-5 nav-icon"></i>
+                        Timesheets
+                    </button>
+                    <button data-target="dev-documents" class="nav-item">
+                        <i data-lucide="folder" class="w-5 h-5 nav-icon"></i>
+                        Documents
+                    </button>
+                </div>
             </nav>
 
             <div class="p-4 border-t space-y-1">
@@ -100,10 +125,10 @@
 
             <div class="p-4 border-t">
                 <div class="flex items-center gap-3 p-2 rounded-xl bg-white-5">
-                    <div class="avatar-small">T1</div>
-                    <div class="flex-1 min-w-0">
-                        <p class="text-sm font-medium truncate">Test one</p>
-                        <p class="text-[10px] text-white-40 truncate">Operations Lead</p>
+                    <div class="avatar-small" id="user-profile-avatar">T</div>
+                    <div class="flex-1 min-w-0" id="user-profile-name">
+                        <p class="text-sm font-medium truncate">Test</p>
+                        <p class="text-[10px] text-white-40 truncate">Admin</p>
                     </div>
                 </div>
             </div>
@@ -370,6 +395,228 @@
                                     <!-- Filled by JS -->
                                 </tbody>
                             </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Dev Dashboard Screen -->
+                <div id="screen-dev-dashboard" class="screen-content">
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
+                        <div>
+                            <h2 class="text-3xl font-bold tracking-tight">My Dashboard</h2>
+                            <p class="text-white-40 mt-1">Welcome back. Here is your current assignment overview.</p>
+                        </div>
+                        <button class="btn-primary flex items-center gap-2">
+                            <i data-lucide="clock" class="w-4 h-4"></i> Log Hours
+                        </button>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                        <div class="card border border-blue-500-20 bg-blue-500-5 relative overflow-hidden">
+                            <div class="absolute -right-6 -top-6 text-blue-500-10"><i data-lucide="briefcase" class="w-24 h-24"></i></div>
+                            <h3 class="text-sm font-bold text-white-40 uppercase tracking-wider mb-2 relative">Current Project</h3>
+                            <p class="text-2xl font-bold text-white relative">Acme Corp Redesign</p>
+                            <p class="text-sm text-blue-400 mt-2 font-medium relative">Frontend Lead</p>
+                        </div>
+                        <div class="card border border-white-5">
+                            <h3 class="text-sm font-bold text-white-40 uppercase tracking-wider mb-2">Hours logged (This week)</h3>
+                            <div class="flex items-end gap-3">
+                                <p class="text-3xl font-bold text-white">32h</p>
+                                <p class="text-sm text-white-40 mb-1">/ 40h</p>
+                            </div>
+                            <div class="h-2 w-full bg-white-5 rounded-full mt-4 overflow-hidden">
+                                <div class="h-full bg-blue-500 rounded-full" style="width: 80%"></div>
+                            </div>
+                        </div>
+                        <div class="card border border-white-5">
+                            <h3 class="text-sm font-bold text-white-40 uppercase tracking-wider mb-2">Next Timesheet Due</h3>
+                            <p class="text-2xl font-bold text-white mb-1">Friday, 17:00</p>
+                            <p class="text-sm text-rose-400 font-medium">8 hours remaining to log</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Dev Profile Screen -->
+                <div id="screen-dev-profile" class="screen-content">
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
+                        <div>
+                            <h2 class="text-3xl font-bold tracking-tight">My Profile</h2>
+                            <p class="text-white-40 mt-1">Manage your professional details and skills.</p>
+                        </div>
+                        <button class="btn-primary flex items-center gap-2">
+                            <i data-lucide="save" class="w-4 h-4"></i> Save Changes
+                        </button>
+                    </div>
+
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                        <div class="lg:col-span-1 space-y-6">
+                            <div class="card border border-white-5 flex flex-col items-center text-center p-8">
+                                <div class="w-24 h-24 rounded-full bg-blue-600 flex items-center justify-center text-4xl font-bold text-white mb-4 shadow-[0_0_20px_rgba(37,99,235,0.3)]">
+                                    TA
+                                </div>
+                                <h3 class="text-xl font-bold">Thomas Anderson</h3>
+                                <p class="text-blue-400 font-medium mt-1">Senior Frontend Developer</p>
+                                <div class="mt-6 flex flex-wrap justify-center gap-2">
+                                    <span class="px-3 py-1 rounded-full bg-white-10 text-xs font-medium border border-white-5">React</span>
+                                    <span class="px-3 py-1 rounded-full bg-white-10 text-xs font-medium border border-white-5">Node.js</span>
+                                    <span class="px-3 py-1 rounded-full bg-white-10 text-xs font-medium border border-white-5">TypeScript</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="lg:col-span-2 space-y-6">
+                            <div class="card border border-white-5">
+                                <h3 class="text-lg font-bold mb-6">Personal Information</h3>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div class="space-y-2">
+                                        <label class="text-xs font-bold text-white-40 uppercase tracking-widest block">Full Name</label>
+                                        <input type="text" value="Thomas Anderson" class="w-full bg-white-5 border border-white-10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-blue-500 transition-colors">
+                                    </div>
+                                    <div class="space-y-2">
+                                        <label class="text-xs font-bold text-white-40 uppercase tracking-widest block">Email</label>
+                                        <input type="email" value="thomas@reemo.io" class="w-full bg-white-5 border border-white-10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-blue-500 transition-colors">
+                                    </div>
+                                    <div class="space-y-2">
+                                        <label class="text-xs font-bold text-white-40 uppercase tracking-widest block">Experience Level</label>
+                                        <select class="w-full bg-white-5 border border-white-10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-blue-500 transition-colors appearance-none">
+                                            <option>Junior</option>
+                                            <option>Medior</option>
+                                            <option selected>Senior</option>
+                                            <option>Lead</option>
+                                        </select>
+                                    </div>
+                                    <div class="space-y-2">
+                                        <label class="text-xs font-bold text-white-40 uppercase tracking-widest block">Availability (Hours/Week)</label>
+                                        <input type="number" value="40" class="w-full bg-white-5 border border-white-10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-blue-500 transition-colors">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Dev Timesheets Screen -->
+                <div id="screen-dev-timesheets" class="screen-content">
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
+                        <div>
+                            <h2 class="text-3xl font-bold tracking-tight">Timesheets</h2>
+                            <p class="text-white-40 mt-1">Log your worked hours and track approvals.</p>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                        <div class="lg:col-span-1">
+                            <div class="card border border-white-5 sticky top-24">
+                                <h3 class="text-lg font-bold mb-6">Log New Hours</h3>
+                                <form class="space-y-4">
+                                    <div class="space-y-2">
+                                        <label class="text-xs font-bold text-white-40 uppercase tracking-widest block">Date</label>
+                                        <input type="date" class="w-full bg-white-5 border border-white-10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-blue-500 transition-colors cursor-pointer" style="color-scheme: dark;">
+                                    </div>
+                                    <div class="space-y-2">
+                                        <label class="text-xs font-bold text-white-40 uppercase tracking-widest block">Project / Client</label>
+                                        <select class="w-full bg-white-5 border border-white-10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-blue-500 transition-colors appearance-none cursor-pointer">
+                                            <option>Acme Corp Redesign</option>
+                                            <option>Internal Systems</option>
+                                        </select>
+                                    </div>
+                                    <div class="space-y-2">
+                                        <label class="text-xs font-bold text-white-40 uppercase tracking-widest block">Hours Worked</label>
+                                        <input type="number" placeholder="8" min="0.5" max="24" step="0.5" class="w-full bg-white-5 border border-white-10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-blue-500 transition-colors">
+                                    </div>
+                                    <div class="space-y-2">
+                                        <label class="text-xs font-bold text-white-40 uppercase tracking-widest block">Description</label>
+                                        <textarea rows="3" placeholder="What did you work on?" class="w-full bg-white-5 border border-white-10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-blue-500 transition-colors resize-none"></textarea>
+                                    </div>
+                                    <button type="button" class="btn-primary w-full py-3 mt-4">Submit Timesheet</button>
+                                </form>
+                            </div>
+                        </div>
+                        <div class="lg:col-span-2">
+                            <div class="card p-0 border border-white-5 overflow-hidden">
+                                <div class="p-6 border-b border-white-5 flex justify-between items-center">
+                                    <h3 class="font-bold">Recent Entries</h3>
+                                    <span class="text-xs font-bold text-blue-400 bg-blue-500-10 px-3 py-1 rounded-full uppercase tracking-wider">This Week: 32h</span>
+                                </div>
+                                <table class="table w-full">
+                                    <thead>
+                                        <tr>
+                                            <th>Date</th>
+                                            <th>Project</th>
+                                            <th>Hours</th>
+                                            <th>Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr class="hover:bg-white-5 transition-colors">
+                                            <td class="text-sm font-medium">Wed, Mar 20</td>
+                                            <td class="text-sm text-white-60">Acme Corp Redesign</td>
+                                            <td class="text-sm font-mono">8.0h</td>
+                                            <td><span class="status-badge status-pending">Pending</span></td>
+                                        </tr>
+                                        <tr class="hover:bg-white-5 transition-colors">
+                                            <td class="text-sm font-medium">Tue, Mar 19</td>
+                                            <td class="text-sm text-white-60">Acme Corp Redesign</td>
+                                            <td class="text-sm font-mono">8.0h</td>
+                                            <td><span class="status-badge status-approved">Approved</span></td>
+                                        </tr>
+                                        <tr class="hover:bg-white-5 transition-colors">
+                                            <td class="text-sm font-medium">Mon, Mar 18</td>
+                                            <td class="text-sm text-white-60">Acme Corp Redesign</td>
+                                            <td class="text-sm font-mono">8.0h</td>
+                                            <td><span class="status-badge status-approved">Approved</span></td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Dev Documents Screen -->
+                <div id="screen-dev-documents" class="screen-content">
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
+                        <div>
+                            <h2 class="text-3xl font-bold tracking-tight">My Documents</h2>
+                            <p class="text-white-40 mt-1">Manage your CV and legal documents.</p>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        <div class="card border border-white-5">
+                            <div class="flex justify-between items-start mb-6">
+                                <h3 class="text-lg font-bold">Current CV</h3>
+                                <div class="px-3 py-1 bg-emerald-500-10 text-emerald-400 font-bold text-[10px] uppercase tracking-widest rounded-md border border-emerald-500-20">Reemo Format Ready</div>
+                            </div>
+                            
+                            <div class="p-6 border border-dashed border-white-20 rounded-xl flex flex-col items-center justify-center text-center bg-white-5 mb-6 group hover:bg-white-10 transition-colors cursor-pointer">
+                                <i data-lucide="file-text" class="w-12 h-12 text-white-40 mb-3 group-hover:text-blue-400 transition-colors"></i>
+                                <p class="font-bold mb-1">Thomas_Anderson_CV.pdf</p>
+                                <p class="text-xs text-white-40">Uploaded 3 days ago • 1.2 MB</p>
+                            </div>
+
+                            <div class="flex gap-3">
+                                <button class="flex-1 bg-white-5 hover:bg-white-10 border border-white-10 py-3 rounded-xl font-medium text-sm transition-all flex justify-center items-center gap-2">
+                                    <i data-lucide="eye" class="w-4 h-4 text-white-50"></i> View
+                                </button>
+                                <button class="flex-1 bg-white-5 hover:bg-white-10 border border-white-10 py-3 rounded-xl font-medium text-sm transition-all flex justify-center items-center gap-2">
+                                    <i data-lucide="upload-cloud" class="w-4 h-4 text-white-50"></i> Replace
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="card border border-white-5 bg-gradient-to-br from-blue-900-20 to-transparent">
+                            <div class="flex gap-4 items-start mb-6">
+                                <div class="w-12 h-12 rounded-xl bg-blue-600 flex items-center justify-center shrink-0 shadow-[0_0_20px_rgba(37,99,235,0.4)]">
+                                    <i data-lucide="sparkles" class="w-6 h-6 text-white"></i>
+                                </div>
+                                <div>
+                                    <h3 class="text-lg font-bold mb-1">CV Conversion Tool</h3>
+                                    <p class="text-sm text-white-60">Reemo requires all developer profiles to standardise their layout for client proposals. Update your raw CV and let AI format it.</p>
+                                </div>
+                            </div>
+                            <button class="btn-primary w-full py-3 opacity-50 cursor-not-allowed">
+                                Convert to Reemo CV (Up to date)
+                            </button>
                         </div>
                     </div>
                 </div>
