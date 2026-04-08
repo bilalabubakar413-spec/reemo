@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reemo Admin</title>
+    <!-- Use Inter font -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap" rel="stylesheet">
+    
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <!-- Chart.js for charts -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+    
+    <!-- Login Screen -->
+    <div id="login-screen" class="screen flex-center bg-base text-white p-8">
+        <div class="login-container w-full max-w-md">
+            <div class="text-center mb-12">
+                <div class="logo-box mx-auto mb-6">
+                    <span class="font-bold text-3xl">R</span>
+                </div>
+                <h2 class="text-4xl font-bold tracking-tight mb-3">Reemo Admin</h2>
+                <p class="text-white-40">Centralized operations for software development.</p>
+            </div>
+
+            <form id="login-form" class="space-y-6">
+                <div class="space-y-2">
+                    <label class="text-sm font-medium text-white-60 block text-left">Email Address</label>
+                    <input type="email" required value="admin@reemo.io" class="form-input w-full" placeholder="name@reemo.io">
+                </div>
+                <div class="space-y-2">
+                    <div class="flex justify-between items-center">
+                        <label class="text-sm font-medium text-white-60">Password</label>
+                        <button type="button" class="text-xs text-blue-400 hover-text-blue-300 transition-all cursor-pointer">Forgot password?</button>
+                    </div>
+                    <input type="password" required value="password" class="form-input w-full" placeholder="••••••••">
+                </div>
+
+                <button type="submit" class="btn-primary w-full py-3">Sign In</button>
+            </form>
+
+            <div class="mt-12 pt-8 border-t text-center">
+                <p class="text-xs text-white-30">© 2026 Reemo Operations</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- App Container -->
+    <div id="app-container" class="hidden flex h-screen bg-base text-white overflow-hidden">
+        
+        <!-- Sidebar -->
+        <aside class="w-64 border-r flex flex-col bg-surface shrink-0 z-20 h-full overflow-y-auto">
+            <div class="p-6 flex items-center gap-3">
+                <div class="logo-box-small shadow-blue">
+                    <span class="font-bold text-lg">R</span>
+                </div>
+                <h1 class="font-bold text-xl tracking-tight">Reemo Admin</h1>
+            </div>
+
+            <nav class="flex-1 px-4 py-4 space-y-1" id="sidebar-nav">
+                <button data-target="dashboard" class="nav-item active">
+                    <i data-lucide="layout-dashboard" class="w-5 h-5 nav-icon"></i>
+                    Dashboard
+                </button>
+                <button data-target="clients" class="nav-item">
+                    <i data-lucide="users" class="w-5 h-5 nav-icon"></i>
+                    Clients
+                </button>
+                <button data-target="developers" class="nav-item">
+                    <i data-lucide="user-circle" class="w-5 h-5 nav-icon"></i>
+                    Developers
+                </button>
+                <button data-target="timesheets" class="nav-item">
+                    <i data-lucide="clock" class="w-5 h-5 nav-icon"></i>
+                    Timesheets
+                </button>
+                <button data-target="invoices" class="nav-item">
+                    <i data-lucide="file-text" class="w-5 h-5 nav-icon"></i>
+                    Invoices
+                </button>
+            </nav>
+
+            <div class="p-4 border-t space-y-1">
+                <button class="nav-item">
+                    <i data-lucide="settings" class="w-5 h-5 text-white-30"></i>
+                    Settings
+                </button>
+                <button id="logout-btn" class="nav-item nav-item-danger">
+                    <i data-lucide="log-out" class="w-5 h-5"></i>
+                    Logout
+                </button>
+            </div>
+
+            <div class="p-4 border-t">
+                <div class="flex items-center gap-3 p-2 rounded-xl bg-white-5">
+                    <div class="avatar-small">T1</div>
+                    <div class="flex-1 min-w-0">
+                        <p class="text-sm font-medium truncate">Test one</p>
+                        <p class="text-[10px] text-white-40 truncate">Operations Lead</p>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="flex-1 overflow-y-auto bg-base relative w-full h-full">
+            
+            <!-- Header -->
+            <header class="h-16 border-b flex items-center justify-between px-8 sticky top-0 bg-base-80 backdrop-blur-md z-10 w-full">
+                <div class="relative w-96">
+                    <i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white-30"></i>
+                    <input type="text" placeholder="Search clients, developers, invoices..." class="search-input w-full">
+                </div>
+                <div class="flex items-center gap-4">
+                    <button class="notification-btn relative cursor-pointer">
+                        <i data-lucide="bell" class="w-5 h-5 text-white-50"></i>
+                        <span class="notification-dot"></span>
+                    </button>
+                    <div class="h-8 w-[1px] bg-white-10 mx-2"></div>
+                    <div class="flex items-center gap-3">
+                        <div class="text-right">
+                            <p class="text-sm font-medium">Test</p>
+                            <p class="text-xs text-white-40">Admin</p>
+                        </div>
+                        <div class="avatar-small text-xs">T</div>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Screens Container -->
+            <div class="p-8 max-w-7xl mx-auto w-full relative" id="main-content">
+                
+                <!-- Dashboard Screen -->
+                <div id="screen-dashboard" class="screen-content active">
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
+                        <div>
+                            <h2 class="text-3xl font-bold tracking-tight">Dashboard</h2>
+                            <p class="text-white-40 mt-1">Welcome back, Test. Here's what's happening today.</p>
+                        </div>
+                        <div class="flex gap-3">
+                            <button id="btn-manage-clients" class="btn-primary">Manage Clients</button>
+                            <button class="btn-secondary">Generate Report</button>
+                        </div>
+                    </div>
+                    
+                    <!-- Stats Grid -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 mb-8" id="dashboard-stats">
+                        <!-- Filled by JS -->
+                    </div>
+
+                    <!-- Charts Grid -->
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+                        <div class="card min-h-[400px]">
+                            <div class="flex justify-between items-center mb-4">
+                                <h3 class="font-semibold text-lg">Monthly Revenue</h3>
+                                <select class="dropdown">
+                                    <option>Last 6 Months</option>
+                                    <option>Last Year</option>
+                                </select>
+                            </div>
+                            <div class="chart-container">
+                                <canvas id="revenueChart"></canvas>
+                            </div>
+                        </div>
+                        
+                        <div class="card min-h-[400px]">
+                            <div class="flex justify-between items-center mb-4">
+                                <h3 class="font-semibold text-lg">Hours Worked per Client</h3>
+                                <button class="text-xs text-blue-400 hover-underline cursor-pointer">View all</button>
+                            </div>
+                            <div class="chart-container">
+                                <canvas id="hoursChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Activity Grid -->
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <div class="lg:col-span-2 card p-0 overflow-hidden">
+                            <div class="p-6 border-b flex justify-between items-center">
+                                <h3 class="font-semibold">Recent Timesheets</h3>
+                                <button class="text-xs text-white-40 hover-text-white transition-all cursor-pointer">View all</button>
+                            </div>
+                            <div class="overflow-x-auto">
+                                <table class="table w-full">
+                                    <thead>
+                                        <tr>
+                                            <th>Developer</th>
+                                            <th>Client</th>
+                                            <th>Hours</th>
+                                            <th>Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="dashboard-timesheets-body">
+                                        <!-- Filled by JS -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <div class="card">
+                            <h3 class="font-semibold mb-6">Quick Actions</h3>
+                            <div class="space-y-3">
+                                <button class="quick-action-btn border transition-all">
+                                    <div class="quick-action-icon bg-blue-500"><i data-lucide="file-text" class="w-4 h-4"></i></div>
+                                    <span class="text-sm font-medium text-white-80">Generate Monthly Invoice</span>
+                                </button>
+                                <button class="quick-action-btn border transition-all">
+                                    <div class="quick-action-icon bg-emerald-500"><i data-lucide="check-circle-2" class="w-4 h-4"></i></div>
+                                    <span class="text-sm font-medium text-white-80">Approve All Timesheets</span>
+                                </button>
+                                <button class="quick-action-btn border transition-all">
+                                    <div class="quick-action-icon bg-indigo-500"><i data-lucide="plus" class="w-4 h-4"></i></div>
+                                    <span class="text-sm font-medium text-white-80">Add New Developer</span>
+                                </button>
+                                <button class="quick-action-btn border transition-all">
+                                    <div class="quick-action-icon bg-rose-500"><i data-lucide="alert-circle" class="w-4 h-4"></i></div>
+                                    <span class="text-sm font-medium text-white-80">Review Overdue Payments</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Clients Screen -->
+                <div id="screen-clients" class="screen-content">
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4 mb-8">
+                        <div>
+                            <h2 class="text-3xl font-bold tracking-tight">Clients</h2>
+                            <p class="text-white-40 mt-1">Manage your active client portfolio and contracts.</p>
+                        </div>
+                        <button class="btn-primary flex items-center gap-2">
+                            <i data-lucide="plus" class="w-4 h-4"></i> Add Client
+                        </button>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8" id="clients-grid">
+                        <!-- Filled by JS -->
+                    </div>
+                </div>
+
+                <!-- Developers Screen -->
+                <div id="screen-developers" class="screen-content">
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4 mb-8">
+                        <div>
+                            <h2 class="text-3xl font-bold tracking-tight">Developers</h2>
+                            <p class="text-white-40 mt-1">Monitor allocation and performance of your engineering team.</p>
+                        </div>
+                        <button class="btn-primary flex items-center gap-2">
+                            <i data-lucide="plus" class="w-4 h-4"></i> Onboard Developer
+                        </button>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8" id="developers-grid">
+                        <!-- Filled by JS -->
+                    </div>
+                </div>
+
+                <!-- Timesheets Screen -->
+                <div id="screen-timesheets" class="screen-content">
+                     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4 mb-8">
+                        <div>
+                            <h2 class="text-3xl font-bold tracking-tight">Timesheets</h2>
+                            <p class="text-white-40 mt-1">Centralized view of all developer work logs.</p>
+                        </div>
+                    </div>
+                    <div class="card p-0 overflow-hidden">
+                        <div class="overflow-x-auto">
+                            <table class="table w-full">
+                                <thead>
+                                    <tr>
+                                        <th>Developer</th>
+                                        <th>Client</th>
+                                        <th>Date</th>
+                                        <th>Task Description</th>
+                                        <th>Hours</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="timesheets-body">
+                                    <!-- Filled by JS -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- CV Database Screen -->
+                <div id="screen-cvs" class="screen-content">
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
+                        <div>
+                            <h2 class="text-3xl font-bold tracking-tight">CV Database</h2>
+                            <p class="text-white-40 mt-1">Central repository for all potential talent CVs.</p>
+                        </div>
+                        <button class="btn-primary flex items-center gap-2">
+                            <i data-lucide="upload" class="w-4 h-4"></i> Upload CV
+                        </button>
+                    </div>
+
+                    <div class="card p-0 overflow-hidden border border-white-5 mb-8">
+                        <div class="p-6 flex justify-between items-center gap-4 border-b border-white-5">
+                            <div class="relative w-full max-w-2xl">
+                                <i data-lucide="search" class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white-30"></i>
+                                <input type="text" placeholder="Search by name or skill (e.g. React, Python)..." class="w-full bg-white-5 border border-white-10 rounded-xl py-3 pl-10 pr-4 focus:outline-none focus:border-blue-500 transition-all text-sm">
+                            </div>
+                            <div class="shrink-0 flex items-center gap-2 px-4 py-2 border border-blue-500-20 bg-blue-500-10 rounded-xl text-blue-400 text-sm font-bold">
+                                <i data-lucide="database" class="w-4 h-4"></i>
+                                <span>5 Total CVs</span>
+                            </div>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="table w-full">
+                                <thead>
+                                    <tr>
+                                        <th class="w-1/4">Name</th>
+                                        <th class="w-1/4">Skills</th>
+                                        <th class="w-1/6">Upload Date</th>
+                                        <th class="w-1/6">Status</th>
+                                        <th class="text-right w-1/6">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="cvs-body">
+                                    <!-- Filled by JS -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Auto-Conversion Feature Banner -->
+                    <div class="card p-6 border-white-10 bg-blue-500-5 flex gap-6 items-center">
+                        <div class="w-16 h-16 rounded-2xl bg-blue-600 flex items-center justify-center shrink-0 shadow-[0_0_20px_rgba(37,99,235,0.4)]">
+                            <i data-lucide="file-up" class="w-8 h-8 text-white"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-xl font-bold text-white mb-1">Auto-Conversion Feature</h3>
+                            <p class="text-sm text-white-40 leading-relaxed max-w-4xl">Upload any CV format and our AI will automatically convert it into a standardized Reemo CV template. This ensures consistent presentation across all talent profiles.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Invoices Screen -->
+                 <div id="screen-invoices" class="screen-content">
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4 mb-8">
+                        <div>
+                            <h2 class="text-3xl font-bold tracking-tight">Invoices</h2>
+                            <p class="text-white-40 mt-1">Billing and payment tracking.</p>
+                        </div>
+                    </div>
+                    <div class="card p-0 overflow-hidden">
+                        <div class="overflow-x-auto">
+                             <table class="table w-full">
+                                <thead>
+                                    <tr>
+                                        <th>Invoice ID</th>
+                                        <th>Client</th>
+                                        <th>Amount</th>
+                                        <th>Sent Date</th>
+                                        <th>Deadline</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="invoices-body">
+                                    <!-- Filled by JS -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </main>
+    </div>
+
+    <script src="/js/script.js"></script>
+</body>
+</html>
