@@ -20,32 +20,103 @@
 <body>
     
     <!-- Login Screen -->
-    <div id="login-screen" class="screen flex-center bg-base text-white p-8">
-        <div class="login-container w-full max-w-md">
-            <div class="text-center mb-12">
-                <div class="logo-box mx-auto mb-6">
-                    <span class="font-bold text-3xl">R</span>
-                </div>
-                <h2 class="text-4xl font-bold tracking-tight mb-3">Reemo Admin</h2>
-                <p class="text-white-40">Centralized operations for software development.</p>
+    <div id="login-screen" class="login-screen-wrap">
+        <!-- Background glows -->
+        <div class="login-glow login-glow-1"></div>
+        <div class="login-glow login-glow-2"></div>
+
+        <!-- Left branding panel -->
+        <div class="login-brand-panel">
+            <div class="login-brand-logo">
+                <span>R</span>
             </div>
-
-            <form id="login-form" class="space-y-6">
-                <!-- inputs -->
-                <div class="space-y-4">
-                    <button type="submit" id="login-admin-btn" class="btn-primary w-full py-3 flex flex-col items-center justify-center gap-1">
-                        <span class="text-lg">Login as Admin</span>
-                        <span class="text-[10px] text-white-60 font-normal">Manage clients, devs, and invoices</span>
-                    </button>
-                    <button type="button" id="login-dev-btn" class="w-full bg-white-5 border border-white-10 hover:bg-white-10 text-white font-semibold py-3 rounded-xl transition-all cursor-pointer flex flex-col items-center justify-center gap-1">
-                        <span class="text-lg">Login as Developer</span>
-                        <span class="text-[10px] text-white-40 font-normal">View my projects and log hours</span>
-                    </button>
+            <div>
+                <div class="login-brand-title">Reemo</div>
+                <div class="login-brand-sub">Operations Platform</div>
+            </div>
+            <div class="login-brand-desc">
+                The central operating system for managing software talent, timesheets, clients and contracts — all in one place.
+            </div>
+            <div class="login-feature-list">
+                <div class="login-feature-item">
+                    <div class="login-feature-icon blue">
+                        <i data-lucide="users" style="width:14px;height:14px"></i>
+                    </div>
+                    <div>
+                        <div class="login-feature-title">Client Management</div>
+                        <div class="login-feature-desc">Track clients, contracts & billing</div>
+                    </div>
                 </div>
-            </form>
+                <div class="login-feature-item">
+                    <div class="login-feature-icon emerald">
+                        <i data-lucide="clock" style="width:14px;height:14px"></i>
+                    </div>
+                    <div>
+                        <div class="login-feature-title">Timesheet Tracking</div>
+                        <div class="login-feature-desc">Approve & log developer hours</div>
+                    </div>
+                </div>
+                <div class="login-feature-item">
+                    <div class="login-feature-icon purple">
+                        <i data-lucide="file-text" style="width:14px;height:14px"></i>
+                    </div>
+                    <div>
+                        <div class="login-feature-title">CV Database</div>
+                        <div class="login-feature-desc">Manage talent profiles & documents</div>
+                    </div>
+                </div>
+            </div>
+        </div>
 
-            <div class="mt-12 pt-8 border-t text-center">
-                <p class="text-xs text-white-30">© 2026 Reemo Operations</p>
+        <!-- Right login card -->
+        <div class="login-card-panel">
+            <div class="login-card">
+                <div style="margin-bottom:2rem">
+                    <div style="font-size:1.25rem;font-weight:800;color:var(--white);margin-bottom:0.375rem">Welcome back</div>
+                    <div style="font-size:0.875rem;color:var(--white-40)">Sign in to your workspace</div>
+                </div>
+
+                <!-- Workspace selector -->
+                <div style="margin-bottom:1.75rem">
+                    <div style="font-size:0.625rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--white-30);margin-bottom:0.75rem">Select Workspace</div>
+                    <div class="login-ws-toggle">
+                        <button type="button" class="login-ws-btn active" id="ws-admin-btn">
+                            <i data-lucide="shield" style="width:16px;height:16px"></i>
+                            Admin
+                        </button>
+                        <button type="button" class="login-ws-btn" id="ws-dev-btn">
+                            <i data-lucide="code-2" style="width:16px;height:16px"></i>
+                            Developer
+                        </button>
+                    </div>
+                </div>
+
+                <form id="login-form" style="display:flex;flex-direction:column;gap:1rem">
+                    <div>
+                        <label class="login-field-label">Work Email</label>
+                        <input type="email" required value="admin@reemo.io" class="login-input" id="login-email" placeholder="you@company.io">
+                    </div>
+                    <div>
+                        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.5rem">
+                            <label class="login-field-label" style="margin-bottom:0">Password</label>
+                            <button type="button" style="font-size:0.6875rem;font-weight:700;color:#60a5fa;background:none;border:none;cursor:pointer" id="forgot-password-btn">Forgot password?</button>
+                        </div>
+                        <input type="password" required value="password" class="login-input" placeholder="••••••••">
+                    </div>
+
+                    <button type="submit" class="login-submit-btn" id="login-submit-btn">
+                        Enter Workspace
+                        <i data-lucide="arrow-right" style="width:15px;height:15px"></i>
+                    </button>
+                </form>
+
+                <div class="login-card-footer">
+                    <span>Protected by end-to-end encryption</span>
+                    <div style="display:flex;align-items:center;gap:0.35rem">
+                        <div style="width:0.4rem;height:0.4rem;border-radius:50%;background:#10b981"></div>
+                        <span>All systems operational</span>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -164,123 +235,422 @@
                 
                 <!-- Dashboard Screen -->
                 <div id="screen-dashboard" class="screen-content active">
-                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
-                        <div>
-                            <h2 class="text-3xl font-bold tracking-tight">Dashboard</h2>
-                            <p class="text-white-40 mt-1">Welcome back, Test. Here's what's happening today.</p>
+                    <!-- Page header -->
+                    <div class="page-header">
+                        <div class="page-header-left">
+                            <h2>Dashboard</h2>
+                            <p>Welcome back, <strong style="color:var(--white)">Test</strong>. Here's your operational overview.</p>
                         </div>
-                        <div class="flex gap-3">
-                            <button id="btn-manage-clients" class="btn-primary">Manage Clients</button>
-                            <button class="btn-secondary">Generate Report</button>
+                        <div class="page-header-actions">
+                            <button class="btn-outline" onclick="navigateTo('timesheets')">
+                                <i data-lucide="clock" style="width:14px;height:14px"></i> Timesheets
+                            </button>
+                            <button id="btn-manage-clients" class="btn-blue">
+                                <i data-lucide="users" style="width:14px;height:14px"></i> Manage Clients
+                            </button>
                         </div>
                     </div>
-                    
-                    <!-- Stats Grid -->
-                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 mb-8" id="dashboard-stats">
+
+                    <!-- Stats Grid (filled by JS) -->
+                    <div id="dashboard-stats" style="display:grid;grid-template-columns:repeat(5,1fr);gap:0.875rem;margin-bottom:1.5rem">
                         <!-- Filled by JS -->
                     </div>
 
-                    <!-- Charts Grid -->
-                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-                        <div class="card min-h-[400px]">
-                            <div class="flex justify-between items-center mb-4">
-                                <h3 class="font-semibold text-lg">Monthly Revenue</h3>
-                                <select class="dropdown">
-                                    <option>Last 6 Months</option>
-                                    <option>Last Year</option>
-                                </select>
+                    <!-- Charts grid -->
+                    <div style="display:grid;grid-template-columns:1.6fr 1fr;gap:1.25rem;margin-bottom:1.25rem">
+                        <!-- Revenue Chart -->
+                        <div class="profile-section-card">
+                            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.25rem;flex-wrap:wrap;gap:0.75rem">
+                                <div>
+                                    <div style="font-weight:700;font-size:1rem;color:var(--white)">Revenue Overview</div>
+                                    <div style="font-size:0.75rem;color:var(--white-40);margin-top:0.15rem">Monthly billed revenue</div>
+                                </div>
+                                <div style="display:flex;align-items:center;gap:0.5rem">
+                                    <div class="filter-select-wrap" style="width:auto">
+                                        <select id="chart-year" class="filter-select" style="padding-right:2rem" onchange="updateRevenueChart()">
+                                            <option value="2024">2024</option>
+                                            <option value="2023">2023</option>
+                                            <option value="2022">2022</option>
+                                        </select>
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                                    </div>
+                                    <div class="filter-select-wrap" style="width:auto">
+                                        <select id="chart-period" class="filter-select" style="padding-right:2rem" onchange="updateRevenueChart()">
+                                            <option value="all">Full Year</option>
+                                            <option value="q1">Q1 (Jan–Mar)</option>
+                                            <option value="q2">Q2 (Apr–Jun)</option>
+                                            <option value="q3">Q3 (Jul–Sep)</option>
+                                            <option value="q4">Q4 (Oct–Dec)</option>
+                                            <option value="6">Last 6 Months</option>
+                                        </select>
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                                    </div>
+                                </div>
                             </div>
-                            <div class="chart-container">
+                            <!-- Year totals strip -->
+                            <div id="revenue-year-strip" style="display:flex;gap:0.5rem;margin-bottom:1rem;flex-wrap:wrap"></div>
+                            <div style="position:relative;height:260px">
                                 <canvas id="revenueChart"></canvas>
                             </div>
                         </div>
-                        
-                        <div class="card min-h-[400px]">
-                            <div class="flex justify-between items-center mb-4">
-                                <h3 class="font-semibold text-lg">Hours Worked per Client</h3>
-                                <button class="text-xs text-blue-400 hover-underline cursor-pointer">View all</button>
+
+                        <!-- Hours per client -->
+                        <div class="profile-section-card">
+                            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.25rem">
+                                <div>
+                                    <div style="font-weight:700;font-size:1rem;color:var(--white)">Hours per Client</div>
+                                    <div style="font-size:0.75rem;color:var(--white-40);margin-top:0.15rem">Current month</div>
+                                </div>
+                                <button class="btn-outline" style="font-size:0.6875rem;padding:0.35rem 0.75rem" onclick="navigateTo('clients')">View All</button>
                             </div>
-                            <div class="chart-container">
+                            <div style="position:relative;height:260px">
                                 <canvas id="hoursChart"></canvas>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Activity Grid -->
-                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                        <div class="lg:col-span-2 card p-0 overflow-hidden">
-                            <div class="p-6 border-b flex justify-between items-center">
-                                <h3 class="font-semibold">Recent Timesheets</h3>
-                                <button class="text-xs text-white-40 hover-text-white transition-all cursor-pointer">View all</button>
+                    <!-- Bottom section -->
+                    <div style="display:grid;grid-template-columns:1.6fr 1fr;gap:1.25rem">
+                        <!-- Recent Timesheets -->
+                        <div class="profile-section-card" style="padding:0;overflow:hidden">
+                            <div style="display:flex;justify-content:space-between;align-items:center;padding:1.25rem 1.25rem 0">
+                                <div style="font-weight:700;font-size:0.9375rem;color:var(--white);margin-bottom:1rem">Recent Timesheets</div>
+                                <button style="font-size:0.6875rem;font-weight:700;color:#60a5fa;background:none;border:none;cursor:pointer" onclick="navigateTo('timesheets')">View all →</button>
                             </div>
-                            <div class="overflow-x-auto">
-                                <table class="table w-full">
-                                    <thead>
-                                        <tr>
-                                            <th>Developer</th>
-                                            <th>Client</th>
-                                            <th>Hours</th>
-                                            <th>Status</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="dashboard-timesheets-body">
-                                        <!-- Filled by JS -->
-                                    </tbody>
-                                </table>
-                            </div>
+                            <table class="table w-full">
+                                <thead>
+                                    <tr>
+                                        <th style="padding:0.625rem 1.25rem;font-size:0.5625rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--white-40);border-bottom:1px solid #1a1a1a">Developer</th>
+                                        <th style="padding:0.625rem 1.25rem;font-size:0.5625rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--white-40);border-bottom:1px solid #1a1a1a">Client</th>
+                                        <th style="padding:0.625rem 1.25rem;font-size:0.5625rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--white-40);border-bottom:1px solid #1a1a1a">Hours</th>
+                                        <th style="padding:0.625rem 1.25rem;font-size:0.5625rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--white-40);border-bottom:1px solid #1a1a1a">Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="dashboard-timesheets-body">
+                                    <!-- Filled by JS -->
+                                </tbody>
+                            </table>
                         </div>
 
-                        <div class="card">
-                            <h3 class="font-semibold mb-6">Quick Actions</h3>
-                            <div class="space-y-3">
-                                <button class="quick-action-btn border transition-all">
-                                    <div class="quick-action-icon bg-blue-500"><i data-lucide="file-text" class="w-4 h-4"></i></div>
-                                    <span class="text-sm font-medium text-white-80">Generate Monthly Invoice</span>
+                        <!-- Quick Actions -->
+                        <div class="profile-section-card">
+                            <div style="font-weight:700;font-size:0.9375rem;color:var(--white);margin-bottom:1rem">Quick Actions</div>
+                            <div style="display:flex;flex-direction:column;gap:0.5rem">
+                                <button class="quick-action-btn" onclick="navigateTo('invoices')">
+                                    <div class="quick-action-icon" style="background:rgba(37,99,235,0.15);color:#60a5fa;border:1px solid rgba(37,99,235,0.25)">
+                                        <i data-lucide="file-text" style="width:14px;height:14px"></i>
+                                    </div>
+                                    <span style="font-size:0.875rem;font-weight:600;color:var(--white-80)">Generate Monthly Invoice</span>
+                                    <i data-lucide="chevron-right" style="width:14px;height:14px;color:var(--white-30);margin-left:auto"></i>
                                 </button>
-                                <button class="quick-action-btn border transition-all">
-                                    <div class="quick-action-icon bg-emerald-500"><i data-lucide="check-circle-2" class="w-4 h-4"></i></div>
-                                    <span class="text-sm font-medium text-white-80">Approve All Timesheets</span>
+                                <button class="quick-action-btn" onclick="(function(){ timesheets.forEach(ts => timesheetStatuses[ts.id]='Approved'); navigateTo('timesheets'); })()">
+                                    <div class="quick-action-icon" style="background:rgba(16,185,129,0.12);color:#34d399;border:1px solid rgba(16,185,129,0.2)">
+                                        <i data-lucide="check-circle-2" style="width:14px;height:14px"></i>
+                                    </div>
+                                    <span style="font-size:0.875rem;font-weight:600;color:var(--white-80)">Approve All Timesheets</span>
+                                    <i data-lucide="chevron-right" style="width:14px;height:14px;color:var(--white-30);margin-left:auto"></i>
                                 </button>
-                                <button class="quick-action-btn border transition-all">
-                                    <div class="quick-action-icon bg-indigo-500"><i data-lucide="plus" class="w-4 h-4"></i></div>
-                                    <span class="text-sm font-medium text-white-80">Add New Developer</span>
+                                <button class="quick-action-btn" onclick="navigateTo('developers')">
+                                    <div class="quick-action-icon" style="background:rgba(99,102,241,0.12);color:var(--indigo-400);border:1px solid rgba(99,102,241,0.2)">
+                                        <i data-lucide="user-plus" style="width:14px;height:14px"></i>
+                                    </div>
+                                    <span style="font-size:0.875rem;font-weight:600;color:var(--white-80)">Add New Developer</span>
+                                    <i data-lucide="chevron-right" style="width:14px;height:14px;color:var(--white-30);margin-left:auto"></i>
                                 </button>
-                                <button class="quick-action-btn border transition-all">
-                                    <div class="quick-action-icon bg-rose-500"><i data-lucide="alert-circle" class="w-4 h-4"></i></div>
-                                    <span class="text-sm font-medium text-white-80">Review Overdue Payments</span>
+                                <button class="quick-action-btn" onclick="navigateTo('invoices')">
+                                    <div class="quick-action-icon" style="background:rgba(244,63,94,0.1);color:#fb7185;border:1px solid rgba(244,63,94,0.2)">
+                                        <i data-lucide="alert-circle" style="width:14px;height:14px"></i>
+                                    </div>
+                                    <span style="font-size:0.875rem;font-weight:600;color:var(--white-80)">Review Overdue Payments</span>
+                                    <i data-lucide="chevron-right" style="width:14px;height:14px;color:var(--white-30);margin-left:auto"></i>
+                                </button>
+                                <button class="quick-action-btn" onclick="navigateTo('cvs')">
+                                    <div class="quick-action-icon" style="background:rgba(245,158,11,0.1);color:#fbbf24;border:1px solid rgba(245,158,11,0.2)">
+                                        <i data-lucide="upload" style="width:14px;height:14px"></i>
+                                    </div>
+                                    <span style="font-size:0.875rem;font-weight:600;color:var(--white-80)">Upload New CV</span>
+                                    <i data-lucide="chevron-right" style="width:14px;height:14px;color:var(--white-30);margin-left:auto"></i>
                                 </button>
                             </div>
                         </div>
                     </div>
                 </div>
 
+
                 <!-- Clients Screen -->
                 <div id="screen-clients" class="screen-content">
-                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4 mb-8">
-                        <div>
-                            <h2 class="text-3xl font-bold tracking-tight">Clients</h2>
-                            <p class="text-white-40 mt-1">Manage your active client portfolio and contracts.</p>
+                <div class="page-header">
+                        <div class="page-header-left">
+                            <h2>Clients</h2>
+                            <p>Manage your active client portfolio and contracts.</p>
                         </div>
-                        <button class="btn-primary flex items-center gap-2">
-                            <i data-lucide="plus" class="w-4 h-4"></i> Add Client
-                        </button>
+                        <div class="page-header-actions">
+                            <button class="btn-outline">
+                                <i data-lucide="filter" style="width:14px;height:14px"></i> Advanced Filter
+                            </button>
+                            <button class="btn-blue">
+                                <i data-lucide="plus" style="width:14px;height:14px"></i> Add Client
+                            </button>
+                        </div>
                     </div>
 
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8" id="clients-grid">
+                    <div class="filter-bar">
+                        <div style="flex:1;position:relative">
+                            <i data-lucide="search" style="position:absolute;left:1rem;top:50%;transform:translateY(-50%);width:14px;height:14px;color:var(--white-30)"></i>
+                            <input type="text" placeholder="Search clients by name..." class="filter-input">
+                        </div>
+                        <div class="filter-select-wrap">
+                            <select class="filter-select">
+                                <option>All</option>
+                                <option>Paid</option>
+                                <option>Open</option>
+                                <option>Overdue</option>
+                            </select>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="clients-grid">
                         <!-- Filled by JS -->
                     </div>
                 </div>
 
-                <!-- Developers Screen -->
-                <div id="screen-developers" class="screen-content">
-                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4 mb-8">
-                        <div>
-                            <h2 class="text-3xl font-bold tracking-tight">Developers</h2>
-                            <p class="text-white-40 mt-1">Monitor allocation and performance of your engineering team.</p>
+                <!-- Client Details Screen -->
+                <div id="screen-client-details" class="screen-content">
+                    <!-- Back nav -->
+                    <button class="client-back-btn" id="btn-back-to-clients">
+                        <i data-lucide="arrow-left" style="width:14px;height:14px"></i>
+                        Back to Clients
+                    </button>
+
+                    <!-- Hero header card -->
+                    <div class="client-detail-hero">
+                        <div style="display:flex;align-items:center;gap:1.25rem;flex:1;min-width:0">
+                            <div class="client-detail-logo" id="detail-client-logo">A</div>
+                            <div style="min-width:0">
+                                <h2 style="font-size:1.625rem;font-weight:800;letter-spacing:-0.01em;color:var(--white)" id="detail-client-name">Acme Corp</h2>
+                                <p style="font-size:0.875rem;color:var(--white-40);margin-top:0.2rem" id="detail-client-industry">E-commerce • 4 Active Developers</p>
+                            </div>
                         </div>
-                        <button class="btn-primary flex items-center gap-2">
-                            <i data-lucide="plus" class="w-4 h-4"></i> Onboard Developer
-                        </button>
+                        <!-- Stats strip -->
+                        <div class="client-detail-stats">
+                            <div class="client-detail-stat">
+                                <div class="client-detail-stat-label">Total Billed YTD</div>
+                                <div class="client-detail-stat-value">€124k</div>
+                            </div>
+                            <div class="client-detail-stat-sep"></div>
+                            <div class="client-detail-stat">
+                                <div class="client-detail-stat-label">Pending</div>
+                                <div class="client-detail-stat-value" style="color:#fbbf24">€24.5k</div>
+                            </div>
+                            <div class="client-detail-stat-sep"></div>
+                            <div class="client-detail-stat">
+                                <div class="client-detail-stat-label">Developers</div>
+                                <div class="client-detail-stat-value">4</div>
+                            </div>
+                        </div>
+                        <!-- Action buttons -->
+                        <div style="display:flex;align-items:center;gap:0.625rem;flex-shrink:0">
+                            <button class="client-card-btn upload" title="Upload Logo" style="width:2.25rem;height:2.25rem">
+                                <i data-lucide="image" style="width:14px;height:14px"></i>
+                            </button>
+                            <button class="btn-outline" style="white-space:nowrap">
+                                <i data-lucide="file-plus" style="width:14px;height:14px"></i> Add File
+                            </button>
+                            <button class="btn-blue" style="white-space:nowrap">
+                                <i data-lucide="send" style="width:14px;height:14px"></i> Send Invoice
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Content grid -->
+                    <div class="client-detail-grid">
+                        <!-- Left column -->
+                        <div style="display:flex;flex-direction:column;gap:1.25rem">
+                            <!-- Financial metrics -->
+                            <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.875rem">
+                                <div class="profile-section-card" style="background:linear-gradient(135deg,rgba(37,99,235,0.06) 0%,rgba(37,99,235,0.02) 100%);border-color:rgba(37,99,235,0.15)">
+                                    <div class="profile-info-label" style="display:flex;align-items:center;gap:0.35rem;margin-bottom:0.75rem">
+                                        <i data-lucide="trending-up" style="width:10px;height:10px;color:#60a5fa"></i> Total Billed YTD
+                                    </div>
+                                    <div style="font-size:2rem;font-weight:800;color:var(--white);line-height:1">€124k</div>
+                                    <div style="font-size:0.6875rem;color:var(--white-30);margin-top:0.5rem">Since Jan 2024</div>
+                                </div>
+                                <div class="profile-section-card" style="background:linear-gradient(135deg,rgba(245,158,11,0.06) 0%,rgba(245,158,11,0.02) 100%);border-color:rgba(245,158,11,0.15)">
+                                    <div class="profile-info-label" style="display:flex;align-items:center;gap:0.35rem;margin-bottom:0.75rem">
+                                        <i data-lucide="alert-circle" style="width:10px;height:10px;color:#fbbf24"></i> Pending Payments
+                                    </div>
+                                    <div style="font-size:2rem;font-weight:800;color:#fbbf24;line-height:1">€24.5k</div>
+                                    <div style="font-size:0.6875rem;color:rgba(251,191,36,0.5);margin-top:0.5rem">2 open invoices</div>
+                                </div>
+                            </div>
+
+                            <!-- Developers table -->
+                            <div class="profile-section-card">
+                                <div class="profile-section-header">
+                                    <i data-lucide="users" style="width:14px;height:14px;color:#60a5fa"></i>
+                                    Active Assigned Developers
+                                </div>
+                                <div style="display:flex;flex-direction:column;gap:0.5rem">
+                                    <div class="client-dev-row">
+                                        <div style="display:flex;align-items:center;gap:0.75rem;flex:1">
+                                            <div class="dev-avatar male">AR</div>
+                                            <div>
+                                                <div style="font-weight:700;font-size:0.875rem;color:var(--white)">Alex Rivera</div>
+                                                <div style="font-size:0.6875rem;color:var(--white-40)">Frontend Lead</div>
+                                            </div>
+                                        </div>
+                                        <div style="text-align:center">
+                                            <div style="font-size:0.625rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--white-30);margin-bottom:0.2rem">Hrs/Month</div>
+                                            <div style="font-weight:700;font-size:0.875rem;color:var(--white);font-family:monospace">160h</div>
+                                        </div>
+                                        <span class="status-badge status-approved">On Track</span>
+                                    </div>
+                                    <div class="client-dev-row">
+                                        <div style="display:flex;align-items:center;gap:0.75rem;flex:1">
+                                            <div class="dev-avatar female">SC</div>
+                                            <div>
+                                                <div style="font-weight:700;font-size:0.875rem;color:var(--white)">Sarah Chen</div>
+                                                <div style="font-size:0.6875rem;color:var(--white-40)">Backend Developer</div>
+                                            </div>
+                                        </div>
+                                        <div style="text-align:center">
+                                            <div style="font-size:0.625rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--white-30);margin-bottom:0.2rem">Hrs/Month</div>
+                                            <div style="font-weight:700;font-size:0.875rem;color:var(--white);font-family:monospace">120h</div>
+                                        </div>
+                                        <span class="status-badge status-approved">On Track</span>
+                                    </div>
+                                    <button class="dev-view-btn" style="margin-top:0.5rem">
+                                        <i data-lucide="user-plus" style="width:12px;height:12px;display:inline;margin-right:0.375rem"></i>
+                                        Assign Developer
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Right sidebar -->
+                        <div style="display:flex;flex-direction:column;gap:1.25rem">
+                            <!-- Documents -->
+                            <div class="profile-section-card">
+                                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.25rem">
+                                    <div class="profile-section-header" style="margin-bottom:0">
+                                        <i data-lucide="folder" style="width:14px;height:14px;color:#60a5fa"></i>
+                                        Documents
+                                    </div>
+                                    <button style="font-size:0.625rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#60a5fa;background:rgba(37,99,235,0.08);border:1px solid rgba(37,99,235,0.2);border-radius:0.375rem;padding:0.2rem 0.625rem;cursor:pointer">Upload</button>
+                                </div>
+                                <div style="display:flex;flex-direction:column;gap:0.5rem">
+                                    <div class="client-doc-row">
+                                        <div style="display:flex;align-items:center;gap:0.625rem;flex:1;min-width:0">
+                                            <div style="width:2rem;height:2rem;border-radius:0.5rem;background:rgba(37,99,235,0.1);border:1px solid rgba(37,99,235,0.2);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+                                                <i data-lucide="file-check" style="width:13px;height:13px;color:#60a5fa"></i>
+                                            </div>
+                                            <div style="min-width:0">
+                                                <div style="font-weight:600;font-size:0.8125rem;color:var(--white);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Master Services Agreement</div>
+                                                <div style="font-size:0.625rem;color:var(--white-30);margin-top:0.1rem">Signed 14 Jan 2024</div>
+                                            </div>
+                                        </div>
+                                        <button class="client-card-btn download" title="Download">
+                                            <i data-lucide="download" style="width:12px;height:12px"></i>
+                                        </button>
+                                    </div>
+                                    <div class="client-doc-row">
+                                        <div style="display:flex;align-items:center;gap:0.625rem;flex:1;min-width:0">
+                                            <div style="width:2rem;height:2rem;border-radius:0.5rem;background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.2);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+                                                <i data-lucide="shield" style="width:13px;height:13px;color:#34d399"></i>
+                                            </div>
+                                            <div style="min-width:0">
+                                                <div style="font-weight:600;font-size:0.8125rem;color:var(--white);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Mutual NDA</div>
+                                                <div style="font-size:0.625rem;color:var(--white-30);margin-top:0.1rem">Signed 10 Jan 2024</div>
+                                            </div>
+                                        </div>
+                                        <button class="client-card-btn download" title="Download">
+                                            <i data-lucide="download" style="width:12px;height:12px"></i>
+                                        </button>
+                                    </div>
+                                    <div class="client-doc-row">
+                                        <div style="display:flex;align-items:center;gap:0.625rem;flex:1;min-width:0">
+                                            <div style="width:2rem;height:2rem;border-radius:0.5rem;background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.2);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+                                                <i data-lucide="file-text" style="width:13px;height:13px;color:#fbbf24"></i>
+                                            </div>
+                                            <div style="min-width:0">
+                                                <div style="font-weight:600;font-size:0.8125rem;color:var(--white);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Rate Card 2024</div>
+                                                <div style="font-size:0.625rem;color:var(--white-30);margin-top:0.1rem">Updated Mar 2024</div>
+                                            </div>
+                                        </div>
+                                        <button class="client-card-btn download" title="Download">
+                                            <i data-lucide="download" style="width:12px;height:12px"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Recent Events -->
+                            <div class="profile-section-card">
+                                <div class="profile-section-header">
+                                    <i data-lucide="activity" style="width:14px;height:14px;color:#60a5fa"></i>
+                                    Recent Events
+                                </div>
+                                <div style="display:flex;flex-direction:column;gap:0">
+                                    <div class="timeline-event">
+                                        <div class="timeline-dot amber"></div>
+                                        <div class="timeline-line"></div>
+                                        <div style="flex:1">
+                                            <div style="font-weight:700;font-size:0.8125rem;color:var(--white)">Invoice INV-2024-041 Sent</div>
+                                            <div style="font-size:0.6875rem;color:var(--white-40);margin-top:0.15rem">Today at 10:45 AM</div>
+                                        </div>
+                                    </div>
+                                    <div class="timeline-event">
+                                        <div class="timeline-dot blue"></div>
+                                        <div class="timeline-line"></div>
+                                        <div style="flex:1">
+                                            <div style="font-weight:700;font-size:0.8125rem;color:var(--white)">Monthly Report Generated</div>
+                                            <div style="font-size:0.6875rem;color:var(--white-40);margin-top:0.15rem">Mar 31, 2024</div>
+                                        </div>
+                                    </div>
+                                    <div class="timeline-event" style="padding-bottom:0">
+                                        <div class="timeline-dot green"></div>
+                                        <div style="flex:1">
+                                            <div style="font-weight:700;font-size:0.8125rem;color:var(--white)">Payment Received (INV-2024-028)</div>
+                                            <div style="font-size:0.6875rem;color:var(--white-40);margin-top:0.15rem">Mar 15, 2024</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+
+                <!-- Developers Screen -->
+
+                <div id="screen-developers" class="screen-content">
+                    <div class="page-header">
+                        <div class="page-header-left">
+                            <h2>Developers</h2>
+                            <p>Monitor allocation and performance of your engineering team.</p>
+                        </div>
+                        <div class="page-header-actions">
+                            <button class="btn-outline" onclick="openAdvancedFilter()">
+                                <i data-lucide="filter" style="width:14px;height:14px"></i> Advanced Filter
+                            </button>
+                            <button class="btn-blue" onclick="openOnboardModal()">
+                                <i data-lucide="plus" style="width:14px;height:14px"></i> Onboard Developer
+                            </button>
+                        </div>
+                    </div>
+
+                    <div style="display:flex;align-items:center;justify-content:space-between;gap:1rem;padding:0.5rem;border-radius:1rem;border:1px solid #1e1e1e;background:rgba(8,8,8,0.5);margin-bottom:1.5rem">
+                        <div style="flex:1;position:relative">
+                            <i data-lucide="search" style="position:absolute;left:1rem;top:50%;transform:translateY(-50%);width:14px;height:14px;color:var(--white-30)"></i>
+                            <input id="dev-search" type="text" placeholder="Search developers by name or role..." style="width:100%;background:transparent;border:none;padding:0.5rem 1rem 0.5rem 2.5rem;outline:none;font-size:0.875rem;color:var(--white)"
+                                oninput="filterDevelopers(this.value, activeDevFilter)">
+                        </div>
+                        <div class="segment-filter">
+                            <button class="segment-btn active" onclick="setDevFilter('all', this)">All</button>
+                            <button class="segment-btn" onclick="setDevFilter('available', this)">Available</button>
+                            <button class="segment-btn" onclick="setDevFilter('booked', this)">Booked</button>
+                        </div>
                     </div>
 
                     <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8" id="developers-grid">
@@ -288,25 +658,95 @@
                     </div>
                 </div>
 
+
                 <!-- Timesheets Screen -->
                 <div id="screen-timesheets" class="screen-content">
-                     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4 mb-8">
-                        <div>
-                            <h2 class="text-3xl font-bold tracking-tight">Timesheets</h2>
-                            <p class="text-white-40 mt-1">Centralized view of all developer work logs.</p>
+                    <div class="page-header">
+                        <div class="page-header-left">
+                            <h2>Timesheets</h2>
+                            <p>Centralized view of all developer work logs.</p>
+                        </div>
+                        <div class="page-header-actions">
+                            <button class="btn-outline">
+                                <i data-lucide="history" style="width:14px;height:14px"></i> History
+                            </button>
+                            <button class="btn-emerald" onclick="(function(){ timesheets.forEach(ts => timesheetStatuses[ts.id] = 'Approved'); renderTimesheetsTable(document.getElementById('ts-search')?.value||'', document.getElementById('ts-status-filter')?.value||''); })()">
+                                <i data-lucide="check-circle" style="width:14px;height:14px"></i> Approve All
+                            </button>
                         </div>
                     </div>
-                    <div class="card p-0 overflow-hidden">
-                        <div class="overflow-x-auto">
-                            <table class="table w-full">
+
+                    <!-- Summary stat cards -->
+                    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:0.875rem;margin-bottom:1.25rem">
+                        <div class="profile-section-card" style="display:flex;align-items:center;gap:0.875rem">
+                            <div style="width:2.25rem;height:2.25rem;border-radius:0.625rem;background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.2);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+                                <i data-lucide="clock" style="width:14px;height:14px;color:#fbbf24"></i>
+                            </div>
+                            <div>
+                                <div style="font-size:0.5625rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--white-30);margin-bottom:0.2rem">Pending</div>
+                                <div style="font-size:1.25rem;font-weight:800;color:#fbbf24" id="ts-stat-pending">1</div>
+                            </div>
+                        </div>
+                        <div class="profile-section-card" style="display:flex;align-items:center;gap:0.875rem">
+                            <div style="width:2.25rem;height:2.25rem;border-radius:0.625rem;background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.2);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+                                <i data-lucide="check-circle" style="width:14px;height:14px;color:#34d399"></i>
+                            </div>
+                            <div>
+                                <div style="font-size:0.5625rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--white-30);margin-bottom:0.2rem">Approved</div>
+                                <div style="font-size:1.25rem;font-weight:800;color:#34d399" id="ts-stat-approved">2</div>
+                            </div>
+                        </div>
+                        <div class="profile-section-card" style="display:flex;align-items:center;gap:0.875rem">
+                            <div style="width:2.25rem;height:2.25rem;border-radius:0.625rem;background:rgba(244,63,94,0.1);border:1px solid rgba(244,63,94,0.2);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+                                <i data-lucide="x-circle" style="width:14px;height:14px;color:#fb7185"></i>
+                            </div>
+                            <div>
+                                <div style="font-size:0.5625rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--white-30);margin-bottom:0.2rem">Rejected</div>
+                                <div style="font-size:1.25rem;font-weight:800;color:#fb7185" id="ts-stat-rejected">1</div>
+                            </div>
+                        </div>
+                        <div class="profile-section-card" style="display:flex;align-items:center;gap:0.875rem">
+                            <div style="width:2.25rem;height:2.25rem;border-radius:0.625rem;background:rgba(37,99,235,0.1);border:1px solid rgba(37,99,235,0.2);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+                                <i data-lucide="bar-chart-2" style="width:14px;height:14px;color:#60a5fa"></i>
+                            </div>
+                            <div>
+                                <div style="font-size:0.5625rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--white-30);margin-bottom:0.2rem">Total Hours</div>
+                                <div style="font-size:1.25rem;font-weight:800;color:var(--white)" id="ts-stat-hours">160h</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Filter bar -->
+                    <div class="filter-bar">
+                        <div style="flex:1;position:relative">
+                            <i data-lucide="search" style="position:absolute;left:1rem;top:50%;transform:translateY(-50%);width:14px;height:14px;color:var(--white-30)"></i>
+                            <input type="text" id="ts-search" placeholder="Filter by developer or client..." class="filter-input"
+                                oninput="renderTimesheetsTable(this.value, document.getElementById('ts-status-filter').value)">
+                        </div>
+                        <div class="filter-select-wrap">
+                            <select id="ts-status-filter" class="filter-select"
+                                onchange="renderTimesheetsTable(document.getElementById('ts-search').value, this.value)">
+                                <option>All Statuses</option>
+                                <option>Pending</option>
+                                <option>Approved</option>
+                                <option>Rejected</option>
+                            </select>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                        </div>
+                    </div>
+
+                    <div class="profile-section-card" style="padding:0;overflow:hidden">
+                        <div style="overflow-x:auto">
+                            <table class="table w-full text-left">
                                 <thead>
                                     <tr>
-                                        <th>Developer</th>
-                                        <th>Client</th>
-                                        <th>Date</th>
-                                        <th>Task Description</th>
-                                        <th>Hours</th>
-                                        <th>Status</th>
+                                        <th style="padding:1rem;font-size:0.5625rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--white-40);border-bottom:1px solid #1a1a1a">Developer</th>
+                                        <th style="padding:1rem;font-size:0.5625rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--white-40);border-bottom:1px solid #1a1a1a">Client</th>
+                                        <th style="padding:1rem;font-size:0.5625rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--white-40);border-bottom:1px solid #1a1a1a">Date</th>
+                                        <th style="padding:1rem;font-size:0.5625rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--white-40);border-bottom:1px solid #1a1a1a">Task Description</th>
+                                        <th style="padding:1rem;font-size:0.5625rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--white-40);border-bottom:1px solid #1a1a1a">Hours</th>
+                                        <th style="padding:1rem;font-size:0.5625rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--white-40);border-bottom:1px solid #1a1a1a">Status</th>
+                                        <th style="padding:1rem;font-size:0.5625rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--white-40);border-bottom:1px solid #1a1a1a;text-align:right;width:100px">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody id="timesheets-body">
@@ -317,38 +757,92 @@
                     </div>
                 </div>
 
+
                 <!-- CV Database Screen -->
                 <div id="screen-cvs" class="screen-content">
-                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
-                        <div>
-                            <h2 class="text-3xl font-bold tracking-tight">CV Database</h2>
-                            <p class="text-white-40 mt-1">Central repository for all potential talent CVs.</p>
+                    <div class="page-header">
+                        <div class="page-header-left">
+                            <h2>CV Database</h2>
+                            <p>Central repository for all talent CVs and candidate profiles.</p>
                         </div>
-                        <button class="btn-primary flex items-center gap-2">
-                            <i data-lucide="upload" class="w-4 h-4"></i> Upload CV
-                        </button>
+                        <div class="page-header-actions">
+                            <button class="btn-outline" onclick="uploadCVFile()">
+                                <i data-lucide="upload" style="width:14px;height:14px"></i> Upload CV
+                            </button>
+                            <button class="btn-blue" onclick="uploadCVFile()">
+                                <i data-lucide="plus" style="width:14px;height:14px"></i> Add Candidate
+                            </button>
+                        </div>
                     </div>
 
-                    <div class="card p-0 overflow-hidden border border-white-5 mb-8">
-                        <div class="p-6 flex justify-between items-center gap-4 border-b border-white-5">
-                            <div class="relative w-full max-w-2xl">
-                                <i data-lucide="search" class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white-30"></i>
-                                <input type="text" placeholder="Search by name or skill (e.g. React, Python)..." class="w-full bg-white-5 border border-white-10 rounded-xl py-3 pl-10 pr-4 focus:outline-none focus:border-blue-500 transition-all text-sm">
+                    <!-- Stat cards -->
+                    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:0.875rem;margin-bottom:1.25rem">
+                        <div class="profile-section-card" style="display:flex;align-items:center;gap:0.875rem">
+                            <div style="width:2.25rem;height:2.25rem;border-radius:0.625rem;background:rgba(37,99,235,0.1);border:1px solid rgba(37,99,235,0.2);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+                                <i data-lucide="database" style="width:14px;height:14px;color:#60a5fa"></i>
                             </div>
-                            <div class="shrink-0 flex items-center gap-2 px-4 py-2 border border-blue-500-20 bg-blue-500-10 rounded-xl text-blue-400 text-sm font-bold">
-                                <i data-lucide="database" class="w-4 h-4"></i>
-                                <span>5 Total CVs</span>
+                            <div>
+                                <div style="font-size:0.5625rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--white-30);margin-bottom:0.2rem">Total CVs</div>
+                                <div style="font-size:1.25rem;font-weight:800;color:var(--white)">5</div>
                             </div>
                         </div>
-                        <div class="overflow-x-auto">
-                            <table class="table w-full">
+                        <div class="profile-section-card" style="display:flex;align-items:center;gap:0.875rem">
+                            <div style="width:2.25rem;height:2.25rem;border-radius:0.625rem;background:rgba(99,102,241,0.1);border:1px solid rgba(99,102,241,0.2);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+                                <i data-lucide="file-text" style="width:14px;height:14px;color:#a5b4fc"></i>
+                            </div>
+                            <div>
+                                <div style="font-size:0.5625rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--white-30);margin-bottom:0.2rem">Original Format</div>
+                                <div style="font-size:1.25rem;font-weight:800;color:var(--white)">3</div>
+                            </div>
+                        </div>
+                        <div class="profile-section-card" style="display:flex;align-items:center;gap:0.875rem">
+                            <div style="width:2.25rem;height:2.25rem;border-radius:0.625rem;background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.2);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+                                <i data-lucide="badge-check" style="width:14px;height:14px;color:#34d399"></i>
+                            </div>
+                            <div>
+                                <div style="font-size:0.5625rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--white-30);margin-bottom:0.2rem">Reemo Format</div>
+                                <div style="font-size:1.25rem;font-weight:800;color:#34d399">2</div>
+                            </div>
+                        </div>
+                        <div class="profile-section-card" style="display:flex;align-items:center;gap:0.875rem">
+                            <div style="width:2.25rem;height:2.25rem;border-radius:0.625rem;background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.2);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+                                <i data-lucide="calendar" style="width:14px;height:14px;color:#fbbf24"></i>
+                            </div>
+                            <div>
+                                <div style="font-size:0.5625rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--white-30);margin-bottom:0.2rem">Added This Week</div>
+                                <div style="font-size:1.25rem;font-weight:800;color:#fbbf24">2</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Search & table card -->
+                    <div class="profile-section-card" style="padding:0;overflow:hidden">
+                        <!-- Search bar inside card -->
+                        <div style="padding:1rem 1.25rem;border-bottom:1px solid #1a1a1a;display:flex;align-items:center;gap:1rem">
+                            <div style="flex:1;position:relative">
+                                <i data-lucide="search" style="position:absolute;left:0.875rem;top:50%;transform:translateY(-50%);width:14px;height:14px;color:var(--white-30)"></i>
+                                <input type="text" id="cv-search" placeholder="Search by name or skill (e.g. React, Python)..." class="filter-input" style="width:100%;padding-left:2.5rem"
+                                    oninput="filterCVDatabase(this.value)">
+                            </div>
+                            <div class="filter-select-wrap" style="width:auto;flex-shrink:0">
+                                <select id="cv-status-filter" class="filter-select" onchange="filterCVDatabase(document.getElementById('cv-search').value)">
+                                    <option value="">All Formats</option>
+                                    <option value="ORIGINAL">Original</option>
+                                    <option value="REEMO FORMAT">Reemo Format</option>
+                                </select>
+                                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                            </div>
+                        </div>
+
+                        <div style="overflow-x:auto">
+                            <table class="table w-full text-left">
                                 <thead>
                                     <tr>
-                                        <th class="w-1/4">Name</th>
-                                        <th class="w-1/4">Skills</th>
-                                        <th class="w-1/6">Upload Date</th>
-                                        <th class="w-1/6">Status</th>
-                                        <th class="text-right w-1/6">Actions</th>
+                                        <th style="padding:0.875rem 1.25rem;font-size:0.5625rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--white-40);border-bottom:1px solid #1a1a1a">Candidate</th>
+                                        <th style="padding:0.875rem 1.25rem;font-size:0.5625rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--white-40);border-bottom:1px solid #1a1a1a">Skills</th>
+                                        <th style="padding:0.875rem 1.25rem;font-size:0.5625rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--white-40);border-bottom:1px solid #1a1a1a">Upload Date</th>
+                                        <th style="padding:0.875rem 1.25rem;font-size:0.5625rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--white-40);border-bottom:1px solid #1a1a1a">Status</th>
+                                        <th style="padding:0.875rem 1.25rem;font-size:0.5625rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--white-40);border-bottom:1px solid #1a1a1a;text-align:right">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody id="cvs-body">
@@ -357,38 +851,97 @@
                             </table>
                         </div>
                     </div>
-
-                    <!-- Auto-Conversion Feature Banner -->
-                    <div class="card p-6 border-white-10 bg-blue-500-5 flex gap-6 items-center">
-                        <div class="w-16 h-16 rounded-2xl bg-blue-600 flex items-center justify-center shrink-0 shadow-[0_0_20px_rgba(37,99,235,0.4)]">
-                            <i data-lucide="file-up" class="w-8 h-8 text-white"></i>
-                        </div>
-                        <div>
-                            <h3 class="text-xl font-bold text-white mb-1">Auto-Conversion Feature</h3>
-                            <p class="text-sm text-white-40 leading-relaxed max-w-4xl">Upload any CV format and our AI will automatically convert it into a standardized Reemo CV template. This ensures consistent presentation across all talent profiles.</p>
-                        </div>
-                    </div>
                 </div>
+
 
                 <!-- Invoices Screen -->
                  <div id="screen-invoices" class="screen-content">
-                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4 mb-8">
-                        <div>
-                            <h2 class="text-3xl font-bold tracking-tight">Invoices</h2>
-                            <p class="text-white-40 mt-1">Billing and payment tracking.</p>
+                    <div class="page-header">
+                        <div class="page-header-left">
+                            <h2>Invoices</h2>
+                            <p>Billing and payment tracking for all clients.</p>
+                        </div>
+                        <div class="page-header-actions">
+                            <button class="btn-outline">
+                                <i data-lucide="download" style="width:14px;height:14px"></i> Export
+                            </button>
+                            <button class="btn-blue">
+                                <i data-lucide="plus" style="width:14px;height:14px"></i> Create Invoice
+                            </button>
                         </div>
                     </div>
-                    <div class="card p-0 overflow-hidden">
-                        <div class="overflow-x-auto">
-                             <table class="table w-full">
+
+                    <!-- Summary stat cards -->
+                    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:0.875rem;margin-bottom:1.25rem">
+                        <div class="profile-section-card" style="display:flex;align-items:center;gap:0.875rem">
+                            <div style="width:2.25rem;height:2.25rem;border-radius:0.625rem;background:rgba(37,99,235,0.1);border:1px solid rgba(37,99,235,0.2);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+                                <i data-lucide="receipt" style="width:14px;height:14px;color:#60a5fa"></i>
+                            </div>
+                            <div>
+                                <div style="font-size:0.5625rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--white-30);margin-bottom:0.2rem">Total Revenue</div>
+                                <div style="font-size:1.25rem;font-weight:800;color:var(--white)">$35.9k</div>
+                            </div>
+                        </div>
+                        <div class="profile-section-card" style="display:flex;align-items:center;gap:0.875rem">
+                            <div style="width:2.25rem;height:2.25rem;border-radius:0.625rem;background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.2);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+                                <i data-lucide="clock" style="width:14px;height:14px;color:#fbbf24"></i>
+                            </div>
+                            <div>
+                                <div style="font-size:0.5625rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--white-30);margin-bottom:0.2rem">Outstanding</div>
+                                <div style="font-size:1.25rem;font-weight:800;color:#fbbf24">$8.4k</div>
+                            </div>
+                        </div>
+                        <div class="profile-section-card" style="display:flex;align-items:center;gap:0.875rem">
+                            <div style="width:2.25rem;height:2.25rem;border-radius:0.625rem;background:rgba(244,63,94,0.1);border:1px solid rgba(244,63,94,0.2);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+                                <i data-lucide="alert-triangle" style="width:14px;height:14px;color:#fb7185"></i>
+                            </div>
+                            <div>
+                                <div style="font-size:0.5625rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--white-30);margin-bottom:0.2rem">Overdue</div>
+                                <div style="font-size:1.25rem;font-weight:800;color:#fb7185">$15.0k</div>
+                            </div>
+                        </div>
+                        <div class="profile-section-card" style="display:flex;align-items:center;gap:0.875rem">
+                            <div style="width:2.25rem;height:2.25rem;border-radius:0.625rem;background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.2);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+                                <i data-lucide="check-circle" style="width:14px;height:14px;color:#34d399"></i>
+                            </div>
+                            <div>
+                                <div style="font-size:0.5625rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--white-30);margin-bottom:0.2rem">Paid</div>
+                                <div style="font-size:1.25rem;font-weight:800;color:#34d399">$12.5k</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Filter bar -->
+                    <div class="filter-bar">
+                        <div style="flex:1;position:relative">
+                            <i data-lucide="search" style="position:absolute;left:1rem;top:50%;transform:translateY(-50%);width:14px;height:14px;color:var(--white-30)"></i>
+                            <input type="text" id="inv-search" placeholder="Search by client or invoice ID..." class="filter-input"
+                                oninput="filterInvoicesTable(this.value, document.getElementById('inv-status-filter').value)">
+                        </div>
+                        <div class="filter-select-wrap">
+                            <select id="inv-status-filter" class="filter-select"
+                                onchange="filterInvoicesTable(document.getElementById('inv-search').value, this.value)">
+                                <option>All Statuses</option>
+                                <option>Paid</option>
+                                <option>Open</option>
+                                <option>Overdue</option>
+                            </select>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                        </div>
+                    </div>
+
+                    <div class="profile-section-card" style="padding:0;overflow:hidden">
+                        <div style="overflow-x:auto">
+                            <table class="table w-full text-left">
                                 <thead>
                                     <tr>
-                                        <th>Invoice ID</th>
-                                        <th>Client</th>
-                                        <th>Amount</th>
-                                        <th>Sent Date</th>
-                                        <th>Deadline</th>
-                                        <th>Status</th>
+                                        <th style="padding:1rem 1.25rem;font-size:0.5625rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--white-40);border-bottom:1px solid #1a1a1a">Invoice ID</th>
+                                        <th style="padding:1rem 1.25rem;font-size:0.5625rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--white-40);border-bottom:1px solid #1a1a1a">Client</th>
+                                        <th style="padding:1rem 1.25rem;font-size:0.5625rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--white-40);border-bottom:1px solid #1a1a1a">Amount</th>
+                                        <th style="padding:1rem 1.25rem;font-size:0.5625rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--white-40);border-bottom:1px solid #1a1a1a">Sent Date</th>
+                                        <th style="padding:1rem 1.25rem;font-size:0.5625rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--white-40);border-bottom:1px solid #1a1a1a">Deadline</th>
+                                        <th style="padding:1rem 1.25rem;font-size:0.5625rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--white-40);border-bottom:1px solid #1a1a1a">Status</th>
+                                        <th style="padding:1rem 1.25rem;font-size:0.5625rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--white-40);border-bottom:1px solid #1a1a1a;text-align:right;width:120px">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody id="invoices-body">
@@ -399,96 +952,350 @@
                     </div>
                 </div>
 
+
                 <!-- Dev Dashboard Screen -->
                 <div id="screen-dev-dashboard" class="screen-content">
-                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
-                        <div>
-                            <h2 class="text-3xl font-bold tracking-tight">My Dashboard</h2>
-                            <p class="text-white-40 mt-1">Welcome back. Here is your current assignment overview.</p>
+                    <!-- Header -->
+                    <div class="page-header">
+                        <div class="page-header-left">
+                            <h2>Dashboard</h2>
+                            <p>Welcome back, <strong style="color:var(--white)">Alex Rivera</strong>. Here is your current status.</p>
                         </div>
-                        <button class="btn-primary flex items-center gap-2">
-                            <i data-lucide="clock" class="w-4 h-4"></i> Log Hours
+                        <button class="btn-blue">
+                            <i data-lucide="plus" style="width:14px;height:14px"></i> Log Hours
                         </button>
                     </div>
 
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                        <div class="card border border-blue-500-20 bg-blue-500-5 relative overflow-hidden">
-                            <div class="absolute -right-6 -top-6 text-blue-500-10"><i data-lucide="briefcase" class="w-24 h-24"></i></div>
-                            <h3 class="text-sm font-bold text-white-40 uppercase tracking-wider mb-2 relative">Current Project</h3>
-                            <p class="text-2xl font-bold text-white relative">Acme Corp Redesign</p>
-                            <p class="text-sm text-blue-400 mt-2 font-medium relative">Frontend Lead</p>
-                        </div>
-                        <div class="card border border-white-5">
-                            <h3 class="text-sm font-bold text-white-40 uppercase tracking-wider mb-2">Hours logged (This week)</h3>
-                            <div class="flex items-end gap-3">
-                                <p class="text-3xl font-bold text-white">32h</p>
-                                <p class="text-sm text-white-40 mb-1">/ 40h</p>
+                    <!-- Stats row -->
+                    <div class="dev-stats-grid">
+                        <div class="dev-stat-card">
+                            <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:auto">
+                                <div style="width:2rem;height:2rem;border-radius:0.5rem;background:rgba(59,130,246,0.1);display:flex;align-items:center;justify-content:center;color:#60a5fa">
+                                    <i data-lucide="clock" style="width:14px;height:14px"></i>
+                                </div>
+                                <span class="dev-stat-badge blue">ON TRACK</span>
                             </div>
-                            <div class="h-2 w-full bg-white-5 rounded-full mt-4 overflow-hidden">
-                                <div class="h-full bg-blue-500 rounded-full" style="width: 80%"></div>
+                            <div>
+                                <div class="dev-stat-label">Hours This Week</div>
+                                <div class="dev-stat-value">38<span class="dev-stat-unit">h</span></div>
+                            </div>
+                            <div class="capacity-bar-track" style="margin-top:0.75rem">
+                                <div class="capacity-bar-fill" style="width:95%;background:#3b82f6;box-shadow:0 0 8px #3b82f688"></div>
                             </div>
                         </div>
-                        <div class="card border border-white-5">
-                            <h3 class="text-sm font-bold text-white-40 uppercase tracking-wider mb-2">Next Timesheet Due</h3>
-                            <p class="text-2xl font-bold text-white mb-1">Friday, 17:00</p>
-                            <p class="text-sm text-rose-400 font-medium">8 hours remaining to log</p>
+
+                        <div class="dev-stat-card">
+                            <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:auto">
+                                <div style="width:2rem;height:2rem;border-radius:0.5rem;background:rgba(16,185,129,0.1);display:flex;align-items:center;justify-content:center;color:#34d399">
+                                    <i data-lucide="briefcase" style="width:14px;height:14px"></i>
+                                </div>
+                                <span class="dev-stat-badge green">STABLE</span>
+                            </div>
+                            <div>
+                                <div class="dev-stat-label">Active Projects</div>
+                                <div class="dev-stat-value">2</div>
+                            </div>
+                        </div>
+
+                        <div class="dev-stat-card">
+                            <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:auto">
+                                <div style="width:2rem;height:2rem;border-radius:0.5rem;background:rgba(245,158,11,0.1);display:flex;align-items:center;justify-content:center;color:#fbbf24">
+                                    <i data-lucide="file-text" style="width:14px;height:14px"></i>
+                                </div>
+                                <span class="dev-stat-badge amber">DUE SOON</span>
+                            </div>
+                            <div>
+                                <div class="dev-stat-label">Pending Invoices</div>
+                                <div class="dev-stat-value">1</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Lower content grid -->
+                    <div class="dev-content-grid">
+                        <!-- Current Assignment -->
+                        <div class="dev-assignment-card">
+                            <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:1.25rem">
+                                <div>
+                                    <div style="font-size:0.625rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--white-40);margin-bottom:0.5rem">Current Assignment</div>
+                                    <h3 style="font-size:1.25rem;font-weight:700;color:#60a5fa;margin-bottom:0.25rem">Checkout Redesign</h3>
+                                    <div style="font-size:0.875rem;color:var(--white-40)">Acme Corp</div>
+                                </div>
+                                <span style="background:rgba(59,130,246,0.1);color:#60a5fa;font-size:0.625rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;padding:0.25rem 0.75rem;border-radius:0.375rem;border:1px solid rgba(59,130,246,0.2);white-space:nowrap">ACTIVE</span>
+                            </div>
+
+                            <p style="font-size:0.875rem;color:var(--white-50);line-height:1.7;margin-bottom:1.5rem">
+                                Leading the frontend implementation of the new checkout experience using React and Tailwind CSS. Focusing on performance and accessibility.
+                            </p>
+
+                            <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;margin-bottom:1.25rem">
+                                <div class="dev-inner-box">
+                                    <div class="dev-inner-label"><i data-lucide="calendar" style="width:10px;height:10px"></i> Period</div>
+                                    <div style="font-weight:600;font-size:0.8125rem;color:var(--white)">Jan 2024 – Jun 2024</div>
+                                </div>
+                                <div class="dev-inner-box">
+                                    <div class="dev-inner-label"><i data-lucide="clock" style="width:10px;height:10px"></i> Hours/Week</div>
+                                    <div style="font-weight:600;font-size:0.8125rem;color:var(--white)">40 Hours</div>
+                                </div>
+                            </div>
+
+                            <button class="dev-view-btn" style="margin-top:auto">View Project Details</button>
+                        </div>
+
+                        <!-- Right column -->
+                        <div style="display:flex;flex-direction:column;gap:1.5rem">
+                            <!-- Upcoming Deadlines -->
+                            <div>
+                                <div style="font-size:0.75rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--white-40);margin-bottom:0.875rem">Upcoming Deadlines</div>
+                                <div style="display:flex;flex-direction:column;gap:0.5rem">
+                                    <div class="deadline-row">
+                                        <div style="display:flex;align-items:center;gap:0.75rem">
+                                            <div style="width:0.5rem;height:0.5rem;border-radius:50%;background:#f43f5e;flex-shrink:0"></div>
+                                            <div>
+                                                <div style="font-weight:600;font-size:0.875rem;color:var(--white)">Submit Week 13 Timesheet</div>
+                                                <div style="font-size:0.75rem;color:var(--white-40);margin-top:0.15rem">Friday, Mar 31</div>
+                                            </div>
+                                        </div>
+                                        <span style="background:rgba(244,63,94,0.1);color:#f43f5e;font-size:0.625rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;padding:0.2rem 0.625rem;border-radius:0.375rem;white-space:nowrap;border:1px solid rgba(244,63,94,0.15)">HIGH</span>
+                                    </div>
+                                    <div class="deadline-row">
+                                        <div style="display:flex;align-items:center;gap:0.75rem">
+                                            <div style="width:0.5rem;height:0.5rem;border-radius:50%;background:#3b82f6;flex-shrink:0"></div>
+                                            <div>
+                                                <div style="font-weight:600;font-size:0.875rem;color:var(--white)">Project Review Meeting</div>
+                                                <div style="font-size:0.75rem;color:var(--white-40);margin-top:0.15rem">Monday, Apr 3</div>
+                                            </div>
+                                        </div>
+                                        <span style="background:rgba(59,130,246,0.1);color:#60a5fa;font-size:0.625rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;padding:0.2rem 0.625rem;border-radius:0.375rem;white-space:nowrap;border:1px solid rgba(59,130,246,0.15)">MEDIUM</span>
+                                    </div>
+                                    <div class="deadline-row">
+                                        <div style="display:flex;align-items:center;gap:0.75rem">
+                                            <div style="width:0.5rem;height:0.5rem;border-radius:50%;background:var(--white-30);flex-shrink:0"></div>
+                                            <div>
+                                                <div style="font-weight:600;font-size:0.875rem;color:var(--white)">Contract Renewal</div>
+                                                <div style="font-size:0.75rem;color:var(--white-40);margin-top:0.15rem">Wednesday, Apr 12</div>
+                                            </div>
+                                        </div>
+                                        <span style="background:rgba(255,255,255,0.05);color:var(--white-40);font-size:0.625rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;padding:0.2rem 0.625rem;border-radius:0.375rem;white-space:nowrap;border:1px solid rgba(255,255,255,0.06)">LOW</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Quick Actions -->
+                            <div>
+                                <div style="font-size:0.75rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--white-40);margin-bottom:0.875rem">Quick Actions</div>
+                                <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem">
+                                    <button class="dev-inner-box" style="cursor:pointer;text-align:left;border:none;background:#111;transition:background 0.2s" onmouseover="this.style.background='#181818'" onmouseout="this.style.background='#111'">
+                                        <div class="dev-inner-label"><i data-lucide="clock" style="width:10px;height:10px;color:#60a5fa"></i> Log Hours</div>
+                                        <div style="font-size:0.75rem;color:var(--white-60)">Submit timesheet</div>
+                                    </button>
+                                    <button class="dev-inner-box" style="cursor:pointer;text-align:left;border:none;background:#111;transition:background 0.2s" onmouseover="this.style.background='#181818'" onmouseout="this.style.background='#111'">
+                                        <div class="dev-inner-label"><i data-lucide="file-up" style="width:10px;height:10px;color:#34d399"></i> Upload CV</div>
+                                        <div style="font-size:0.75rem;color:var(--white-60)">Update CV doc</div>
+                                    </button>
+                                    <button class="dev-inner-box" style="cursor:pointer;text-align:left;border:none;background:#111;transition:background 0.2s;grid-column:span 2" onmouseover="this.style.background='#181818'" onmouseout="this.style.background='#111'">
+                                        <div class="dev-inner-label"><i data-lucide="download" style="width:10px;height:10px;color:#fbbf24"></i> Download Contract</div>
+                                        <div style="font-size:0.75rem;color:var(--white-60)">Get your current agreement</div>
+                                    </button>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
 
                 <!-- Dev Profile Screen -->
                 <div id="screen-dev-profile" class="screen-content">
-                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
-                        <div>
-                            <h2 class="text-3xl font-bold tracking-tight">My Profile</h2>
-                            <p class="text-white-40 mt-1">Manage your professional details and skills.</p>
+                    <!-- Header -->
+                    <div class="page-header">
+                        <div class="page-header-left">
+                            <h2>My Profile</h2>
+                            <p>Manage your professional information and CV.</p>
                         </div>
-                        <button class="btn-primary flex items-center gap-2">
-                            <i data-lucide="save" class="w-4 h-4"></i> Save Changes
+                        <button class="btn-outline">
+                            <i data-lucide="edit-2" style="width:14px;height:14px"></i> Edit Profile
                         </button>
                     </div>
 
-                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                        <div class="lg:col-span-1 space-y-6">
-                            <div class="card border border-white-5 flex flex-col items-center text-center p-8">
-                                <div class="w-24 h-24 rounded-full bg-blue-600 flex items-center justify-center text-4xl font-bold text-white mb-4 shadow-[0_0_20px_rgba(37,99,235,0.3)]">
-                                    TA
+                    <!-- Hero identity card -->
+                    <div class="profile-hero-card">
+                        <div class="profile-avatar">AR</div>
+                        <div style="flex:1;min-width:0">
+                            <div style="font-size:1.5rem;font-weight:800;color:var(--white);line-height:1.1">Alex Rivera</div>
+                            <div style="font-size:0.875rem;color:var(--white-50);margin-top:0.35rem">Senior Frontend Developer</div>
+                            <div style="display:flex;align-items:center;gap:0.625rem;margin-top:0.75rem;flex-wrap:wrap">
+                                <span class="dev-stat-badge blue">Senior Level</span>
+                                <span class="dev-stat-badge green" style="background:rgba(16,185,129,0.1);color:#34d399;border:1px solid rgba(16,185,129,0.15)">On Assignment</span>
+                                <span style="font-size:0.75rem;color:var(--white-40);display:flex;align-items:center;gap:0.375rem">
+                                    <i data-lucide="mail" style="width:12px;height:12px"></i> alex@reemo.io
+                                </span>
+                            </div>
+                        </div>
+                        <div class="profile-hero-stats">
+                            <div style="text-align:center">
+                                <div style="font-size:1.75rem;font-weight:800;color:var(--white)">38</div>
+                                <div style="font-size:0.625rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--white-40);margin-top:0.2rem">Hrs/Week</div>
+                            </div>
+                            <div class="profile-hero-divider"></div>
+                            <div style="text-align:center">
+                                <div style="font-size:1.75rem;font-weight:800;color:var(--white)">2</div>
+                                <div style="font-size:0.625rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--white-40);margin-top:0.2rem">Projects</div>
+                            </div>
+                            <div class="profile-hero-divider"></div>
+                            <div style="text-align:center">
+                                <div style="font-size:1.75rem;font-weight:800;color:var(--white)">$85</div>
+                                <div style="font-size:0.625rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--white-40);margin-top:0.2rem">Rate/Hr</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Content grid -->
+                    <div class="profile-grid">
+                        <!-- Left: details + CV -->
+                        <div style="display:flex;flex-direction:column;gap:1.25rem">
+                            <!-- Personal Details -->
+                            <div class="profile-section-card">
+                                <div class="profile-section-header">
+                                    <i data-lucide="user" style="width:14px;height:14px;color:#60a5fa"></i>
+                                    <span>Personal Details</span>
                                 </div>
-                                <h3 class="text-xl font-bold">Thomas Anderson</h3>
-                                <p class="text-blue-400 font-medium mt-1">Senior Frontend Developer</p>
-                                <div class="mt-6 flex flex-wrap justify-center gap-2">
-                                    <span class="px-3 py-1 rounded-full bg-white-10 text-xs font-medium border border-white-5">React</span>
-                                    <span class="px-3 py-1 rounded-full bg-white-10 text-xs font-medium border border-white-5">Node.js</span>
-                                    <span class="px-3 py-1 rounded-full bg-white-10 text-xs font-medium border border-white-5">TypeScript</span>
+                                <div class="profile-info-grid">
+                                    <div class="profile-info-item">
+                                        <div class="profile-info-label">Full Name</div>
+                                        <div class="profile-info-value">Alex Rivera</div>
+                                    </div>
+                                    <div class="profile-info-item">
+                                        <div class="profile-info-label">Role</div>
+                                        <div class="profile-info-value">Senior Frontend Developer</div>
+                                    </div>
+                                    <div class="profile-info-item">
+                                        <div class="profile-info-label">Experience Level</div>
+                                        <div class="profile-info-value">Senior</div>
+                                    </div>
+                                    <div class="profile-info-item">
+                                        <div class="profile-info-label">Availability</div>
+                                        <div class="profile-info-value">40 hrs/week</div>
+                                    </div>
+                                    <div class="profile-info-item" style="grid-column:span 2">
+                                        <div class="profile-info-label">Email</div>
+                                        <div class="profile-info-value">alex@reemo.io</div>
+                                    </div>
+                                </div>
+
+                                <!-- Skills -->
+                                <div style="margin-top:1.25rem;padding-top:1.25rem;border-top:1px solid #1e1e1e">
+                                    <div class="profile-info-label" style="margin-bottom:0.75rem">Skills</div>
+                                    <div style="display:flex;flex-wrap:wrap;gap:0.5rem">
+                                        <span class="skill-tag">React</span>
+                                        <span class="skill-tag">TypeScript</span>
+                                        <span class="skill-tag">Tailwind CSS</span>
+                                        <span class="skill-tag">Next.js</span>
+                                        <span class="skill-tag">Node.js</span>
+                                        <span class="skill-tag add-skill"><i data-lucide="plus" style="width:11px;height:11px"></i> Add Skill</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- CV Management -->
+                            <div class="profile-section-card">
+                                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.25rem">
+                                    <div class="profile-section-header" style="margin-bottom:0">
+                                        <i data-lucide="layers" style="width:14px;height:14px;color:#60a5fa"></i>
+                                        <span>CV Management</span>
+                                    </div>
+                                    <button style="font-size:0.75rem;font-weight:700;color:#60a5fa;background:rgba(59,130,246,0.08);border:1px solid rgba(59,130,246,0.2);border-radius:0.5rem;padding:0.375rem 0.75rem;cursor:pointer;display:flex;align-items:center;gap:0.35rem;transition:all 0.2s">
+                                        <i data-lucide="zap" style="width:11px;height:11px"></i> Convert to Reemo CV
+                                    </button>
+                                </div>
+
+                                <div style="display:grid;grid-template-columns:1fr 1.5fr;gap:0.875rem">
+                                    <!-- Upload zone -->
+                                    <div class="cv-upload-zone">
+                                        <i data-lucide="upload-cloud" style="width:1.5rem;height:1.5rem;color:var(--white-30);margin-bottom:0.5rem"></i>
+                                        <div style="font-weight:700;font-size:0.8125rem;color:var(--white-60)">Upload New CV</div>
+                                        <div style="font-size:0.625rem;color:var(--white-30);margin-top:0.25rem">PDF only, max 5MB</div>
+                                    </div>
+
+                                    <!-- Existing CV -->
+                                    <div class="dev-inner-box" style="display:flex;align-items:center;justify-content:space-between;gap:0.75rem">
+                                        <div style="display:flex;align-items:center;gap:0.75rem;min-width:0">
+                                            <div style="width:2.5rem;height:2.5rem;border-radius:0.625rem;background:rgba(244,63,94,0.1);border:1px solid rgba(244,63,94,0.2);display:flex;align-items:center;justify-content:center;color:#fb7185;flex-shrink:0">
+                                                <i data-lucide="file-text" style="width:1rem;height:1rem"></i>
+                                            </div>
+                                            <div style="min-width:0">
+                                                <div style="font-weight:700;font-size:0.8125rem;color:var(--white);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Alex_Rivera_CV.pdf</div>
+                                                <div style="font-size:0.6875rem;color:var(--white-40);margin-top:0.15rem">Uploaded 2 months ago</div>
+                                            </div>
+                                        </div>
+                                        <button class="client-card-btn download" title="Download">
+                                            <i data-lucide="download" style="width:13px;height:13px"></i>
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         </div>
-                        <div class="lg:col-span-2 space-y-6">
-                            <div class="card border border-white-5">
-                                <h3 class="text-lg font-bold mb-6">Personal Information</h3>
-                                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                    <div class="space-y-2">
-                                        <label class="text-xs font-bold text-white-40 uppercase tracking-widest block">Full Name</label>
-                                        <input type="text" value="Thomas Anderson" class="w-full bg-white-5 border border-white-10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-blue-500 transition-colors">
+
+                        <!-- Right: status + support -->
+                        <div style="display:flex;flex-direction:column;gap:1.25rem">
+                            <!-- Status card -->
+                            <div class="profile-section-card">
+                                <div class="profile-section-header">
+                                    <i data-lucide="activity" style="width:14px;height:14px;color:#60a5fa"></i>
+                                    <span>Availability Status</span>
+                                </div>
+
+                                <div class="dev-inner-box" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.875rem">
+                                    <div style="display:flex;align-items:center;gap:0.625rem">
+                                        <div style="width:0.5rem;height:0.5rem;border-radius:50%;background:#10b981;box-shadow:0 0 8px rgba(16,185,129,0.7)"></div>
+                                        <span style="font-weight:700;font-size:0.875rem;color:#34d399">On Assignment</span>
                                     </div>
-                                    <div class="space-y-2">
-                                        <label class="text-xs font-bold text-white-40 uppercase tracking-widest block">Email</label>
-                                        <input type="email" value="thomas@reemo.io" class="w-full bg-white-5 border border-white-10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-blue-500 transition-colors">
+                                    <button style="font-size:0.625rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--white-40);background:transparent;border:1px solid #1e1e1e;border-radius:0.375rem;padding:0.2rem 0.625rem;cursor:pointer;transition:all 0.2s">Change</button>
+                                </div>
+
+                                <p style="font-size:0.8125rem;color:var(--white-40);line-height:1.6">
+                                    Your status is <strong style="color:var(--white-60)">On Assignment</strong>. The Reemo team knows you're currently engaged and not seeking new opportunities.
+                                </p>
+
+                                <!-- Status options -->
+                                <div style="display:flex;flex-direction:column;gap:0.5rem;margin-top:1rem">
+                                    <div class="profile-status-option active">
+                                        <div style="width:0.5rem;height:0.5rem;border-radius:50%;background:#10b981;flex-shrink:0"></div>
+                                        <div style="flex:1">
+                                            <div style="font-weight:600;font-size:0.8125rem">On Assignment</div>
+                                            <div style="font-size:0.6875rem;color:var(--white-40)">Currently working on a project</div>
+                                        </div>
+                                        <div style="width:1rem;height:1rem;border-radius:50%;background:#10b981;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+                                            <i data-lucide="check" style="width:10px;height:10px;color:#000"></i>
+                                        </div>
                                     </div>
-                                    <div class="space-y-2">
-                                        <label class="text-xs font-bold text-white-40 uppercase tracking-widest block">Experience Level</label>
-                                        <select class="w-full bg-white-5 border border-white-10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-blue-500 transition-colors appearance-none">
-                                            <option>Junior</option>
-                                            <option>Medior</option>
-                                            <option selected>Senior</option>
-                                            <option>Lead</option>
-                                        </select>
+                                    <div class="profile-status-option">
+                                        <div style="width:0.5rem;height:0.5rem;border-radius:50%;background:#3b82f6;flex-shrink:0"></div>
+                                        <div style="flex:1">
+                                            <div style="font-weight:600;font-size:0.8125rem">Available</div>
+                                            <div style="font-size:0.6875rem;color:var(--white-40)">Open to new assignments</div>
+                                        </div>
                                     </div>
-                                    <div class="space-y-2">
-                                        <label class="text-xs font-bold text-white-40 uppercase tracking-widest block">Availability (Hours/Week)</label>
-                                        <input type="number" value="40" class="w-full bg-white-5 border border-white-10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-blue-500 transition-colors">
+                                    <div class="profile-status-option">
+                                        <div style="width:0.5rem;height:0.5rem;border-radius:50%;background:var(--white-30);flex-shrink:0"></div>
+                                        <div style="flex:1">
+                                            <div style="font-weight:600;font-size:0.8125rem">Unavailable</div>
+                                            <div style="font-size:0.6875rem;color:var(--white-40)">Not seeking opportunities</div>
+                                        </div>
                                     </div>
                                 </div>
+                            </div>
+
+                            <!-- Support card -->
+                            <div class="profile-support-card">
+                                <div style="width:2.5rem;height:2.5rem;border-radius:0.75rem;background:rgba(255,255,255,0.15);display:flex;align-items:center;justify-content:center;margin-bottom:1rem">
+                                    <i data-lucide="headphones" style="width:1.25rem;height:1.25rem;color:var(--white)"></i>
+                                </div>
+                                <div style="font-size:1.25rem;font-weight:800;color:var(--white);margin-bottom:0.5rem">Need Help?</div>
+                                <p style="font-size:0.8125rem;color:rgba(255,255,255,0.7);line-height:1.6;margin-bottom:1.5rem">
+                                    Questions about your profile or assignment? Our support team is here for you.
+                                </p>
+                                <button style="width:100%;background:var(--white);color:#1d4ed8;font-weight:700;font-size:0.875rem;border:none;border-radius:0.75rem;padding:0.875rem;cursor:pointer;transition:opacity 0.2s" onmouseover="this.style.opacity='0.9'" onmouseout="this.style.opacity='1'">
+                                    Contact Support
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -496,129 +1303,260 @@
 
                 <!-- Dev Timesheets Screen -->
                 <div id="screen-dev-timesheets" class="screen-content">
-                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
-                        <div>
-                            <h2 class="text-3xl font-bold tracking-tight">Timesheets</h2>
-                            <p class="text-white-40 mt-1">Log your worked hours and track approvals.</p>
+                    <div class="page-header">
+                        <div class="page-header-left">
+                            <h2>My Timesheets</h2>
+                            <p>Log worked hours and track your approval status.</p>
+                        </div>
+                        <div class="page-header-actions">
+                            <button class="btn-outline" onclick="exportDevTimesheets()">
+                                <i data-lucide="download" style="width:14px;height:14px"></i> Export
+                            </button>
                         </div>
                     </div>
 
-                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                        <div class="lg:col-span-1">
-                            <div class="card border border-white-5 sticky top-24">
-                                <h3 class="text-lg font-bold mb-6">Log New Hours</h3>
-                                <form class="space-y-4">
-                                    <div class="space-y-2">
-                                        <label class="text-xs font-bold text-white-40 uppercase tracking-widest block">Date</label>
-                                        <input type="date" class="w-full bg-white-5 border border-white-10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-blue-500 transition-colors cursor-pointer" style="color-scheme: dark;">
-                                    </div>
-                                    <div class="space-y-2">
-                                        <label class="text-xs font-bold text-white-40 uppercase tracking-widest block">Project / Client</label>
-                                        <select class="w-full bg-white-5 border border-white-10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-blue-500 transition-colors appearance-none cursor-pointer">
-                                            <option>Acme Corp Redesign</option>
-                                            <option>Internal Systems</option>
-                                        </select>
-                                    </div>
-                                    <div class="space-y-2">
-                                        <label class="text-xs font-bold text-white-40 uppercase tracking-widest block">Hours Worked</label>
-                                        <input type="number" placeholder="8" min="0.5" max="24" step="0.5" class="w-full bg-white-5 border border-white-10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-blue-500 transition-colors">
-                                    </div>
-                                    <div class="space-y-2">
-                                        <label class="text-xs font-bold text-white-40 uppercase tracking-widest block">Description</label>
-                                        <textarea rows="3" placeholder="What did you work on?" class="w-full bg-white-5 border border-white-10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-blue-500 transition-colors resize-none"></textarea>
-                                    </div>
-                                    <button type="button" class="btn-primary w-full py-3 mt-4">Submit Timesheet</button>
-                                </form>
+                    <!-- Stat strip -->
+                    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:0.875rem;margin-bottom:1.5rem">
+                        <div class="profile-section-card" style="display:flex;align-items:center;gap:0.875rem">
+                            <div style="width:2.25rem;height:2.25rem;border-radius:0.625rem;background:rgba(37,99,235,0.1);border:1px solid rgba(37,99,235,0.2);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+                                <i data-lucide="clock" style="width:14px;height:14px;color:#60a5fa"></i>
+                            </div>
+                            <div>
+                                <div style="font-size:0.5625rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--white-30);margin-bottom:0.2rem">This Week</div>
+                                <div id="dev-ts-week" style="font-size:1.25rem;font-weight:800;color:var(--white)">32h</div>
                             </div>
                         </div>
-                        <div class="lg:col-span-2">
-                            <div class="card p-0 border border-white-5 overflow-hidden">
-                                <div class="p-6 border-b border-white-5 flex justify-between items-center">
-                                    <h3 class="font-bold">Recent Entries</h3>
-                                    <span class="text-xs font-bold text-blue-400 bg-blue-500-10 px-3 py-1 rounded-full uppercase tracking-wider">This Week: 32h</span>
-                                </div>
-                                <table class="table w-full">
-                                    <thead>
-                                        <tr>
-                                            <th>Date</th>
-                                            <th>Project</th>
-                                            <th>Hours</th>
-                                            <th>Status</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        <tr class="hover:bg-white-5 transition-colors">
-                                            <td class="text-sm font-medium">Wed, Mar 20</td>
-                                            <td class="text-sm text-white-60">Acme Corp Redesign</td>
-                                            <td class="text-sm font-mono">8.0h</td>
-                                            <td><span class="status-badge status-pending">Pending</span></td>
-                                        </tr>
-                                        <tr class="hover:bg-white-5 transition-colors">
-                                            <td class="text-sm font-medium">Tue, Mar 19</td>
-                                            <td class="text-sm text-white-60">Acme Corp Redesign</td>
-                                            <td class="text-sm font-mono">8.0h</td>
-                                            <td><span class="status-badge status-approved">Approved</span></td>
-                                        </tr>
-                                        <tr class="hover:bg-white-5 transition-colors">
-                                            <td class="text-sm font-medium">Mon, Mar 18</td>
-                                            <td class="text-sm text-white-60">Acme Corp Redesign</td>
-                                            <td class="text-sm font-mono">8.0h</td>
-                                            <td><span class="status-badge status-approved">Approved</span></td>
-                                        </tr>
-                                    </tbody>
-                                </table>
+                        <div class="profile-section-card" style="display:flex;align-items:center;gap:0.875rem">
+                            <div style="width:2.25rem;height:2.25rem;border-radius:0.625rem;background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.2);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+                                <i data-lucide="check-circle" style="width:14px;height:14px;color:#34d399"></i>
                             </div>
+                            <div>
+                                <div style="font-size:0.5625rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--white-30);margin-bottom:0.2rem">Approved</div>
+                                <div id="dev-ts-approved" style="font-size:1.25rem;font-weight:800;color:#34d399">16h</div>
+                            </div>
+                        </div>
+                        <div class="profile-section-card" style="display:flex;align-items:center;gap:0.875rem">
+                            <div style="width:2.25rem;height:2.25rem;border-radius:0.625rem;background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.2);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+                                <i data-lucide="hourglass" style="width:14px;height:14px;color:#fbbf24"></i>
+                            </div>
+                            <div>
+                                <div style="font-size:0.5625rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--white-30);margin-bottom:0.2rem">Pending</div>
+                                <div id="dev-ts-pending" style="font-size:1.25rem;font-weight:800;color:#fbbf24">16h</div>
+                            </div>
+                        </div>
+                        <div class="profile-section-card" style="display:flex;align-items:center;gap:0.875rem">
+                            <div style="width:2.25rem;height:2.25rem;border-radius:0.625rem;background:rgba(99,102,241,0.1);border:1px solid rgba(99,102,241,0.2);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+                                <i data-lucide="euro" style="width:14px;height:14px;color:#a5b4fc"></i>
+                            </div>
+                            <div>
+                                <div style="font-size:0.5625rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--white-30);margin-bottom:0.2rem">This Month</div>
+                                <div id="dev-ts-earnings" style="font-size:1.25rem;font-weight:800;color:#a5b4fc">€2,720</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Main grid: form left, table right -->
+                    <div style="display:grid;grid-template-columns:340px 1fr;gap:1.25rem;align-items:start">
+
+                        <!-- Log Hours Form -->
+                        <div class="profile-section-card" style="position:sticky;top:1.5rem">
+                            <div style="font-weight:700;font-size:0.9375rem;color:var(--white);margin-bottom:1.25rem;display:flex;align-items:center;gap:0.5rem">
+                                <i data-lucide="plus-circle" style="width:16px;height:16px;color:#60a5fa"></i>
+                                Log New Hours
+                            </div>
+
+                            <div style="margin-bottom:0.875rem">
+                                <label style="display:block;font-size:0.5625rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--white-40);margin-bottom:0.4rem">Date *</label>
+                                <input id="dev-ts-date" type="date" class="filter-input" style="width:100%;color-scheme:dark">
+                            </div>
+
+                            <div style="margin-bottom:0.875rem">
+                                <label style="display:block;font-size:0.5625rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--white-40);margin-bottom:0.4rem">Project / Client *</label>
+                                <div class="filter-select-wrap" style="width:100%">
+                                    <select id="dev-ts-project" class="filter-select" style="width:100%">
+                                        <option>Acme Corp — Checkout Redesign</option>
+                                        <option>Globex — API Integration</option>
+                                        <option>Soylent Corp — Dashboard</option>
+                                        <option>Internal — R&amp;D</option>
+                                    </select>
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                                </div>
+                            </div>
+
+                            <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;margin-bottom:0.875rem">
+                                <div>
+                                    <label style="display:block;font-size:0.5625rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--white-40);margin-bottom:0.4rem">Hours *</label>
+                                    <input id="dev-ts-hours" type="number" placeholder="8" min="0.5" max="24" step="0.5" class="filter-input" style="width:100%">
+                                </div>
+                                <div>
+                                    <label style="display:block;font-size:0.5625rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--white-40);margin-bottom:0.4rem">Type</label>
+                                    <div class="filter-select-wrap" style="width:100%">
+                                        <select id="dev-ts-type" class="filter-select" style="width:100%">
+                                            <option>Regular</option>
+                                            <option>Overtime</option>
+                                            <option>On-Call</option>
+                                        </select>
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div style="margin-bottom:1.25rem">
+                                <label style="display:block;font-size:0.5625rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--white-40);margin-bottom:0.4rem">Description</label>
+                                <textarea id="dev-ts-desc" rows="3" placeholder="What did you work on?" style="width:100%;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:0.625rem;padding:0.75rem;font-size:0.875rem;color:var(--white);outline:none;resize:none;transition:border-color 0.2s;font-family:inherit" onfocus="this.style.borderColor='rgba(37,99,235,0.4)'" onblur="this.style.borderColor='rgba(255,255,255,0.08)'"></textarea>
+                            </div>
+
+                            <button onclick="submitDevTimesheet()" class="btn-blue" style="width:100%;justify-content:center;padding:0.75rem">
+                                <i data-lucide="send" style="width:14px;height:14px"></i> Submit Timesheet
+                            </button>
+                        </div>
+
+                        <!-- Recent Entries Table -->
+                        <div class="profile-section-card" style="padding:0;overflow:hidden">
+                            <div style="display:flex;justify-content:space-between;align-items:center;padding:1.25rem;border-bottom:1px solid #1a1a1a">
+                                <div style="font-weight:700;font-size:0.9375rem;color:var(--white)">Recent Entries</div>
+                                <div style="display:flex;align-items:center;gap:0.75rem">
+                                    <div style="position:relative">
+                                        <i data-lucide="search" style="position:absolute;left:0.625rem;top:50%;transform:translateY(-50%);width:12px;height:12px;color:var(--white-30)"></i>
+                                        <input id="dev-ts-search" type="text" placeholder="Search entries..." class="filter-input" style="padding-left:2rem;font-size:0.75rem;height:2rem" oninput="filterDevTimesheets(this.value)">
+                                    </div>
+                                    <div class="filter-select-wrap" style="width:auto">
+                                        <select id="dev-ts-filter" class="filter-select" style="font-size:0.75rem;height:2rem;padding:0 2rem 0 0.75rem" onchange="filterDevTimesheets(document.getElementById('dev-ts-search').value)">
+                                            <option value="">All</option>
+                                            <option value="Pending">Pending</option>
+                                            <option value="Approved">Approved</option>
+                                        </select>
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                                    </div>
+                                </div>
+                            </div>
+                            <table class="table" style="width:100%">
+                                <thead>
+                                    <tr>
+                                        <th style="padding:0.75rem 1.25rem;font-size:0.5625rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--white-40);border-bottom:1px solid #1a1a1a">Date</th>
+                                        <th style="padding:0.75rem 1.25rem;font-size:0.5625rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--white-40);border-bottom:1px solid #1a1a1a">Project</th>
+                                        <th style="padding:0.75rem 1.25rem;font-size:0.5625rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--white-40);border-bottom:1px solid #1a1a1a">Hours</th>
+                                        <th style="padding:0.75rem 1.25rem;font-size:0.5625rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--white-40);border-bottom:1px solid #1a1a1a">Type</th>
+                                        <th style="padding:0.75rem 1.25rem;font-size:0.5625rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--white-40);border-bottom:1px solid #1a1a1a">Status</th>
+                                        <th style="padding:0.75rem 1.25rem;font-size:0.5625rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--white-40);border-bottom:1px solid #1a1a1a;text-align:right">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="dev-ts-body">
+                                    <!-- Filled by JS -->
+                                </tbody>
+                            </table>
                         </div>
                     </div>
                 </div>
 
                 <!-- Dev Documents Screen -->
                 <div id="screen-dev-documents" class="screen-content">
-                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
-                        <div>
-                            <h2 class="text-3xl font-bold tracking-tight">My Documents</h2>
-                            <p class="text-white-40 mt-1">Manage your CV and legal documents.</p>
+                    <div class="page-header">
+                        <div class="page-header-left">
+                            <h2>My Documents</h2>
+                            <p>Manage your CV, contracts and legal documents.</p>
                         </div>
-                    </div>
-
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-                        <div class="card border border-white-5">
-                            <div class="flex justify-between items-start mb-6">
-                                <h3 class="text-lg font-bold">Current CV</h3>
-                                <div class="px-3 py-1 bg-emerald-500-10 text-emerald-400 font-bold text-[10px] uppercase tracking-widest rounded-md border border-emerald-500-20">Reemo Format Ready</div>
-                            </div>
-                            
-                            <div class="p-6 border border-dashed border-white-20 rounded-xl flex flex-col items-center justify-center text-center bg-white-5 mb-6 group hover:bg-white-10 transition-colors cursor-pointer">
-                                <i data-lucide="file-text" class="w-12 h-12 text-white-40 mb-3 group-hover:text-blue-400 transition-colors"></i>
-                                <p class="font-bold mb-1">Thomas_Anderson_CV.pdf</p>
-                                <p class="text-xs text-white-40">Uploaded 3 days ago • 1.2 MB</p>
-                            </div>
-
-                            <div class="flex gap-3">
-                                <button class="flex-1 bg-white-5 hover:bg-white-10 border border-white-10 py-3 rounded-xl font-medium text-sm transition-all flex justify-center items-center gap-2">
-                                    <i data-lucide="eye" class="w-4 h-4 text-white-50"></i> View
-                                </button>
-                                <button class="flex-1 bg-white-5 hover:bg-white-10 border border-white-10 py-3 rounded-xl font-medium text-sm transition-all flex justify-center items-center gap-2">
-                                    <i data-lucide="upload-cloud" class="w-4 h-4 text-white-50"></i> Replace
-                                </button>
-                            </div>
-                        </div>
-
-                        <div class="card border border-white-5 bg-gradient-to-br from-blue-900-20 to-transparent">
-                            <div class="flex gap-4 items-start mb-6">
-                                <div class="w-12 h-12 rounded-xl bg-blue-600 flex items-center justify-center shrink-0 shadow-[0_0_20px_rgba(37,99,235,0.4)]">
-                                    <i data-lucide="sparkles" class="w-6 h-6 text-white"></i>
-                                </div>
-                                <div>
-                                    <h3 class="text-lg font-bold mb-1">CV Conversion Tool</h3>
-                                    <p class="text-sm text-white-60">Reemo requires all developer profiles to standardise their layout for client proposals. Update your raw CV and let AI format it.</p>
-                                </div>
-                            </div>
-                            <button class="btn-primary w-full py-3 opacity-50 cursor-not-allowed">
-                                Convert to Reemo CV (Up to date)
+                        <div class="page-header-actions">
+                            <button class="btn-blue" onclick="triggerDocUpload()">
+                                <i data-lucide="upload" style="width:14px;height:14px"></i> Upload Document
                             </button>
                         </div>
                     </div>
+
+                    <!-- Stat strip -->
+                    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:0.875rem;margin-bottom:1.5rem">
+                        <div class="profile-section-card" style="display:flex;align-items:center;gap:0.875rem">
+                            <div style="width:2.25rem;height:2.25rem;border-radius:0.625rem;background:rgba(37,99,235,0.1);border:1px solid rgba(37,99,235,0.2);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+                                <i data-lucide="files" style="width:14px;height:14px;color:#60a5fa"></i>
+                            </div>
+                            <div>
+                                <div style="font-size:0.5625rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--white-30);margin-bottom:0.2rem">Total Files</div>
+                                <div id="doc-total" style="font-size:1.25rem;font-weight:800;color:var(--white)">4</div>
+                            </div>
+                        </div>
+                        <div class="profile-section-card" style="display:flex;align-items:center;gap:0.875rem">
+                            <div style="width:2.25rem;height:2.25rem;border-radius:0.625rem;background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.2);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+                                <i data-lucide="badge-check" style="width:14px;height:14px;color:#34d399"></i>
+                            </div>
+                            <div>
+                                <div style="font-size:0.5625rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--white-30);margin-bottom:0.2rem">CV Status</div>
+                                <div style="font-size:1.25rem;font-weight:800;color:#34d399">Reemo Ready</div>
+                            </div>
+                        </div>
+                        <div class="profile-section-card" style="display:flex;align-items:center;gap:0.875rem">
+                            <div style="width:2.25rem;height:2.25rem;border-radius:0.625rem;background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.2);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+                                <i data-lucide="file-signature" style="width:14px;height:14px;color:#fbbf24"></i>
+                            </div>
+                            <div>
+                                <div style="font-size:0.5625rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--white-30);margin-bottom:0.2rem">Contract</div>
+                                <div style="font-size:1.25rem;font-weight:800;color:#fbbf24">Active</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Main grid -->
+                    <div style="display:grid;grid-template-columns:1fr 1.6fr;gap:1.25rem;align-items:start">
+
+                        <!-- CV Card -->
+                        <div class="profile-section-card">
+                            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.25rem">
+                                <div style="font-weight:700;font-size:0.9375rem;color:var(--white)">Current CV</div>
+                                <span style="background:rgba(16,185,129,0.1);color:#34d399;border:1px solid rgba(16,185,129,0.2);padding:0.2rem 0.625rem;border-radius:0.375rem;font-size:0.5625rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em">Reemo Format</span>
+                            </div>
+
+                            <!-- File preview area -->
+                            <div onclick="downloadDevCV()" style="background:rgba(255,255,255,0.03);border:1.5px dashed rgba(255,255,255,0.12);border-radius:0.875rem;padding:2rem 1rem;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;margin-bottom:1rem;cursor:pointer;transition:all 0.2s" onmouseover="this.style.borderColor='rgba(37,99,235,0.4)';this.style.background='rgba(37,99,235,0.04)'" onmouseout="this.style.borderColor='rgba(255,255,255,0.12)';this.style.background='rgba(255,255,255,0.03)'">
+                                <div style="width:3rem;height:3rem;border-radius:0.75rem;background:rgba(37,99,235,0.1);border:1px solid rgba(37,99,235,0.2);display:flex;align-items:center;justify-content:center;margin-bottom:0.75rem">
+                                    <i data-lucide="file-text" style="width:22px;height:22px;color:#60a5fa"></i>
+                                </div>
+                                <div style="font-weight:700;font-size:0.875rem;color:var(--white);margin-bottom:0.25rem">Alex_Rivera_CV.pdf</div>
+                                <div style="font-size:0.6875rem;color:var(--white-40)">Uploaded 3 days ago &bull; 1.2 MB</div>
+                                <div style="margin-top:0.75rem;font-size:0.625rem;color:#60a5fa;font-weight:700;text-transform:uppercase;letter-spacing:0.08em">Click to download</div>
+                            </div>
+
+                            <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.625rem">
+                                <button class="btn-outline" onclick="downloadDevCV()" style="justify-content:center;font-size:0.75rem;padding:0.5rem 0.75rem">
+                                    <i data-lucide="download" style="width:13px;height:13px"></i> Download
+                                </button>
+                                <button class="btn-outline" onclick="triggerDocUpload('cv')" style="justify-content:center;font-size:0.75rem;padding:0.5rem 0.75rem">
+                                    <i data-lucide="upload-cloud" style="width:13px;height:13px"></i> Replace
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Documents List -->
+                        <div class="profile-section-card" style="padding:0;overflow:hidden">
+                            <div style="padding:1.25rem;border-bottom:1px solid #1a1a1a;display:flex;justify-content:space-between;align-items:center">
+                                <div style="font-weight:700;font-size:0.9375rem;color:var(--white)">All Documents</div>
+                                <button class="btn-outline" onclick="triggerDocUpload()" style="font-size:0.75rem;padding:0.35rem 0.75rem">
+                                    <i data-lucide="plus" style="width:12px;height:12px"></i> Add
+                                </button>
+                            </div>
+
+                            <table style="width:100%;border-collapse:collapse">
+                                <thead>
+                                    <tr>
+                                        <th style="padding:0.75rem 1.25rem;font-size:0.5625rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--white-40);border-bottom:1px solid #1a1a1a;text-align:left">File</th>
+                                        <th style="padding:0.75rem 1.25rem;font-size:0.5625rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--white-40);border-bottom:1px solid #1a1a1a;text-align:left">Type</th>
+                                        <th style="padding:0.75rem 1.25rem;font-size:0.5625rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--white-40);border-bottom:1px solid #1a1a1a;text-align:left">Date</th>
+                                        <th style="padding:0.75rem 1.25rem;font-size:0.5625rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--white-40);border-bottom:1px solid #1a1a1a;text-align:right">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="dev-docs-body">
+                                    <!-- Filled by JS -->
+                                </tbody>
+                            </table>
+
+                            <!-- Drop zone -->
+                            <div id="doc-dropzone" style="margin:1.25rem;border:1.5px dashed rgba(255,255,255,0.1);border-radius:0.875rem;padding:1.5rem;text-align:center;cursor:pointer;transition:all 0.2s" onclick="triggerDocUpload()" onmouseover="this.style.borderColor='rgba(37,99,235,0.35)';this.style.background='rgba(37,99,235,0.04)'" onmouseout="this.style.borderColor='rgba(255,255,255,0.1)';this.style.background='transparent'">
+                                <i data-lucide="upload-cloud" style="width:20px;height:20px;color:var(--white-30);margin-bottom:0.5rem"></i>
+                                <div style="font-size:0.75rem;color:var(--white-40)">Drop files here or <span style="color:#60a5fa;font-weight:700">click to upload</span></div>
+                                <div style="font-size:0.625rem;color:var(--white-30);margin-top:0.25rem">PDF, DOC, DOCX — max 10 MB</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <input type="file" id="doc-file-input" accept=".pdf,.doc,.docx" style="display:none" onchange="handleDocUpload(this)">
                 </div>
 
             </div>
@@ -626,5 +1564,153 @@
     </div>
 
     <script src="/js/script.js"></script>
+
+    <!-- ===== ONBOARD DEVELOPER MODAL ===== -->
+    <div id="modal-onboard" style="display:none;position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,0.75);backdrop-filter:blur(6px);align-items:center;justify-content:center">
+        <div style="background:#0e0e0e;border:1px solid #1e1e1e;border-radius:1.25rem;width:min(560px,95vw);max-height:90vh;overflow-y:auto;padding:2rem;box-shadow:0 32px 80px rgba(0,0,0,0.6)">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.75rem">
+                <div>
+                    <div style="font-size:1.125rem;font-weight:800;color:var(--white)">Onboard Developer</div>
+                    <div style="font-size:0.75rem;color:var(--white-40);margin-top:0.2rem">Add a new developer to your team</div>
+                </div>
+                <button onclick="closeModal('modal-onboard')" style="width:2rem;height:2rem;border-radius:50%;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:var(--white-60);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:1rem">✕</button>
+            </div>
+
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem">
+                <div>
+                    <label style="display:block;font-size:0.625rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--white-40);margin-bottom:0.4rem">First Name *</label>
+                    <input id="ob-firstname" type="text" placeholder="e.g. Alex" class="filter-input" style="width:100%">
+                </div>
+                <div>
+                    <label style="display:block;font-size:0.625rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--white-40);margin-bottom:0.4rem">Last Name *</label>
+                    <input id="ob-lastname" type="text" placeholder="e.g. Rivera" class="filter-input" style="width:100%">
+                </div>
+            </div>
+
+            <div style="margin-bottom:1rem">
+                <label style="display:block;font-size:0.625rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--white-40);margin-bottom:0.4rem">Email Address *</label>
+                <input id="ob-email" type="email" placeholder="developer@reemo.io" class="filter-input" style="width:100%">
+            </div>
+
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem">
+                <div>
+                    <label style="display:block;font-size:0.625rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--white-40);margin-bottom:0.4rem">Role / Title *</label>
+                    <div class="filter-select-wrap" style="width:100%">
+                        <select id="ob-role" class="filter-select" style="width:100%">
+                            <option>Senior Frontend</option>
+                            <option>Fullstack Engineer</option>
+                            <option>Backend Developer</option>
+                            <option>DevOps Architect</option>
+                            <option>Junior Developer</option>
+                            <option>Mobile Developer</option>
+                            <option>UI/UX Engineer</option>
+                            <option>Data Engineer</option>
+                        </select>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                    </div>
+                </div>
+                <div>
+                    <label style="display:block;font-size:0.625rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--white-40);margin-bottom:0.4rem">Hourly Rate (€/h) *</label>
+                    <input id="ob-rate" type="number" placeholder="85" min="20" max="300" class="filter-input" style="width:100%">
+                </div>
+            </div>
+
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem">
+                <div>
+                    <label style="display:block;font-size:0.625rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--white-40);margin-bottom:0.4rem">Start Date</label>
+                    <input id="ob-startdate" type="date" class="filter-input" style="width:100%">
+                </div>
+                <div>
+                    <label style="display:block;font-size:0.625rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--white-40);margin-bottom:0.4rem">LinkedIn / GitHub URL</label>
+                    <input id="ob-link" type="url" placeholder="https://linkedin.com/in/..." class="filter-input" style="width:100%">
+                </div>
+            </div>
+
+            <div style="margin-bottom:1.5rem">
+                <label style="display:block;font-size:0.625rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--white-40);margin-bottom:0.4rem">Key Skills (comma separated)</label>
+                <input id="ob-skills" type="text" placeholder="e.g. React, TypeScript, Node.js" class="filter-input" style="width:100%">
+            </div>
+
+            <div style="display:flex;gap:0.75rem;justify-content:flex-end">
+                <button onclick="closeModal('modal-onboard')" class="btn-outline">Cancel</button>
+                <button onclick="submitOnboard()" class="btn-blue">
+                    <i data-lucide="user-plus" style="width:14px;height:14px"></i> Add Developer
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== ADVANCED FILTER MODAL ===== -->
+    <div id="modal-adv-filter" style="display:none;position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,0.75);backdrop-filter:blur(6px);align-items:center;justify-content:center">
+        <div style="background:#0e0e0e;border:1px solid #1e1e1e;border-radius:1.25rem;width:min(480px,95vw);padding:2rem;box-shadow:0 32px 80px rgba(0,0,0,0.6)">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.75rem">
+                <div>
+                    <div style="font-size:1.125rem;font-weight:800;color:var(--white)">Advanced Filter</div>
+                    <div style="font-size:0.75rem;color:var(--white-40);margin-top:0.2rem">Filter developers by role, rate, and availability</div>
+                </div>
+                <button onclick="closeModal('modal-adv-filter')" style="width:2rem;height:2rem;border-radius:50%;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:var(--white-60);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:1rem">✕</button>
+            </div>
+
+            <div style="margin-bottom:1rem">
+                <label style="display:block;font-size:0.625rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--white-40);margin-bottom:0.4rem">Role</label>
+                <div class="filter-select-wrap" style="width:100%">
+                    <select id="af-role" class="filter-select" style="width:100%">
+                        <option value="">All Roles</option>
+                        <option>Senior Frontend</option>
+                        <option>Fullstack Engineer</option>
+                        <option>Backend Developer</option>
+                        <option>DevOps Architect</option>
+                        <option>Junior Developer</option>
+                    </select>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                </div>
+            </div>
+
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem">
+                <div>
+                    <label style="display:block;font-size:0.625rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--white-40);margin-bottom:0.4rem">Min Rate (€/h)</label>
+                    <input id="af-min-rate" type="number" placeholder="0" min="0" class="filter-input" style="width:100%">
+                </div>
+                <div>
+                    <label style="display:block;font-size:0.625rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--white-40);margin-bottom:0.4rem">Max Rate (€/h)</label>
+                    <input id="af-max-rate" type="number" placeholder="300" min="0" class="filter-input" style="width:100%">
+                </div>
+            </div>
+
+            <div style="margin-bottom:1rem">
+                <label style="display:block;font-size:0.625rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--white-40);margin-bottom:0.4rem">Status</label>
+                <div class="filter-select-wrap" style="width:100%">
+                    <select id="af-status" class="filter-select" style="width:100%">
+                        <option value="">All</option>
+                        <option value="available">Available</option>
+                        <option value="booked">Booked</option>
+                    </select>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                </div>
+            </div>
+
+            <div style="margin-bottom:1.5rem">
+                <label style="display:block;font-size:0.625rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--white-40);margin-bottom:0.4rem">Sort By</label>
+                <div class="filter-select-wrap" style="width:100%">
+                    <select id="af-sort" class="filter-select" style="width:100%">
+                        <option value="name">Name (A–Z)</option>
+                        <option value="rate-desc">Rate (High → Low)</option>
+                        <option value="rate-asc">Rate (Low → High)</option>
+                        <option value="hours">Hours This Week</option>
+                    </select>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                </div>
+            </div>
+
+            <div style="display:flex;gap:0.75rem;justify-content:flex-end">
+                <button onclick="resetAdvancedFilter()" class="btn-outline">Reset</button>
+                <button onclick="applyAdvancedFilter()" class="btn-blue">
+                    <i data-lucide="filter" style="width:14px;height:14px"></i> Apply Filter
+                </button>
+            </div>
+        </div>
+    </div>
+
 </body>
 </html>
+
