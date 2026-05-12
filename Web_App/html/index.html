@@ -1629,6 +1629,69 @@
         </div>
     </div>
 
+    <!-- Add Project Modal -->
+    <div id="modal-project-form" style="display:none;position:fixed;inset:0;z-index:1001;background:rgba(0,0,0,0.8);backdrop-filter:blur(6px);align-items:center;justify-content:center">
+        <div style="background:#0e0e0e;border:1px solid #1e1e1e;border-radius:1.25rem;width:min(520px,95vw);padding:2rem;box-shadow:0 32px 80px rgba(0,0,0,0.6)">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.75rem">
+                <div>
+                    <div style="font-size:1.125rem;font-weight:800;color:var(--white)">Nieuw Project</div>
+                    <div style="font-size:0.75rem;color:var(--white-40);margin-top:0.2rem">Voeg een nieuw project toe aan deze klant</div>
+                </div>
+                <button onclick="closeModal('modal-project-form')" style="width:2rem;height:2rem;border-radius:50%;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:var(--white-60);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:1rem">✕</button>
+            </div>
+            
+            <input type="hidden" id="proj-f-klant-id">
+            
+            <div style="margin-bottom:1rem">
+                <label style="display:block;font-size:0.625rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--white-40);margin-bottom:0.4rem">Projectnaam *</label>
+                <input id="proj-f-naam" type="text" placeholder="Bijv. Website Redesign" class="filter-input" style="width:100%">
+            </div>
+
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem">
+                <div>
+                    <label style="display:block;font-size:0.625rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--white-40);margin-bottom:0.4rem">Type</label>
+                    <div class="filter-select-wrap" style="width:100%">
+                        <select id="proj-f-type" class="filter-select" style="width:100%">
+                            <option value="T&M">T&M</option>
+                            <option value="Fixed">Fixed Price</option>
+                            <option value="Retainer">Retainer</option>
+                        </select>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                    </div>
+                </div>
+                <div>
+                    <label style="display:block;font-size:0.625rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--white-40);margin-bottom:0.4rem">Status</label>
+                    <div class="filter-select-wrap" style="width:100%">
+                        <select id="proj-f-status" class="filter-select" style="width:100%">
+                            <option value="Actief">Actief</option>
+                            <option value="Concept">Concept</option>
+                            <option value="Afgerond">Afgerond</option>
+                        </select>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                    </div>
+                </div>
+            </div>
+
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1.5rem">
+                <div>
+                    <label style="display:block;font-size:0.625rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--white-40);margin-bottom:0.4rem">Startdatum *</label>
+                    <input id="proj-f-start" type="date" class="filter-input" style="width:100%">
+                </div>
+                <div>
+                    <label style="display:block;font-size:0.625rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--white-40);margin-bottom:0.4rem">Einddatum</label>
+                    <input id="proj-f-eind" type="date" class="filter-input" style="width:100%">
+                </div>
+            </div>
+
+            <div style="display:flex;gap:0.75rem;justify-content:flex-end">
+                <button onclick="closeModal('modal-project-form')" class="btn-outline">Annuleren</button>
+                <button onclick="submitProjectForm(this)" class="btn-blue">
+                    <i data-lucide="check" style="width:14px;height:14px"></i> Project Aanmaken
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- ===== ADVANCED FILTER MODAL ===== -->
     <div id="modal-adv-filter" style="display:none;position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,0.75);backdrop-filter:blur(6px);align-items:center;justify-content:center">
         <div style="background:#0e0e0e;border:1px solid #1e1e1e;border-radius:1.25rem;width:min(480px,95vw);padding:2rem;box-shadow:0 32px 80px rgba(0,0,0,0.6)">

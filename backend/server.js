@@ -611,14 +611,28 @@ app.get('/api/clients/:id/developers', async (req, res) => {
 app.post('/api/clients/:id/developers', async (req, res) => {
   const { id } = req.params;
   const { developer_id, project_id } = req.body;
-  if (!developer_id || !project_id) return res.status(400).json({ ok: false, error: 'developer_id en project_id verplicht' });
+  
+  console.log('[POST /api/clients/:id/developers] Body:', req.body);
+
+  if (!developer_id || !project_id) {
+    return res.status(400).json({ ok: false, error: 'developer_id en project_id verplicht' });
+  }
+
   try {
-    const rows = await q(`
-      INSERT INTO developer_project (developer_id, project_id, startdatum)
-      VALUES ($1, $2, CURRENT_DATE) RETURNING *
-    `, [developer_id, project_id]);
-    res.json({ ok: true, data: rows[0] });
+    const devId = parseInt(developer_id);
+    const projId = parseInt(project_id);
+
+    // Using ON CONFLICT to avoid errors if already linked
+    // Removed RETURNING * as it's a composite key table without 'id'
+    await q(`
+      INSERT INTO developer_project (developer_id, project_id, start_datum)
+      VALUES ($1, $2, CURRENT_DATE)
+      ON CONFLICT (developer_id, project_id) DO NOTHING
+    `, [devId, projId]);
+
+    res.json({ ok: true, message: 'Developer gekoppeld' });
   } catch (e) {
+    console.error('[POST /api/clients/:id/developers] DB Error:', e);
     res.status(500).json({ ok: false, error: e.message });
   }
 });

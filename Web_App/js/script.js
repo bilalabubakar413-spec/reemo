@@ -1193,21 +1193,37 @@ function openAddProjectModal(klantId) {
     openModal('modal-project-form');
 }
 
-async function submitProjectForm() {
+async function submitProjectForm(btnElement) {
     const payload = {
-        klant_id:   document.getElementById('proj-f-klant-id').value,
+        klant_id:    document.getElementById('proj-f-klant-id').value,
         projectnaam: document.getElementById('proj-f-naam').value.trim(),
-        type:       document.getElementById('proj-f-type').value,
-        startdatum: document.getElementById('proj-f-start').value || null,
-        einddatum:  document.getElementById('proj-f-eind').value  || null,
+        type:        document.getElementById('proj-f-type').value,
+        status:      document.getElementById('proj-f-status').value || 'Actief',
+        startdatum:  document.getElementById('proj-f-start').value || null,
+        einddatum:   document.getElementById('proj-f-eind').value  || null,
     };
+
     if (!payload.projectnaam) { showToast('⚠ Projectnaam is verplicht.'); return; }
+    if (!payload.startdatum)  { showToast('⚠ Startdatum is verplicht.'); return; }
+
+    if (btnElement) {
+        btnElement.disabled = true;
+        btnElement.innerHTML = '<div class="spinner" style="width:12px;height:12px;border:2px solid rgba(255,255,255,0.3);border-top-color:#fff;border-radius:50%;animation:spin 1s linear infinite;display:inline-block;vertical-align:middle;margin-right:6px"></div> Aanmaken...';
+    }
+
     try {
         await apiFetch('/api/projecten', { method: 'POST', body: JSON.stringify(payload) });
         closeModal('modal-project-form');
         await openClientDetails(payload.klant_id);
         showToast(`✓ Project "${payload.projectnaam}" aangemaakt!`);
-    } catch (e) { showToast(`⚠ ${e.message}`); }
+    } catch (e) { 
+        showToast(`⚠ ${e.message}`); 
+        if (btnElement) {
+            btnElement.disabled = false;
+            btnElement.innerHTML = '<i data-lucide="check" style="width:14px;height:14px"></i> Project Aanmaken';
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+        }
+    }
 }
 
 // ── Add Factuur modal ─────────────────────────────────────────────────────────
