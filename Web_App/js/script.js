@@ -396,10 +396,81 @@ function navigateTo(targetScreenId) {
         updateDevTsStats();
         if (typeof lucide !== 'undefined') lucide.createIcons();
     }
+    if (targetScreenId === 'dev-dashboard') {
+        loadDevDashboard();
+    }
     if (targetScreenId === 'dev-documents') {
         renderDevDocuments();
         if (typeof lucide !== 'undefined') lucide.createIcons();
     }
+}
+
+async function loadDevDashboard() {
+    const devId = developers[0]?.id;
+    if (!devId) return;
+
+    const container = document.getElementById('screen-dev-dashboard');
+    if (!container) return;
+
+    try {
+        const res = await apiFetch(`/api/developers/${devId}/dashboard`);
+        renderDevDashboard(res);
+    } catch (e) {
+        console.error('Failed to load dev dashboard:', e);
+    }
+}
+
+function renderDevDashboard(data) {
+    // Update Welcome Banner
+    const welcomeText = document.querySelector('#screen-dev-dashboard .page-header-left p');
+    if (welcomeText) {
+        welcomeText.innerHTML = `Welcome back, <strong style="color:var(--white)">${data.devName}</strong>. Here is your current status.`;
+    }
+
+    // Update Stats
+    const statsCards = document.querySelectorAll('#screen-dev-dashboard .dev-stat-card');
+    if (statsCards.length >= 3) {
+        // Hours This Week
+        const hoursCard = statsCards[0];
+        const capacity = data.assignment?.weekcapaciteit || 40;
+        const hoursPct = Math.min((data.stats.hoursThisWeek / capacity) * 100, 100);
+        hoursCard.querySelector('.dev-stat-value').innerHTML = `${data.stats.hoursThisWeek}<span class="dev-stat-unit">h</span>`;
+        hoursCard.querySelector('.capacity-bar-fill').style.width = `${hoursPct}%`;
+        
+        // Active Projects
+        statsCards[1].querySelector('.dev-stat-value').textContent = data.stats.activeProjects;
+        
+        // Pending Invoices (Placeholder)
+        statsCards[2].querySelector('.dev-stat-value').textContent = data.stats.pendingInvoices;
+    }
+
+    // Update Current Assignment
+    const assignmentCard = document.querySelector('.dev-assignment-card');
+    if (assignmentCard) {
+        if (data.assignment) {
+            assignmentCard.querySelector('h3').textContent = data.assignment.projectnaam;
+            assignmentCard.querySelector('div[style*="color:var(--white-40)"]').textContent = data.assignment.klant_naam;
+            assignmentCard.querySelector('p').textContent = `Current role: ${data.assignment.rol_op_project || 'Developer'}`;
+            
+            const periodDivs = assignmentCard.querySelectorAll('.dev-inner-box div[style*="color:var(--white)"]');
+            if (periodDivs.length >= 2) {
+                const start = new Date(data.assignment.start_datum).toLocaleDateString('nl-NL', { month: 'short', year: 'numeric' });
+                periodDivs[0].textContent = `${start} – Present`;
+                periodDivs[1].textContent = `${data.assignment.weekcapaciteit || 40} Hours`;
+            }
+        } else {
+            assignmentCard.innerHTML = `
+                <div style="padding:2rem;text-align:center;color:var(--white-30)">
+                    <i data-lucide="briefcase" style="width:32px;height:32px;margin-bottom:1rem;opacity:0.2"></i>
+                    <div style="font-weight:700;color:var(--white-60)">Geen actieve opdracht</div>
+                    <div style="font-size:0.8125rem">Neem contact op met de admin voor een nieuwe toewijzing.</div>
+                </div>
+            `;
+        }
+    }
+
+    // Update Recent Timesheets (We'll add a section for this)
+    // For now, let's inject it or update the deadlines if that's what was intended
 }
 
 // --- Renderers ---

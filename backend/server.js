@@ -539,18 +539,28 @@ app.get('/api/developer-projects/:id', async (req, res) => {
 
 app.post('/api/developer-projects', async (req, res) => {
   const { developer_id, project_id, rol_op_project, startdatum, einddatum } = req.body;
+  
+  console.log('[POST /api/developer-projects] Body:', req.body);
+
   if (!developer_id || !project_id || !startdatum) {
     return res.status(400).json({ ok: false, error: 'developer_id, project_id, and startdatum are required' });
   }
+
   try {
-    const rows = await q(
-      `INSERT INTO developer_project (developer_id, project_id, rol_op_project, startdatum, einddatum)
-       VALUES ($1, $2, $3, $4, $5) RETURNING *`,
-      [developer_id, project_id, rol_op_project || 'Developer', startdatum, einddatum || null]
-    );
-    res.status(201).json({ ok: true, data: rows[0] });
+    const devId = parseInt(developer_id);
+    const projId = parseInt(project_id);
+
+    // Using ON CONFLICT to avoid errors if already linked
+    // Corrected column names to start_datum and eind_datum
+    await q(`
+      INSERT INTO developer_project (developer_id, project_id, rol_op_project, start_datum, eind_datum)
+      VALUES ($1, $2, $3, $4, $5)
+      ON CONFLICT (developer_id, project_id) DO NOTHING
+    `, [devId, projId, rol_op_project || 'Developer', startdatum, einddatum || null]);
+
+    res.status(201).json({ ok: true, message: 'Developer succesvol toegewezen' });
   } catch (e) {
-    console.error('[POST /api/developer-projects]', e.message);
+    console.error('[POST /api/developer-projects] DB Error:', e);
     res.status(500).json({ ok: false, error: e.message });
   }
 });
@@ -647,6 +657,72 @@ app.delete('/api/clients/:id/developers/:developerId', async (req, res) => {
     `, [developerId, id]);
     res.json({ ok: true });
   } catch (e) {
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
+// ==============================================================================
+//  DEVELOPER DASHBOARD  →  /api/developers/:id/dashboard
+// ==============================================================================
+app.get('/api/developers/:id/dashboard', async (req, res) => {
+  const { id } = req.params;
+  try {
+    // 1. Current Assignment (JOIN project and klant)
+    const assignment = await q(`
+      SELECT p.projectnaam, k.naam as klant_naam, dp.start_datum, dp.rol_op_project, d.weekcapaciteit
+      FROM developer_project dp
+      JOIN project p ON p.project_id = dp.project_id
+      JOIN klant k ON k.klant_id = p.klant_id
+      JOIN developer d ON d.developer_id = dp.developer_id
+      WHERE dp.developer_id = $1
+      ORDER BY dp.start_datum DESC
+      LIMIT 1
+    `, [id]);
+
+    // 2. Stats: Hours This Week
+    const hoursWeek = await q(`
+      SELECT SUM(aantal_uren) as total
+      FROM urenregistratie
+      WHERE developer_id = $1
+      AND datum >= date_trunc('week', CURRENT_DATE)
+    `, [id]);
+
+    // 3. Stats: Active Projects Count
+    const projectCount = await q(`
+      SELECT COUNT(DISTINCT project_id) as count
+      FROM developer_project
+      WHERE developer_id = $1
+    `, [id]);
+
+    // 4. Recent Timesheets (last 5)
+    const recentTimesheets = await q(`
+      SELECT u.uren_id as id, p.projectnaam, k.naam as klant_naam, u.datum, u.aantal_uren, u.status, u.omschrijving
+      FROM urenregistratie u
+      JOIN project p ON p.project_id = u.project_id
+      JOIN klant k ON k.klant_id = p.klant_id
+      WHERE u.developer_id = $1
+      ORDER BY u.datum DESC
+      LIMIT 5
+    `, [id]);
+
+    // 5. Developer Info (for welcome banner)
+    const dev = await q('SELECT naam FROM developer WHERE developer_id = $1', [id]);
+
+    res.json({
+      ok: true,
+      data: {
+        devName: dev[0]?.naam || 'Developer',
+        assignment: assignment[0] || null,
+        stats: {
+          hoursThisWeek: parseFloat(hoursWeek[0]?.total || 0),
+          activeProjects: parseInt(projectCount[0]?.count || 0),
+          pendingInvoices: 0 // Placeholder as invoices aren't directly linked to developers yet
+        },
+        recentTimesheets
+      }
+    });
+  } catch (e) {
+    console.error('[GET /api/developers/:id/dashboard] Error:', e);
     res.status(500).json({ ok: false, error: e.message });
   }
 });
