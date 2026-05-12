@@ -1,0 +1,25 @@
+Jan de Vries
+Senior Full Stack Developer
+
+Email: jan.devries@example.nl
+Telefoon: +31 6 12345678
+Uurtarief: €85/uur
+Weekcapaciteit: 40 uur
+
+Profiel
+Ervaren Full Stack Developer met 7 jaar ervaring in het bouwen van moderne webapplicaties. Gespecialiseerd in React en Node.js. Communicatief, proactief en resultaatgericht.
+
+Skills
+JavaScript, TypeScript, React, Node.js, Express, PostgreSQL, Docker, AWS, Git, REST API, Agile, Scrum
+
+Werkervaring
+2020 - heden: Senior Developer bij Tech BV
+- Bouw van microservices architectuur
+- Technisch lead voor team van 5 developers
+
+2017 - 2020: Medior Developer bij Startup Inc
+- Frontend development met React
+- Backend API development met Express
+
+Opleiding
+HBO Informatica - Hogeschool van Amsterdam (2013-2017)

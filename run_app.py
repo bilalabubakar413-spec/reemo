@@ -3,7 +3,7 @@ import socketserver
 import os
 import sys
 
-PORT = int(os.environ.get("PORT", 8080))
+PORT = int(os.environ.get("PORT", 3000))
 DIRECTORY = "Web_App"
 
 class Handler(http.server.SimpleHTTPRequestHandler):

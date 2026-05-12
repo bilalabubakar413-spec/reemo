@@ -130,7 +130,7 @@
                 <div class="logo-box-small shadow-blue">
                     <span class="font-bold text-lg">R</span>
                 </div>
-                <h1 class="font-bold text-xl tracking-tight">Reemo Admin</h1>
+                <h1 id="app-title" class="font-bold text-xl tracking-tight">Reemo Admin</h1>
             </div>
 
             <nav class="flex-1 px-4 py-4 space-y-1" id="sidebar-nav">
@@ -252,7 +252,7 @@
                     </div>
 
                     <!-- Stats Grid (filled by JS) -->
-                    <div id="dashboard-stats" style="display:grid;grid-template-columns:repeat(5,1fr);gap:0.875rem;margin-bottom:1.5rem">
+                    <div id="dashboard-stats" style="display:grid;grid-template-columns:repeat(4,1fr);gap:1rem;margin-bottom:1.5rem">
                         <!-- Filled by JS -->
                     </div>
 
@@ -268,6 +268,8 @@
                                 <div style="display:flex;align-items:center;gap:0.5rem">
                                     <div class="filter-select-wrap" style="width:auto">
                                         <select id="chart-year" class="filter-select" style="padding-right:2rem" onchange="updateRevenueChart()">
+                                            <option value="2026">2026</option>
+                                            <option value="2025">2025</option>
                                             <option value="2024">2024</option>
                                             <option value="2023">2023</option>
                                             <option value="2022">2022</option>
@@ -385,10 +387,10 @@
                             <p>Manage your active client portfolio and contracts.</p>
                         </div>
                         <div class="page-header-actions">
-                            <button class="btn-outline">
+                            <button class="btn-outline" onclick="openModal('modal-client-filter')">
                                 <i data-lucide="filter" style="width:14px;height:14px"></i> Advanced Filter
                             </button>
-                            <button class="btn-blue">
+                            <button class="btn-blue" onclick="openAddClientModal()">
                                 <i data-lucide="plus" style="width:14px;height:14px"></i> Add Client
                             </button>
                         </div>
@@ -420,206 +422,54 @@
                     <!-- Back nav -->
                     <button class="client-back-btn" id="btn-back-to-clients">
                         <i data-lucide="arrow-left" style="width:14px;height:14px"></i>
-                        Back to Clients
+                        ← Terug naar Klanten
                     </button>
 
-                    <!-- Hero header card -->
-                    <div class="client-detail-hero">
+                    <!-- Hero header card (static shell, JS fills ids) -->
+                    <div class="client-detail-hero" id="client-detail-hero">
                         <div style="display:flex;align-items:center;gap:1.25rem;flex:1;min-width:0">
-                            <div class="client-detail-logo" id="detail-client-logo">A</div>
+                            <div class="client-detail-logo" id="detail-client-logo">?</div>
                             <div style="min-width:0">
-                                <h2 style="font-size:1.625rem;font-weight:800;letter-spacing:-0.01em;color:var(--white)" id="detail-client-name">Acme Corp</h2>
-                                <p style="font-size:0.875rem;color:var(--white-40);margin-top:0.2rem" id="detail-client-industry">E-commerce • 4 Active Developers</p>
+                                <h2 style="font-size:1.625rem;font-weight:800;letter-spacing:-0.01em;color:var(--white)" id="detail-client-name">—</h2>
+                                <p style="font-size:0.875rem;color:var(--white-40);margin-top:0.2rem" id="detail-client-industry">—</p>
                             </div>
                         </div>
                         <!-- Stats strip -->
                         <div class="client-detail-stats">
                             <div class="client-detail-stat">
-                                <div class="client-detail-stat-label">Total Billed YTD</div>
-                                <div class="client-detail-stat-value">€124k</div>
+                                <div class="client-detail-stat-label">Goedgekeurde uren</div>
+                                <div class="client-detail-stat-value" id="detail-stat-hours">—</div>
                             </div>
                             <div class="client-detail-stat-sep"></div>
                             <div class="client-detail-stat">
-                                <div class="client-detail-stat-label">Pending</div>
-                                <div class="client-detail-stat-value" style="color:#fbbf24">€24.5k</div>
+                                <div class="client-detail-stat-label">Totaal omzet</div>
+                                <div class="client-detail-stat-value" id="detail-stat-billed">—</div>
+                            </div>
+                            <div class="client-detail-stat-sep"></div>
+                            <div class="client-detail-stat">
+                                <div class="client-detail-stat-label">Open facturen</div>
+                                <div class="client-detail-stat-value" style="color:#fbbf24" id="detail-stat-pending">—</div>
                             </div>
                             <div class="client-detail-stat-sep"></div>
                             <div class="client-detail-stat">
                                 <div class="client-detail-stat-label">Developers</div>
-                                <div class="client-detail-stat-value">4</div>
+                                <div class="client-detail-stat-value" id="detail-stat-devs">—</div>
                             </div>
                         </div>
-                        <!-- Action buttons -->
+                        <!-- Edit button -->
                         <div style="display:flex;align-items:center;gap:0.625rem;flex-shrink:0">
-                            <button class="client-card-btn upload" title="Upload Logo" style="width:2.25rem;height:2.25rem">
-                                <i data-lucide="image" style="width:14px;height:14px"></i>
-                            </button>
-                            <button class="btn-outline" style="white-space:nowrap">
-                                <i data-lucide="file-plus" style="width:14px;height:14px"></i> Add File
-                            </button>
-                            <button class="btn-blue" style="white-space:nowrap">
-                                <i data-lucide="send" style="width:14px;height:14px"></i> Send Invoice
+                            <button class="btn-outline" id="btn-edit-client-detail" onclick="toggleClientDetailEdit()">
+                                <i data-lucide="pencil" style="width:14px;height:14px"></i> Bewerken
                             </button>
                         </div>
                     </div>
 
-                    <!-- Content grid -->
-                    <div class="client-detail-grid">
-                        <!-- Left column -->
-                        <div style="display:flex;flex-direction:column;gap:1.25rem">
-                            <!-- Financial metrics -->
-                            <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.875rem">
-                                <div class="profile-section-card" style="background:linear-gradient(135deg,rgba(37,99,235,0.06) 0%,rgba(37,99,235,0.02) 100%);border-color:rgba(37,99,235,0.15)">
-                                    <div class="profile-info-label" style="display:flex;align-items:center;gap:0.35rem;margin-bottom:0.75rem">
-                                        <i data-lucide="trending-up" style="width:10px;height:10px;color:#60a5fa"></i> Total Billed YTD
-                                    </div>
-                                    <div style="font-size:2rem;font-weight:800;color:var(--white);line-height:1">€124k</div>
-                                    <div style="font-size:0.6875rem;color:var(--white-30);margin-top:0.5rem">Since Jan 2024</div>
-                                </div>
-                                <div class="profile-section-card" style="background:linear-gradient(135deg,rgba(245,158,11,0.06) 0%,rgba(245,158,11,0.02) 100%);border-color:rgba(245,158,11,0.15)">
-                                    <div class="profile-info-label" style="display:flex;align-items:center;gap:0.35rem;margin-bottom:0.75rem">
-                                        <i data-lucide="alert-circle" style="width:10px;height:10px;color:#fbbf24"></i> Pending Payments
-                                    </div>
-                                    <div style="font-size:2rem;font-weight:800;color:#fbbf24;line-height:1">€24.5k</div>
-                                    <div style="font-size:0.6875rem;color:rgba(251,191,36,0.5);margin-top:0.5rem">2 open invoices</div>
-                                </div>
-                            </div>
-
-                            <!-- Developers table -->
-                            <div class="profile-section-card">
-                                <div class="profile-section-header">
-                                    <i data-lucide="users" style="width:14px;height:14px;color:#60a5fa"></i>
-                                    Active Assigned Developers
-                                </div>
-                                <div style="display:flex;flex-direction:column;gap:0.5rem">
-                                    <div class="client-dev-row">
-                                        <div style="display:flex;align-items:center;gap:0.75rem;flex:1">
-                                            <div class="dev-avatar male">AR</div>
-                                            <div>
-                                                <div style="font-weight:700;font-size:0.875rem;color:var(--white)">Alex Rivera</div>
-                                                <div style="font-size:0.6875rem;color:var(--white-40)">Frontend Lead</div>
-                                            </div>
-                                        </div>
-                                        <div style="text-align:center">
-                                            <div style="font-size:0.625rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--white-30);margin-bottom:0.2rem">Hrs/Month</div>
-                                            <div style="font-weight:700;font-size:0.875rem;color:var(--white);font-family:monospace">160h</div>
-                                        </div>
-                                        <span class="status-badge status-approved">On Track</span>
-                                    </div>
-                                    <div class="client-dev-row">
-                                        <div style="display:flex;align-items:center;gap:0.75rem;flex:1">
-                                            <div class="dev-avatar female">SC</div>
-                                            <div>
-                                                <div style="font-weight:700;font-size:0.875rem;color:var(--white)">Sarah Chen</div>
-                                                <div style="font-size:0.6875rem;color:var(--white-40)">Backend Developer</div>
-                                            </div>
-                                        </div>
-                                        <div style="text-align:center">
-                                            <div style="font-size:0.625rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--white-30);margin-bottom:0.2rem">Hrs/Month</div>
-                                            <div style="font-weight:700;font-size:0.875rem;color:var(--white);font-family:monospace">120h</div>
-                                        </div>
-                                        <span class="status-badge status-approved">On Track</span>
-                                    </div>
-                                    <button class="dev-view-btn" style="margin-top:0.5rem">
-                                        <i data-lucide="user-plus" style="width:12px;height:12px;display:inline;margin-right:0.375rem"></i>
-                                        Assign Developer
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Right sidebar -->
-                        <div style="display:flex;flex-direction:column;gap:1.25rem">
-                            <!-- Documents -->
-                            <div class="profile-section-card">
-                                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.25rem">
-                                    <div class="profile-section-header" style="margin-bottom:0">
-                                        <i data-lucide="folder" style="width:14px;height:14px;color:#60a5fa"></i>
-                                        Documents
-                                    </div>
-                                    <button style="font-size:0.625rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#60a5fa;background:rgba(37,99,235,0.08);border:1px solid rgba(37,99,235,0.2);border-radius:0.375rem;padding:0.2rem 0.625rem;cursor:pointer">Upload</button>
-                                </div>
-                                <div style="display:flex;flex-direction:column;gap:0.5rem">
-                                    <div class="client-doc-row">
-                                        <div style="display:flex;align-items:center;gap:0.625rem;flex:1;min-width:0">
-                                            <div style="width:2rem;height:2rem;border-radius:0.5rem;background:rgba(37,99,235,0.1);border:1px solid rgba(37,99,235,0.2);display:flex;align-items:center;justify-content:center;flex-shrink:0">
-                                                <i data-lucide="file-check" style="width:13px;height:13px;color:#60a5fa"></i>
-                                            </div>
-                                            <div style="min-width:0">
-                                                <div style="font-weight:600;font-size:0.8125rem;color:var(--white);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Master Services Agreement</div>
-                                                <div style="font-size:0.625rem;color:var(--white-30);margin-top:0.1rem">Signed 14 Jan 2024</div>
-                                            </div>
-                                        </div>
-                                        <button class="client-card-btn download" title="Download">
-                                            <i data-lucide="download" style="width:12px;height:12px"></i>
-                                        </button>
-                                    </div>
-                                    <div class="client-doc-row">
-                                        <div style="display:flex;align-items:center;gap:0.625rem;flex:1;min-width:0">
-                                            <div style="width:2rem;height:2rem;border-radius:0.5rem;background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.2);display:flex;align-items:center;justify-content:center;flex-shrink:0">
-                                                <i data-lucide="shield" style="width:13px;height:13px;color:#34d399"></i>
-                                            </div>
-                                            <div style="min-width:0">
-                                                <div style="font-weight:600;font-size:0.8125rem;color:var(--white);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Mutual NDA</div>
-                                                <div style="font-size:0.625rem;color:var(--white-30);margin-top:0.1rem">Signed 10 Jan 2024</div>
-                                            </div>
-                                        </div>
-                                        <button class="client-card-btn download" title="Download">
-                                            <i data-lucide="download" style="width:12px;height:12px"></i>
-                                        </button>
-                                    </div>
-                                    <div class="client-doc-row">
-                                        <div style="display:flex;align-items:center;gap:0.625rem;flex:1;min-width:0">
-                                            <div style="width:2rem;height:2rem;border-radius:0.5rem;background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.2);display:flex;align-items:center;justify-content:center;flex-shrink:0">
-                                                <i data-lucide="file-text" style="width:13px;height:13px;color:#fbbf24"></i>
-                                            </div>
-                                            <div style="min-width:0">
-                                                <div style="font-weight:600;font-size:0.8125rem;color:var(--white);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Rate Card 2024</div>
-                                                <div style="font-size:0.625rem;color:var(--white-30);margin-top:0.1rem">Updated Mar 2024</div>
-                                            </div>
-                                        </div>
-                                        <button class="client-card-btn download" title="Download">
-                                            <i data-lucide="download" style="width:12px;height:12px"></i>
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Recent Events -->
-                            <div class="profile-section-card">
-                                <div class="profile-section-header">
-                                    <i data-lucide="activity" style="width:14px;height:14px;color:#60a5fa"></i>
-                                    Recent Events
-                                </div>
-                                <div style="display:flex;flex-direction:column;gap:0">
-                                    <div class="timeline-event">
-                                        <div class="timeline-dot amber"></div>
-                                        <div class="timeline-line"></div>
-                                        <div style="flex:1">
-                                            <div style="font-weight:700;font-size:0.8125rem;color:var(--white)">Invoice INV-2024-041 Sent</div>
-                                            <div style="font-size:0.6875rem;color:var(--white-40);margin-top:0.15rem">Today at 10:45 AM</div>
-                                        </div>
-                                    </div>
-                                    <div class="timeline-event">
-                                        <div class="timeline-dot blue"></div>
-                                        <div class="timeline-line"></div>
-                                        <div style="flex:1">
-                                            <div style="font-weight:700;font-size:0.8125rem;color:var(--white)">Monthly Report Generated</div>
-                                            <div style="font-size:0.6875rem;color:var(--white-40);margin-top:0.15rem">Mar 31, 2024</div>
-                                        </div>
-                                    </div>
-                                    <div class="timeline-event" style="padding-bottom:0">
-                                        <div class="timeline-dot green"></div>
-                                        <div style="flex:1">
-                                            <div style="font-weight:700;font-size:0.8125rem;color:var(--white)">Payment Received (INV-2024-028)</div>
-                                            <div style="font-size:0.6875rem;color:var(--white-40);margin-top:0.15rem">Mar 15, 2024</div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+                    <!-- Dynamic content (all 5 blocks rendered by JS) -->
+                    <div id="client-detail-content" style="margin-top:1.25rem">
+                        <div style="padding:3rem;text-align:center;color:var(--white-40)">Laden...</div>
                     </div>
                 </div>
+
 
 
                 <!-- Developers Screen -->
@@ -658,6 +508,29 @@
                     </div>
                 </div>
 
+                <!-- Developer Detail Screen -->
+                <div id="screen-developer-details" class="screen-content">
+                    <div class="page-header" style="margin-bottom:1.5rem">
+                        <div class="page-header-left" style="display:flex;align-items:center;gap:1rem">
+                            <button onclick="navigateTo('developers')" class="btn-outline" style="padding:0.5rem;width:2.25rem;height:2.25rem;display:flex;align-items:center;justify-content:center;border-radius:0.5rem">
+                                <i data-lucide="arrow-left" style="width:16px;height:16px"></i>
+                            </button>
+                            <div>
+                                <h2 style="font-size:1.25rem;font-weight:800">Developer Profiel</h2>
+                                <p>Volledig overzicht van de developer.</p>
+                            </div>
+                        </div>
+                        <div class="page-header-actions">
+                            <button class="btn-outline" onclick="openAssignProjectModal(_currentDevId)">
+                                <i data-lucide="link" style="width:14px;height:14px"></i> Koppel aan Project
+                            </button>
+                        </div>
+                    </div>
+                    <div id="developer-detail-content">
+                        <div style="padding:3rem;text-align:center;color:var(--white-40)">Selecteer een developer om details te zien.</div>
+                    </div>
+                </div>
+
 
                 <!-- Timesheets Screen -->
                 <div id="screen-timesheets" class="screen-content">
@@ -667,10 +540,13 @@
                             <p>Centralized view of all developer work logs.</p>
                         </div>
                         <div class="page-header-actions">
+                            <button class="btn-outline" onclick="refreshTimesheetsSilent(this)">
+                                <i data-lucide="refresh-cw" style="width:14px;height:14px"></i> Vernieuwen
+                            </button>
                             <button class="btn-outline">
                                 <i data-lucide="history" style="width:14px;height:14px"></i> History
                             </button>
-                            <button class="btn-emerald" onclick="(function(){ timesheets.forEach(ts => timesheetStatuses[ts.id] = 'Approved'); renderTimesheetsTable(document.getElementById('ts-search')?.value||'', document.getElementById('ts-status-filter')?.value||''); })()">
+                            <button class="btn-emerald" onclick="approveAllTimesheets(this)">
                                 <i data-lucide="check-circle" style="width:14px;height:14px"></i> Approve All
                             </button>
                         </div>
@@ -766,10 +642,10 @@
                             <p>Central repository for all talent CVs and candidate profiles.</p>
                         </div>
                         <div class="page-header-actions">
-                            <button class="btn-outline" onclick="uploadCVFile()">
+                            <button class="btn-outline" onclick="openCVUploadModal()">
                                 <i data-lucide="upload" style="width:14px;height:14px"></i> Upload CV
                             </button>
-                            <button class="btn-blue" onclick="uploadCVFile()">
+                            <button class="btn-blue" onclick="openCVUploadModal()">
                                 <i data-lucide="plus" style="width:14px;height:14px"></i> Add Candidate
                             </button>
                         </div>
@@ -1640,6 +1516,119 @@
         </div>
     </div>
 
+    <!-- ===== CLIENT MODALS ===== -->
+    <!-- Add/Edit Client Form -->
+    <div id="modal-client-form" style="display:none;position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,0.75);backdrop-filter:blur(6px);align-items:center;justify-content:center">
+        <div style="background:#0e0e0e;border:1px solid #1e1e1e;border-radius:1.25rem;width:min(480px,95vw);padding:2rem;box-shadow:0 32px 80px rgba(0,0,0,0.6)">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.75rem">
+                <div>
+                    <div id="client-modal-title" style="font-size:1.125rem;font-weight:800;color:var(--white)">Klant Toevoegen</div>
+                </div>
+                <button onclick="closeModal('modal-client-form')" style="width:2rem;height:2rem;border-radius:50%;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:var(--white-60);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:1rem">✕</button>
+            </div>
+            
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem">
+                <div>
+                    <label style="display:block;font-size:0.625rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--white-40);margin-bottom:0.4rem">Naam *</label>
+                    <input id="client-f-naam" type="text" placeholder="Bedrijfsnaam" class="filter-input" style="width:100%">
+                </div>
+                <div>
+                    <label style="display:block;font-size:0.625rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--white-40);margin-bottom:0.4rem">Contactpersoon</label>
+                    <input id="client-f-contact" type="text" placeholder="Naam contact" class="filter-input" style="width:100%">
+                </div>
+            </div>
+            
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem">
+                <div>
+                    <label style="display:block;font-size:0.625rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--white-40);margin-bottom:0.4rem">Email</label>
+                    <input id="client-f-email" type="email" placeholder="email@bedrijf.nl" class="filter-input" style="width:100%">
+                </div>
+                <div>
+                    <label style="display:block;font-size:0.625rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--white-40);margin-bottom:0.4rem">Telefoonnummer</label>
+                    <input id="client-f-tel" type="text" placeholder="06-..." class="filter-input" style="width:100%">
+                </div>
+            </div>
+            
+            <div style="margin-bottom:1.5rem">
+                <label style="display:block;font-size:0.625rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--white-40);margin-bottom:0.4rem">Sector</label>
+                <input id="client-f-sector" type="text" placeholder="Bijv. Technologie, Zorg, Finance" class="filter-input" style="width:100%">
+            </div>
+
+            <div style="display:flex;gap:0.75rem;justify-content:flex-end">
+                <button onclick="closeModal('modal-client-form')" class="btn-outline">Annuleren</button>
+                <button onclick="submitClientForm(this)" class="btn-blue">
+                    <i data-lucide="save" style="width:14px;height:14px"></i> Opslaan
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Client Advanced Filter -->
+    <div id="modal-client-filter" style="display:none;position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,0.75);backdrop-filter:blur(6px);align-items:center;justify-content:center">
+        <div style="background:#0e0e0e;border:1px solid #1e1e1e;border-radius:1.25rem;width:min(480px,95vw);padding:2rem;box-shadow:0 32px 80px rgba(0,0,0,0.6)">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.75rem">
+                <div>
+                    <div style="font-size:1.125rem;font-weight:800;color:var(--white)">Klanten Filteren</div>
+                    <div style="font-size:0.75rem;color:var(--white-40);margin-top:0.2rem">Filter op sector</div>
+                </div>
+                <button onclick="closeModal('modal-client-filter')" style="width:2rem;height:2rem;border-radius:50%;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:var(--white-60);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:1rem">✕</button>
+            </div>
+
+            <div style="margin-bottom:1.5rem">
+                <label style="display:block;font-size:0.625rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--white-40);margin-bottom:0.4rem">Sector</label>
+                <div class="filter-select-wrap" style="width:100%">
+                    <select id="cf-sector" class="filter-select" style="width:100%">
+                        <option value="">Alle sectoren</option>
+                        <!-- Options injected by JS -->
+                    </select>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                </div>
+            </div>
+
+            <div style="display:flex;gap:0.75rem;justify-content:flex-end">
+                <button onclick="resetClientFilter()" class="btn-outline">Reset filter</button>
+                <button onclick="applyClientFilter()" class="btn-blue">Toepassen</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Developer to Client Modal -->
+    <div id="modal-add-dev-to-client" style="display:none;position:fixed;inset:0;z-index:1001;background:rgba(0,0,0,0.8);backdrop-filter:blur(6px);align-items:center;justify-content:center">
+        <div style="background:#0e0e0e;border:1px solid #1e1e1e;border-radius:1.25rem;width:min(520px,95vw);padding:2rem;box-shadow:0 32px 80px rgba(0,0,0,0.6)">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem">
+                <div>
+                    <div style="font-size:1.125rem;font-weight:800;color:var(--white)">Developer Toevoegen</div>
+                    <div style="font-size:0.75rem;color:var(--white-40);margin-top:0.2rem">Koppel een developer aan een project van deze klant</div>
+                </div>
+                <button onclick="closeModal('modal-add-dev-to-client')" style="width:2rem;height:2rem;border-radius:50%;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:var(--white-60);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:1rem">✕</button>
+            </div>
+            <div style="margin-bottom:1rem">
+                <label style="display:block;font-size:0.625rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--white-40);margin-bottom:0.4rem">Developer *</label>
+                <div class="filter-select-wrap" style="width:100%">
+                    <select id="add-dev-select" class="filter-select" style="width:100%">
+                        <option value="">— Selecteer developer —</option>
+                    </select>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                </div>
+            </div>
+            <div style="margin-bottom:1.5rem">
+                <label style="display:block;font-size:0.625rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--white-40);margin-bottom:0.4rem">Project *</label>
+                <div class="filter-select-wrap" style="width:100%">
+                    <select id="add-dev-project-select" class="filter-select" style="width:100%">
+                        <option value="">— Selecteer project —</option>
+                    </select>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                </div>
+            </div>
+            <div style="display:flex;gap:0.75rem;justify-content:flex-end">
+                <button onclick="closeModal('modal-add-dev-to-client')" class="btn-outline">Annuleren</button>
+                <button onclick="submitAddDevToClient(this)" class="btn-blue" id="add-dev-submit-btn">
+                    <i data-lucide="user-plus" style="width:14px;height:14px"></i> Koppelen
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- ===== ADVANCED FILTER MODAL ===== -->
     <div id="modal-adv-filter" style="display:none;position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,0.75);backdrop-filter:blur(6px);align-items:center;justify-content:center">
         <div style="background:#0e0e0e;border:1px solid #1e1e1e;border-radius:1.25rem;width:min(480px,95vw);padding:2rem;box-shadow:0 32px 80px rgba(0,0,0,0.6)">
@@ -1710,6 +1699,183 @@
             </div>
         </div>
     </div>
+
+<!-- =================== CV UPLOAD MODAL =================== -->
+<div id="modal-cv-upload" class="modal-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);backdrop-filter:blur(6px);z-index:9999;align-items:center;justify-content:center;padding:1rem">
+  <div style="background:#0a0a0a;border:1px solid #1e1e1e;border-radius:1.25rem;width:100%;max-width:740px;max-height:92vh;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 30px 60px -15px rgba(0,0,0,0.6)">
+
+    <!-- Header -->
+    <div style="padding:1.5rem 1.75rem;border-bottom:1px solid #1a1a1a;display:flex;justify-content:space-between;align-items:center;flex-shrink:0">
+      <div style="display:flex;align-items:center;gap:0.75rem">
+        <div style="width:2.25rem;height:2.25rem;border-radius:0.625rem;background:rgba(37,99,235,0.1);border:1px solid rgba(37,99,235,0.2);display:flex;align-items:center;justify-content:center">
+          <i data-lucide="file-text" style="width:16px;height:16px;color:#60a5fa"></i>
+        </div>
+        <div>
+          <h3 style="font-size:1rem;font-weight:800;color:#fff;margin:0">CV Uploaden & Analyseren</h3>
+          <p style="font-size:0.75rem;color:rgba(255,255,255,0.4);margin:0">PDF of Word – velden worden automatisch ingevuld</p>
+        </div>
+      </div>
+      <button onclick="closeModal('modal-cv-upload')" style="width:2rem;height:2rem;border-radius:50%;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.08);color:rgba(255,255,255,0.5);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:1.1rem;transition:all 0.15s" onmouseover="this.style.background='rgba(239,68,68,0.15)'" onmouseout="this.style.background='rgba(255,255,255,0.06)'">✕</button>
+    </div>
+
+    <!-- Scrollable body -->
+    <div style="overflow-y:auto;flex:1;padding:1.5rem 1.75rem;display:flex;flex-direction:column;gap:1.25rem">
+
+      <!-- Drop zone -->
+      <div id="cv-upload-zone"
+           ondragover="event.preventDefault()"
+           ondrop="handleCVDrop(event)"
+           onclick="document.getElementById('cv-file-input').click()"
+           style="border:2px dashed rgba(37,99,235,0.35);border-radius:1rem;padding:2.5rem 2rem;text-align:center;cursor:pointer;transition:all 0.2s;background:rgba(37,99,235,0.03)"
+           onmouseover="this.style.borderColor='rgba(37,99,235,0.7)';this.style.background='rgba(37,99,235,0.07)'"
+           onmouseout="this.style.borderColor='rgba(37,99,235,0.35)';this.style.background='rgba(37,99,235,0.03)'">
+        <div style="width:3rem;height:3rem;border-radius:1rem;background:rgba(37,99,235,0.1);border:1px solid rgba(37,99,235,0.2);display:flex;align-items:center;justify-content:center;margin:0 auto 1rem">
+          <i data-lucide="upload-cloud" style="width:22px;height:22px;color:#60a5fa"></i>
+        </div>
+        <div style="font-weight:700;color:#fff;margin-bottom:0.375rem">Sleep een CV hierheen of klik om te kiezen</div>
+        <div style="font-size:0.8125rem;color:rgba(255,255,255,0.35)">Ondersteund: PDF, Word (.docx), TXT • Max 10MB</div>
+        <input type="file" id="cv-file-input" accept=".pdf,.doc,.docx,.txt" style="display:none" onchange="handleCVFileSelect(this.files[0])">
+      </div>
+
+      <!-- Parsing spinner -->
+      <div id="cv-parsing" style="display:none;text-align:center;padding:2rem">
+        <div style="width:2.5rem;height:2.5rem;border:3px solid rgba(37,99,235,0.15);border-top-color:#3b82f6;border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto 1rem"></div>
+        <div id="cv-parsing-msg" style="color:rgba(255,255,255,0.6);font-size:0.875rem">CV wordt geanalyseerd...</div>
+      </div>
+
+      <!-- Parse error -->
+      <div id="cv-parse-error" style="display:none;background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.2);border-radius:0.75rem;padding:1rem 1.25rem;display:flex;gap:0.75rem;align-items:flex-start">
+        <i data-lucide="alert-circle" style="width:16px;height:16px;color:#f87171;flex-shrink:0;margin-top:2px"></i>
+        <div>
+          <div style="font-weight:700;color:#f87171;margin-bottom:0.25rem">Fout bij het analyseren</div>
+          <div id="cv-parse-error-msg" style="font-size:0.8125rem;color:rgba(255,255,255,0.5)"></div>
+        </div>
+      </div>
+
+      <!-- Parse result — editable form -->
+      <div id="cv-parse-result" style="display:none">
+        <!-- File tag -->
+        <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:1rem;padding:0.625rem 0.875rem;background:rgba(16,185,129,0.06);border:1px solid rgba(16,185,129,0.15);border-radius:0.625rem">
+          <i data-lucide="check-circle-2" style="width:14px;height:14px;color:#34d399;flex-shrink:0"></i>
+          <span style="font-size:0.75rem;font-weight:700;color:#34d399">CV geanalyseerd:</span>
+          <span id="cv-filename-tag" style="font-size:0.75rem;color:rgba(255,255,255,0.5)"></span>
+          <button onclick="resetCVUpload()" style="margin-left:auto;font-size:0.6875rem;color:rgba(255,255,255,0.35);background:none;border:none;cursor:pointer;padding:0">↩ Opnieuw uploaden</button>
+        </div>
+
+        <!-- Grid: row 1 — name + role -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;margin-bottom:0.75rem">
+          <div>
+            <label style="display:block;font-size:0.5625rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:rgba(255,255,255,0.4);margin-bottom:0.4rem">Naam *</label>
+            <input id="cv-r-name" type="text" class="filter-input" placeholder="Volledige naam" style="width:100%">
+          </div>
+          <div>
+            <label style="display:block;font-size:0.5625rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:rgba(255,255,255,0.4);margin-bottom:0.4rem">Rol / Functie</label>
+            <input id="cv-r-role" type="text" class="filter-input" placeholder="bijv. Senior Developer" style="width:100%">
+          </div>
+        </div>
+
+        <!-- Grid: row 2 — email + phone -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;margin-bottom:0.75rem">
+          <div>
+            <label style="display:block;font-size:0.5625rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:rgba(255,255,255,0.4);margin-bottom:0.4rem">E-mailadres *</label>
+            <input id="cv-r-email" type="email" class="filter-input" placeholder="naam@domein.nl" style="width:100%">
+          </div>
+          <div>
+            <label style="display:block;font-size:0.5625rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:rgba(255,255,255,0.4);margin-bottom:0.4rem">Telefoon</label>
+            <input id="cv-r-phone" type="text" class="filter-input" placeholder="+31 6 12345678" style="width:100%">
+          </div>
+        </div>
+
+        <!-- Grid: row 3 — rate + weekcap -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;margin-bottom:0.75rem">
+          <div>
+            <label style="display:block;font-size:0.5625rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:rgba(255,255,255,0.4);margin-bottom:0.4rem">Uurtarief (€)</label>
+            <input id="cv-r-rate" type="number" min="0" max="999" class="filter-input" placeholder="bijv. 85" style="width:100%">
+          </div>
+          <div>
+            <label style="display:block;font-size:0.5625rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:rgba(255,255,255,0.4);margin-bottom:0.4rem">Weekcapaciteit (uur)</label>
+            <input id="cv-r-weekcap" type="number" min="1" max="60" class="filter-input" placeholder="40" value="40" style="width:100%">
+          </div>
+        </div>
+
+        <!-- Skills -->
+        <div style="margin-bottom:0.75rem">
+          <label style="display:block;font-size:0.5625rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:rgba(255,255,255,0.4);margin-bottom:0.4rem">Skills <span style="font-weight:400;opacity:0.5">(klik om te verwijderen)</span></label>
+          <div id="cv-r-skills" style="display:flex;flex-wrap:wrap;gap:0.375rem;min-height:2rem"></div>
+          <div style="display:flex;gap:0.5rem;margin-top:0.5rem">
+            <input id="cv-r-skill-new" type="text" class="filter-input" placeholder="Skill toevoegen..." style="flex:1" onkeydown="if(event.key==='Enter'){event.preventDefault();addCVSkillFromInput()}">
+            <button onclick="addCVSkillFromInput()" class="btn-outline" style="padding:0.4rem 0.75rem;font-size:0.75rem">+ Toevoegen</button>
+          </div>
+        </div>
+
+        <!-- Summary -->
+        <div id="cv-summary-wrap" style="margin-bottom:0.75rem">
+          <label style="display:block;font-size:0.5625rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:rgba(255,255,255,0.4);margin-bottom:0.4rem">Samenvatting</label>
+          <textarea id="cv-r-summary" class="filter-input" rows="3" placeholder="Professionele samenvatting..." style="width:100%;resize:vertical;font-family:inherit"></textarea>
+        </div>
+
+        <!-- Experience (hidden, used internally) -->
+        <input type="hidden" id="cv-r-exp">
+
+        <!-- Save buttons -->
+        <div style="display:flex;gap:0.75rem;padding-top:0.75rem;border-top:1px solid #1a1a1a">
+          <button onclick="saveParsedCV()" class="btn-blue" style="flex:1;justify-content:center;gap:0.5rem;display:flex;align-items:center">
+            <i data-lucide="user-plus" style="width:15px;height:15px"></i>
+            Opslaan als Developer
+          </button>
+          <button onclick="saveParsedCVDatabase()" class="btn-outline" style="flex:1;justify-content:center;gap:0.5rem;display:flex;align-items:center">
+            <i data-lucide="database" style="width:15px;height:15px"></i>
+            Alleen in CV Database
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- Assign Project Modal -->
+<div id="modal-assign-project" class="modal-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.8);backdrop-filter:blur(4px);z-index:9999;align-items:center;justify-content:center">
+    <div class="modal-card" style="background:#0a0a0a;border:1px solid #1e1e1e;border-radius:1rem;width:100%;max-width:500px;overflow:hidden;box-shadow:0 25px 50px -12px rgba(0,0,0,0.5)">
+        <div style="padding:1.5rem;border-bottom:1px solid #1e1e1e;display:flex;justify-content:space-between;align-items:center">
+            <h3 style="font-size:1.125rem;font-weight:800;color:var(--white)">Koppel Developer aan Project</h3>
+            <button onclick="closeModal('modal-assign-project')" style="width:2rem;height:2rem;border-radius:50%;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:var(--white-60);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:1rem">✕</button>
+        </div>
+        <div style="padding:1.5rem;display:flex;flex-direction:column;gap:1rem">
+            <input type="hidden" id="assign-dev-id">
+            <div>
+                <label style="display:block;font-size:0.5625rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--white-40);margin-bottom:0.5rem">Project *</label>
+                <div class="filter-select-wrap" style="width:100%">
+                    <select id="assign-project-id" class="filter-select" style="width:100%">
+                        <option value="">Selecteer project...</option>
+                    </select>
+                </div>
+            </div>
+            <div>
+                <label style="display:block;font-size:0.5625rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--white-40);margin-bottom:0.5rem">Rol op project</label>
+                <input type="text" id="assign-project-role" class="filter-input" placeholder="bijv. Senior Developer" style="width:100%">
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem">
+                <div>
+                    <label style="display:block;font-size:0.5625rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--white-40);margin-bottom:0.5rem">Startdatum *</label>
+                    <input type="date" id="assign-project-start" class="filter-input" style="width:100%">
+                </div>
+                <div>
+                    <label style="display:block;font-size:0.5625rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--white-40);margin-bottom:0.5rem">Einddatum</label>
+                    <input type="date" id="assign-project-end" class="filter-input" style="width:100%">
+                </div>
+            </div>
+            <div style="display:flex;justify-content:flex-end;gap:0.75rem">
+                <button class="btn-outline" onclick="closeModal('modal-assign-project')">Annuleren</button>
+                <button class="btn-blue" onclick="submitAssignProject()"><i data-lucide="check" style="width:14px;height:14px"></i> Toewijzen</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+@keyframes spin { to { transform: rotate(360deg); } }
+</style>
 
 </body>
 </html>
