@@ -17,6 +17,7 @@ let invoices   = [];
 var _cvParsedSkills  = [];
 var _cvSavedFilename = null;
 var _cvOriginalName  = null;
+var _cvFile          = null; // Added to store the actual File object
 
 // ── Seed fallbacks (used when API is unreachable) ─────────────────────────────
 const _DEF_CLIENTS = [
@@ -1399,9 +1400,10 @@ function renderDevelopersGrid() {
                     <button class="client-card-btn" style="flex-shrink:0" title="Assign to Project" onclick="openAssignProjectModal('${dev.id}')">
                         <i data-lucide="link" style="width:13px;height:13px;color:#60a5fa"></i>
                     </button>
-                    <button class="client-card-btn" style="flex-shrink:0" title="View CV">
-                        <i data-lucide="file-text" style="width:13px;height:13px"></i>
-                    </button>
+                    ${dev.cv_url ? `
+                    <button class="client-card-btn" style="flex-shrink:0" title="Bekijk CV" onclick="viewDeveloperCV('${dev.id}')">
+                        <i data-lucide="file-text" style="width:13px;height:13px;color:#34d399"></i>
+                    </button>` : ''}
                 </div>
             </div>
 
@@ -1779,6 +1781,20 @@ function downloadCV(cvId) {
         a.href = url; a.download = `CV_${name.replace(/\s+/g,'_')}.txt`;
         a.click(); URL.revokeObjectURL(url);
         showToast('⚠ Origineel bestand niet gevonden — download als tijdelijk .txt bestand.');
+    }
+}
+
+async function viewDeveloperCV(devId) {
+    try {
+        const data = await apiFetch(`/api/developers/${devId}/cv-url`);
+        if (data && data.url) {
+            window.open(data.url, '_blank');
+        } else {
+            showToast('⚠ CV niet beschikbaar');
+        }
+    } catch (e) {
+        console.error('Fout bij ophalen CV:', e);
+        showToast('⚠ CV niet beschikbaar');
     }
 }
 
@@ -2747,6 +2763,7 @@ function handleCVFileSelect(file) {
         showToast('⚠ Alleen PDF, Word of TXT bestanden zijn toegestaan.');
         return;
     }
+    _cvFile = file; // Store for later upload
     uploadAndParseCV(file);
 }
 
@@ -2900,7 +2917,9 @@ async function saveParsedCV() {
                 method: 'POST',
                 body: JSON.stringify({
                     naam, email, rol, type: 'ZZP',
-                    uurtarief: rate, weekcapaciteit: weekcap
+                    uurtarief: rate, weekcapaciteit: weekcap,
+                    savedFilename: _cvSavedFilename,
+                    originalName:  _cvOriginalName
                 })
             });
         } catch (apiErr) {
@@ -2931,6 +2950,48 @@ async function saveParsedCV() {
         }
 
         const wasUpdated = result?.upserted === true;
+        const developer_id = result?.data?.developer_id;
+
+        console.log('1. Opslaan gestart');
+        console.log('2. Developer aangemaakt, id:', developer_id);
+        console.log('3. CV bestand beschikbaar:', !!_cvFile);
+
+        // NEW: Upload file directly to Supabase Storage via memory storage endpoint
+        if (_cvFile && developer_id) {
+            console.log('4. Upload gestart naar Storage');
+            const formData = new FormData();
+            formData.append('file', _cvFile);
+            formData.append('bucket', 'cvs');
+            formData.append('developer_id', developer_id);
+
+            try {
+                const storageRes = await fetch('/api/storage/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+                const storageJson = await storageRes.json();
+                console.log('5. Upload resultaat:', storageJson);
+
+                if (storageJson.ok) {
+                    // Update cv_url in database
+                    await fetch(`/api/developers/${developer_id}`, {
+                        method: 'PATCH',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({ cv_url: storageJson.data.filePath })
+                    });
+                    showToast('CV succesvol geüpload!', 'success');
+                } else {
+                    console.error('Upload mislukt:', storageJson.error);
+                    showToast('Developer opgeslagen maar CV upload mislukt', 'warning');
+                }
+            } catch (storageErr) {
+                console.error('Netwerkfout bij storage upload:', storageErr);
+                showToast('Fout bij verbinden met storage', 'error');
+            }
+        }
+        
+        // Reset state
+        _cvFile = null;
 
         // Also save/update in local CV database list
         const existingIdx = cvs.findIndex(c => c.email === email);

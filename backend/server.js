@@ -1,10 +1,13 @@
 const express  = require('express');
 const path     = require('path');
+require('dotenv').config({ path: path.join(__dirname, '.env') });
 const pool     = require('./db');
 const multer   = require('multer');
 const pdfjsLib = require('pdfjs-dist/legacy/build/pdf.mjs');
 const mammoth  = require('mammoth');
 const { parseCV } = require('./cvParser');
+const supabase = require('./supabaseClient'); // Uses service role key if available
+const supabaseAdmin = supabase; // Unified client for storage operations
 
 const app  = express();
 const PORT = process.env.PORT || 3000;
@@ -25,12 +28,13 @@ app.use((req, res, next) => {
 });
 
 
-// ── Multer – disk storage (saves originals for download) ──────────────────────
+// ── Multer – storage configurations ──────────────────────
 const fs      = require('fs');
 const uploadsDir = path.join(__dirname, 'uploads');
 if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir);
 
-const storage = multer.diskStorage({
+// Disk storage for parsing (saves originals temporarily)
+const diskStorage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, uploadsDir),
   filename:    (req, file, cb) => {
     const ext  = path.extname(file.originalname);
@@ -39,8 +43,11 @@ const storage = multer.diskStorage({
   },
 });
 
+// Memory storage for direct storage uploads
+const memoryStorage = multer.memoryStorage();
+
 const upload = multer({
-  storage,
+  storage: diskStorage,
   limits: { fileSize: 10 * 1024 * 1024 },
   fileFilter: (req, file, cb) => {
     const ok = [
@@ -51,6 +58,11 @@ const upload = multer({
     ].includes(file.mimetype);
     cb(ok ? null : new Error('Alleen PDF, Word of TXT bestanden zijn toegestaan.'), ok);
   },
+});
+
+const storageUpload = multer({
+  storage: memoryStorage,
+  limits: { fileSize: 10 * 1024 * 1024 }
 });
 
 // ── Static frontend ────────────────────────────────────────────────────────────
@@ -329,6 +341,76 @@ app.get('/api/developers/:id', async (req, res) => {
   } catch (e) { res.status(500).json({ ok: false, error: e.message }); }
 });
 
+// GET – Get signed URL for developer CV
+app.get('/api/developers/:id/cv-url', async (req, res) => {
+  const { id } = req.params;
+  try {
+    const devRows = await q('SELECT cv_url FROM developer WHERE developer_id = $1', [id]);
+    if (!devRows.length || !devRows[0].cv_url) {
+      return res.status(404).json({ ok: false, error: 'Geen CV gevonden voor deze developer' });
+    }
+
+    const cvPath = devRows[0].cv_url;
+    // Fetch developer name for friendly download filename
+    const dev = await q('SELECT naam FROM developer WHERE developer_id = $1', [id]);
+    const devName = dev[0]?.naam || 'Developer';
+    const safeName = devName.replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_]/g, '');
+    const ext = cvPath.split('.').pop();
+    const downloadName = `CV_${safeName}.${ext}`;
+
+    // Create signed URL via supabaseAdmin with download option
+    const { data, error } = await supabaseAdmin.storage
+      .from('cvs')
+      .createSignedUrl(cvPath, 3600, {
+        download: downloadName
+      });
+
+    if (error) throw error;
+    res.json({ ok: true, data: { url: data.signedUrl } });
+  } catch (e) {
+    console.error('[CV URL] Error:', e.message);
+    res.status(500).json({ ok: false, error: 'Fout bij ophalen CV link: ' + e.message });
+  }
+});
+
+// POST – storage upload
+app.post('/api/storage/upload', storageUpload.single('file'), async (req, res) => {
+  const { bucket, developer_id } = req.body;
+  const file = req.file;
+
+  if (!file || !bucket || !developer_id) {
+    return res.status(400).json({ ok: false, error: 'Bestand, bucket en developer_id zijn verplicht' });
+  }
+
+  try {
+    const ext = file.originalname.split('.').pop() || 'pdf';
+    const safeBase = file.originalname.replace(/\.[^/.]+$/, "").replace(/[^a-z0-9]/gi, '_').toLowerCase();
+    const filePath = `${developer_id}_${safeBase}.${ext}`;
+
+    console.log(`Stap 3: Upload naar Supabase Storage (${bucket}) gestart. Pad: ${filePath}, Size: ${file.size} bytes`);
+
+    const { data, error } = await supabaseAdmin.storage
+      .from(bucket)
+      .upload(filePath, file.buffer, {
+        contentType: file.mimetype,
+        upsert: true
+      });
+
+    if (error) throw error;
+
+    console.log('Stap 4: Storage response:', data, 'Geen fout');
+
+    // Update developer table with cv_url
+    await q('UPDATE developer SET cv_url = $1 WHERE developer_id = $2', [filePath, developer_id]);
+    console.log('Stap 5: cv_url opgeslagen in database:', filePath);
+
+    res.json({ ok: true, data: { filePath } });
+  } catch (e) {
+    console.error('[STORAGE UPLOAD] Error:', e.message);
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
 // POST – create or update (check-first, no UNIQUE constraint required)
 app.post('/api/developers', async (req, res) => {
   const { naam, email, type, rol, uurtarief, weekcapaciteit } = req.body;
@@ -359,9 +441,45 @@ app.post('/api/developers', async (req, res) => {
       );
     }
 
-    res.status(wasUpdated ? 200 : 201).json({ ok: true, data: rows[0], upserted: wasUpdated });
+    const devData = rows[0];
+    const developer_id = devData.developer_id;
+    console.log('Stap 1: Developer aangemaakt/geüpdatet, id:', developer_id);
+
+    res.status(wasUpdated ? 200 : 201).json({ ok: true, data: devData, upserted: wasUpdated });
   } catch (e) {
     console.error('[POST /api/developers]', e.message);
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
+// PATCH – update developer (specifically for cv_url)
+app.patch('/api/developers/:id', async (req, res) => {
+  const { id } = req.params;
+  const { cv_url, naam, email, rol, uurtarief, weekcapaciteit } = req.body;
+  try {
+    const fields = [];
+    const values = [];
+    let i = 1;
+
+    if (cv_url !== undefined) { fields.push(`cv_url=$${i++}`); values.push(cv_url); }
+    if (naam !== undefined) { fields.push(`naam=$${i++}`); values.push(naam); }
+    if (email !== undefined) { fields.push(`email=$${i++}`); values.push(email); }
+    if (rol !== undefined) { fields.push(`rol=$${i++}`); values.push(rol); }
+    if (uurtarief !== undefined) { fields.push(`uurtarief=$${i++}`); values.push(uurtarief); }
+    if (weekcapaciteit !== undefined) { fields.push(`weekcapaciteit=$${i++}`); values.push(weekcapaciteit); }
+
+    if (fields.length === 0) return res.status(400).json({ ok: false, error: 'Geen velden om bij te werken' });
+
+    values.push(id);
+    const rows = await q(
+      `UPDATE developer SET ${fields.join(', ')} WHERE developer_id=$${i} RETURNING *`,
+      values
+    );
+
+    if (!rows.length) return res.status(404).json({ ok: false, error: 'Developer niet gevonden' });
+    res.json({ ok: true, data: rows[0] });
+  } catch (e) {
+    console.error('[PATCH /api/developers/:id] Error:', e);
     res.status(500).json({ ok: false, error: e.message });
   }
 });

@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Storage Test</title>
+    <style>
+        body { font-family: sans-serif; padding: 2rem; background: #0a0a0a; color: #fff; }
+        .card { background: #111; padding: 2rem; border-radius: 1rem; border: 1px solid #222; max-width: 500px; margin: auto; }
+        input, button { display: block; width: 100%; margin-bottom: 1rem; padding: 0.75rem; border-radius: 0.5rem; border: 1px solid #333; background: #1a1a1a; color: #fff; }
+        button { background: #3b82f6; border: none; font-weight: bold; cursor: pointer; }
+        pre { background: #000; padding: 1rem; border-radius: 0.5rem; overflow-x: auto; font-size: 0.8rem; border: 1px solid #222; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h2>Supabase Storage Test</h2>
+        <p style="color: #888; font-size: 0.9rem;">Selecteer een PDF om de upload naar de 'cvs' bucket te testen.</p>
+        <input type="file" id="f" accept=".pdf">
+        <button onclick="test()">Test Upload</button>
+        <div id="status"></div>
+        <pre id="result">Response verschijnt hier...</pre>
+    </div>
+
+    <script>
+        async function test() {
+            const file = document.getElementById('f').files[0];
+            if (!file) { alert('Selecteer een bestand!'); return; }
+            
+            const status = document.getElementById('status');
+            const result = document.getElementById('result');
+            
+            status.textContent = 'Bezig met uploaden...';
+            result.textContent = 'Wachten op response...';
+            
+            try {
+                const fd = new FormData();
+                fd.append('file', file);
+                
+                const res = await fetch('/api/test-storage', {
+                    method: 'POST',
+                    body: fd
+                });
+                
+                const json = await res.json();
+                status.textContent = res.ok ? '✅ Klaar!' : '❌ Fout!';
+                result.textContent = JSON.stringify(json, null, 2);
+            } catch (e) {
+                status.textContent = '❌ Netwerkfout!';
+                result.textContent = e.message;
+            }
+        }
+    </script>
+</body>
+</html>
