@@ -65,7 +65,9 @@ const storageUpload = multer({
   limits: { fileSize: 10 * 1024 * 1024 }
 });
 
+
 // ── Static frontend ────────────────────────────────────────────────────────────
+
 const webAppDir = path.resolve(__dirname, '..', 'Web_App');
 const indexFile = path.resolve(webAppDir, 'html', 'index.html');
 
