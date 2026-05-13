@@ -1,6 +1,15 @@
+console.log('====== DEBUG ENV BIJ START ======');
+console.log('SUPABASE_URL:', process.env.SUPABASE_URL);
+console.log('ANON_KEY eerste 20:', process.env.SUPABASE_ANON_KEY?.substring(0,20));
+console.log('SERVICE_KEY eerste 20:', process.env.SUPABASE_SERVICE_ROLE_KEY?.substring(0,20));
+console.log('DATABASE_URL eerste 30:', process.env.DATABASE_URL?.substring(0,30));
+console.log('NODE_ENV:', process.env.NODE_ENV);
+console.log('==================================');
+
 const express  = require('express');
 const path     = require('path');
 require('dotenv').config({ path: path.join(__dirname, '.env') });
+
 const pool     = require('./db');
 const multer   = require('multer');
 const pdfjsLib = require('pdfjs-dist/legacy/build/pdf.mjs');
