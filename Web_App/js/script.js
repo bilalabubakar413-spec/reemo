@@ -2949,12 +2949,11 @@ async function saveParsedCV() {
             }
         }
 
-        const wasUpdated = result?.upserted === true;
-        const developer_id = result?.data?.developer_id;
+        const developer_id = result?.developer_id || result?.data?.developer_id;
 
-        console.log('1. Opslaan gestart');
-        console.log('2. Developer aangemaakt, id:', developer_id);
-        console.log('3. CV bestand beschikbaar:', !!_cvFile);
+        console.log('[DEBUG] saveParsedCV - Result object:', result);
+        console.log('[DEBUG] saveParsedCV - Extracted developer_id:', developer_id);
+        console.log('[DEBUG] saveParsedCV - CV file exists:', !!_cvFile);
 
         // NEW: Upload file directly to Supabase Storage via memory storage endpoint
         if (_cvFile && developer_id) {
@@ -2973,12 +2972,13 @@ async function saveParsedCV() {
                 console.log('5. Upload resultaat:', storageJson);
 
                 if (storageJson.ok) {
-                    // Update cv_url in database
+                    console.log('[DEBUG] saveParsedCV - Updating cv_url via PATCH');
                     await fetch(`/api/developers/${developer_id}`, {
                         method: 'PATCH',
                         headers: {'Content-Type': 'application/json'},
                         body: JSON.stringify({ cv_url: storageJson.data.filePath })
                     });
+                    console.log('[DEBUG] saveParsedCV - PATCH successful');
                     showToast('CV succesvol geüpload!', 'success');
                 } else {
                     console.error('Upload mislukt:', storageJson.error);

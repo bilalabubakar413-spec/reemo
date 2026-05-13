@@ -429,7 +429,10 @@ app.post('/api/storage/upload', storageUpload.single('file'), async (req, res) =
         upsert: true
       });
 
-    if (error) throw error;
+    if (error) {
+      console.error('[STORAGE UPLOAD] Supabase Error:', error);
+      throw error;
+    }
 
     console.log('Stap 4: Storage response:', data, 'Geen fout');
 
@@ -439,10 +442,27 @@ app.post('/api/storage/upload', storageUpload.single('file'), async (req, res) =
 
     res.json({ ok: true, data: { filePath } });
   } catch (e) {
-    console.error('[STORAGE UPLOAD] Error:', e.message);
+    console.error('[STORAGE UPLOAD] Fatal Error:', e.message);
     res.status(500).json({ ok: false, error: e.message });
   }
 });
+
+// TEST Storage endpoint
+app.post('/api/test-storage', storageUpload.single('file'), async (req, res) => {
+  if (!req.file) return res.status(400).json({ ok: false, error: 'Geen bestand ontvangen' });
+  try {
+    const filePath = `test_${Date.now()}.pdf`;
+    const { data, error } = await supabaseAdmin.storage
+      .from('cvs')
+      .upload(filePath, req.file.buffer, { contentType: req.file.mimetype });
+    
+    if (error) throw error;
+    res.json({ ok: true, path: filePath });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
 
 // POST – create or update (check-first, no UNIQUE constraint required)
 app.post('/api/developers', async (req, res) => {
