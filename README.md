@@ -16,8 +16,12 @@
    SUPABASE_URL=...
    SUPABASE_ANON_KEY=...
    SUPABASE_SERVICE_ROLE_KEY=...
-   DATABASE_URL=...
+   DATABASE_URL=... (Gebruik de Session Pooler URL voor Render!)
    ```
+
+   > [!IMPORTANT]
+   > Als je host op Render (gratis plan), moet je de **Session Pooler URL** van Supabase gebruiken in plaats van de Direct Connection URL. Render ondersteunt namelijk geen IPv6 op het gratis plan, en de Direct Connection van Supabase vereist IPv6.
+
 4. **Start de server:**
    ```bash
    node server.js
