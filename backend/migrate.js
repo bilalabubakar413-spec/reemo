@@ -1,8 +1,15 @@
 const { Pool } = require('pg');
+
+if (!process.env.DATABASE_URL) {
+  console.error('FATAL: DATABASE_URL ontbreekt!');
+  process.exit(1);
+}
+
 const pool = new Pool({
-  connectionString: 'postgresql://postgres:fOZL7my87SfSXmM3@db.ekldjmogkgucxdbftgmb.supabase.co:5432/postgres',
+  connectionString: process.env.DATABASE_URL,
   ssl: { rejectUnauthorized: false }
 });
+
 
 async function run() {
   try {

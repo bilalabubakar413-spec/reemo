@@ -2,10 +2,16 @@ const { Pool } = require('pg');
 const path = require('path');
 require('dotenv').config({ path: path.join(__dirname, '.env') });
 
+if (!process.env.DATABASE_URL) {
+  console.error('FATAL: DATABASE_URL ontbreekt!');
+  process.exit(1);
+}
+
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL || 'postgresql://postgres:fOZL7my87SfSXmM3@db.ekldjmogkgucxdbftgmb.supabase.co:5432/postgres',
+  connectionString: process.env.DATABASE_URL,
   ssl: { rejectUnauthorized: false }   // Supabase requires SSL
 });
+
 
 
 pool.on('error', (err) => {
