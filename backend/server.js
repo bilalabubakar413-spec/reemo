@@ -11,15 +11,37 @@ const path     = require('path');
 require('dotenv').config({ path: path.join(__dirname, '.env') });
 
 const pool     = require('./db');
-const multer   = require('multer');
-const pdfjsLib = require('pdfjs-dist/legacy/build/pdf.mjs');
-const mammoth  = require('mammoth');
-const { parseCV } = require('./cvParser');
 const supabase = require('./supabaseClient'); // Uses service role key if available
 const supabaseAdmin = supabase; // Unified client for storage operations
 
 const app  = express();
 const PORT = process.env.PORT || 3000;
+
+const multer   = require('multer');
+const pdfjsLib = require('pdfjs-dist/legacy/build/pdf.mjs');
+const mammoth  = require('mammoth');
+const { parseCV } = require('./cvParser');
+
+
+app.get('/api/debug-counts', async (req, res) => {
+  try {
+    const { count: klantCount, error: klantError } = await supabase
+      .from('klant')
+      .select('*', { count: 'exact', head: true });
+    
+    const { count: devCount, error: devError } = await supabase
+      .from('developer')
+      .select('*', { count: 'exact', head: true });
+    
+    if (klantError || devError) throw (klantError || devError);
+
+    res.json({ klanten: klantCount, developers: devCount });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+
 
 // ── Middleware ─────────────────────────────────────────────────────────────────
 app.use(express.json());
