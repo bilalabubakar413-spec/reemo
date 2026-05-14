@@ -51,6 +51,21 @@ body {
 ::-webkit-scrollbar-thumb { background: var(--white-10); border-radius: 9999px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--white-20); }
 
+/* Table Scrollbar Customization */
+div[style*="overflow-y: auto"]::-webkit-scrollbar {
+    width: 5px;
+}
+div[style*="overflow-y: auto"]::-webkit-scrollbar-track {
+    background: rgba(255,255,255,0.02);
+}
+div[style*="overflow-y: auto"]::-webkit-scrollbar-thumb {
+    background: rgba(255,255,255,0.1);
+    border-radius: 10px;
+}
+div[style*="overflow-y: auto"]::-webkit-scrollbar-thumb:hover {
+    background: rgba(255,255,255,0.2);
+}
+
 /* Utility Classes */
 .hidden { display: none !important; }
 .flex { display: flex; }
