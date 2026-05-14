@@ -1692,10 +1692,10 @@ function renderCVDatabase(data) {
                     <div style="width:2.25rem;height:2.25rem;border-radius:0.625rem;${avatarBg};display:flex;align-items:center;justify-content:center;font-size:0.625rem;font-weight:800;flex-shrink:0">${getInitials(cv.naam || cv.name)}</div>
                     <div>
                         <div style="font-weight:700;color:var(--white);font-size:0.875rem">${cv.naam || cv.name}</div>
-                        <div style="font-size:0.6875rem;color:var(--white-40);margin-top:0.1rem">${cv.rol || cv.role || ''}</div>
                     </div>
                 </div>
             </td>
+            <td style="padding:0.875rem 1.25rem;font-size:0.8125rem;color:var(--white-80);font-weight:600">${cv.rol || cv.role || '—'}</td>
             <td style="padding:0.875rem 1.25rem">
                 <div style="display:flex;flex-wrap:wrap;gap:0.25rem">${skillsHtml || '<span style="color:var(--white-30);font-size:0.75rem">—</span>'}</div>
             </td>
