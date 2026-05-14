@@ -509,7 +509,9 @@ app.post('/api/developers', async (req, res) => {
 app.patch('/api/developers/:id', async (req, res) => {
   const { id } = req.params;
   const { cv_url, naam, email, rol, uurtarief, weekcapaciteit } = req.body;
+  console.log(`[PATCH /api/developers/${id}] Body:`, req.body);
   try {
+
     const fields = [];
     const values = [];
     let i = 1;

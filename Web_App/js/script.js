@@ -2619,8 +2619,8 @@ const _DEF_DEV_DOCS = [
     { id: 'doc3', name: 'Service_Contract_2024.pdf',  type: 'Contract', date: '2024-01-15', size: '0.8 MB', icon: 'file-signature', color: '#a5b4fc' },
     { id: 'doc4', name: 'Tax_Form_2023.pdf',          type: 'Finance',  date: '2024-02-10', size: '0.3 MB', icon: 'receipt',        color: '#34d399' },
 ];
-let devDocuments = _ls_load('reemo_dev_docs', _DEF_DEV_DOCS);
-function saveDevDocs() { _ls_save('reemo_dev_docs', devDocuments); }
+let devDocuments = _ls('reemo_dev_docs', _DEF_DEV_DOCS);
+function saveDevDocs() { _lss('reemo_dev_docs', devDocuments); }
 
 const typeColors = {
     'CV':       'rgba(37,99,235,0.1);color:#60a5fa;border:1px solid rgba(37,99,235,0.2)',
