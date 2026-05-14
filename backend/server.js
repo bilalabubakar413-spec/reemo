@@ -331,8 +331,16 @@ app.get('/api/developers', async (req, res) => {
              (SELECT project_id FROM developer_project dp2 WHERE dp2.developer_id = d.developer_id LIMIT 1) as first_project_id,
              (SELECT p.klant_id FROM project p JOIN developer_project dp3 ON dp3.project_id = p.project_id WHERE dp3.developer_id = d.developer_id LIMIT 1) as first_klant_id
       FROM developer d
+      WHERE d.status = 'active'
       ORDER BY d.naam
     `);
+    res.json({ ok: true, data: rows });
+  } catch (e) { res.status(500).json({ ok: false, error: e.message }); }
+});
+
+app.get('/api/developers/all', async (req, res) => {
+  try {
+    const rows = await q(`SELECT * FROM developer ORDER BY naam`);
     res.json({ ok: true, data: rows });
   } catch (e) { res.status(500).json({ ok: false, error: e.message }); }
 });
@@ -466,7 +474,7 @@ app.post('/api/test-storage', storageUpload.single('file'), async (req, res) => 
 
 // POST – create or update (check-first, no UNIQUE constraint required)
 app.post('/api/developers', async (req, res) => {
-  const { naam, email, type, rol, uurtarief, weekcapaciteit } = req.body;
+  const { naam, email, type, rol, uurtarief, weekcapaciteit, status, skills } = req.body;
   if (!naam || !email) return res.status(400).json({ ok: false, error: 'naam en email zijn verplicht' });
   try {
     // Check if developer with this email already exists
@@ -480,17 +488,17 @@ app.post('/api/developers', async (req, res) => {
       wasUpdated = true;
       rows = await q(
         `UPDATE developer
-         SET naam=$1, rol=$2, uurtarief=$3, weekcapaciteit=$4, type=$5
-         WHERE email=$6
+         SET naam=$1, rol=$2, uurtarief=$3, weekcapaciteit=$4, type=$5, status=$6, skills=$7
+         WHERE email=$8
          RETURNING *`,
-        [naam, rol || null, uurtarief || null, weekcapaciteit || 40, type || 'ZZP', email]
+        [naam, rol || null, uurtarief || null, weekcapaciteit || 40, type || 'ZZP', status || 'active', skills || null, email]
       );
     } else {
       // INSERT new developer
       rows = await q(
-        `INSERT INTO developer (naam, email, type, rol, uurtarief, weekcapaciteit)
-         VALUES ($1,$2,$3,$4,$5,$6) RETURNING *`,
-        [naam, email, type || 'ZZP', rol || null, uurtarief || null, weekcapaciteit || 40]
+        `INSERT INTO developer (naam, email, type, rol, uurtarief, weekcapaciteit, status, skills)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING *`,
+        [naam, email, type || 'ZZP', rol || null, uurtarief || null, weekcapaciteit || 40, status || 'active', skills || null]
       );
     }
 

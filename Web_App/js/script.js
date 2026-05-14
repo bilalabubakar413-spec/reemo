@@ -405,9 +405,7 @@ function navigateTo(targetScreenId) {
         if (typeof lucide !== 'undefined') lucide.createIcons();
     }
     if (targetScreenId === 'cvs') {
-        loadDevelopers().then(() => {
-            renderCVDatabase();
-            updateCVStats();
+        loadCVDatabase().then(() => {
             if (typeof lucide !== 'undefined') lucide.createIcons();
         });
     }
@@ -1659,7 +1657,7 @@ async function refreshTimesheetsSilent(btnElement = null) {
 function renderCVDatabase(data) {
     const tbody = document.getElementById('cvs-body');
     if (!tbody) return;
-    const rows = data || developers;
+    const rows = data || cvs;
 
     if (rows.length === 0) {
         tbody.innerHTML = `<tr><td colspan="6" style="padding:3rem;text-align:center;color:var(--white-30);font-size:0.875rem">
@@ -1673,49 +1671,40 @@ function renderCVDatabase(data) {
     const isFemale = name => ['Trinity','Niobe','Sarah','Elena'].some(n => name.includes(n));
 
     tbody.innerHTML = rows.map((cv, i) => {
-        const isReemo   = cv.status === 'REEMO FORMAT';
-        const isInactive = cv.active === false; // saved via "Alleen in CV Database"
-        const avatarBg  = isFemale(cv.name)
+        const isInactive = cv.status === 'candidate';
+        const avatarBg  = isFemale(cv.naam || cv.name)
             ? 'background:rgba(236,72,153,0.12);border:1px solid rgba(236,72,153,0.25);color:#f9a8d4'
             : 'background:rgba(37,99,235,0.12);border:1px solid rgba(37,99,235,0.25);color:#60a5fa';
 
-        // Status badge based on cv_url presence
-        let statusHtml;
-        if (cv.cv_url) {
-            statusHtml = `<span style="display:inline-block;padding:0.25rem 0.625rem;border-radius:0.375rem;font-size:0.5625rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;background:rgba(16,185,129,0.1);color:#34d399;border:1px solid rgba(16,185,129,0.2)">Reemo Format</span>`;
-        } else {
-            statusHtml = `<span style="display:inline-block;padding:0.25rem 0.625rem;border-radius:0.375rem;font-size:0.5625rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;background:rgba(245,158,11,0.08);color:#fbbf24;border:1px solid rgba(245,158,11,0.2)">Nog geen CV</span>`;
-        }
+        const statusHtml = cv.cv_url 
+            ? `<span class="status-badge status-approved">Reemo Format</span>`
+            : `<span class="status-badge status-pending">Original</span>`;
 
         const skills = typeof cv.skills === 'string' ? cv.skills.split(',').map(s => s.trim()) : (cv.skills || []);
-        const skillsHtml = skills.slice(0,6).map(s =>
+        const skillsHtml = skills.slice(0,4).map(s =>
             `<span style="padding:0.2rem 0.45rem;border-radius:0.375rem;background:rgba(255,255,255,0.05);color:var(--white-50);font-size:0.5625rem;font-weight:700;border:1px solid rgba(255,255,255,0.07);white-space:nowrap">${s}</span>`
-        ).join('') + (skills.length > 6 ? `<span style="padding:0.2rem 0.45rem;border-radius:0.375rem;background:rgba(255,255,255,0.03);color:var(--white-30);font-size:0.5625rem;border:1px solid rgba(255,255,255,0.05)">+${skills.length-6}</span>` : '');
+        ).join('') + (skills.length > 4 ? `<span style="padding:0.2rem 0.45rem;border-radius:0.375rem;background:rgba(255,255,255,0.03);color:var(--white-30);font-size:0.5625rem;border:1px solid rgba(255,255,255,0.05)">+${skills.length-4}</span>` : '');
 
         return `
         <tr class="ts-row" style="animation:fadeIn 0.2s ease-out ${i*0.05}s both">
             <td style="padding:0.875rem 1.25rem">
                 <div style="display:flex;align-items:center;gap:0.75rem">
-                    <div style="width:2.25rem;height:2.25rem;border-radius:0.625rem;${avatarBg};display:flex;align-items:center;justify-content:center;font-size:0.625rem;font-weight:800;flex-shrink:0">${getInitials(cv.name)}</div>
+                    <div style="width:2.25rem;height:2.25rem;border-radius:0.625rem;${avatarBg};display:flex;align-items:center;justify-content:center;font-size:0.625rem;font-weight:800;flex-shrink:0">${getInitials(cv.naam || cv.name)}</div>
                     <div>
-                        <div style="font-weight:700;color:var(--white);font-size:0.875rem">${cv.name}</div>
-                        <div style="font-size:0.6875rem;color:var(--white-40);margin-top:0.1rem">${cv.email || ''}</div>
+                        <div style="font-weight:700;color:var(--white);font-size:0.875rem">${cv.naam || cv.name}</div>
+                        <div style="font-size:0.6875rem;color:var(--white-40);margin-top:0.1rem">${cv.rol || cv.role || ''}</div>
                     </div>
                 </div>
             </td>
-            <td style="padding:0.875rem 1.25rem;font-size:0.8125rem;color:var(--white-60)">${cv.role || '—'}</td>
             <td style="padding:0.875rem 1.25rem">
                 <div style="display:flex;flex-wrap:wrap;gap:0.25rem">${skillsHtml || '<span style="color:var(--white-30);font-size:0.75rem">—</span>'}</div>
             </td>
-            <td style="padding:0.875rem 1.25rem;font-family:monospace;font-size:0.8125rem;color:${cv.rate ? '#34d399' : 'var(--white-30)'}">${cv.rate ? '€' + cv.rate + '/h' : '—'}</td>
-            <td style="padding:0.875rem 1.25rem;color:var(--white-30);font-family:monospace;font-size:0.8125rem">${cv.uploadDate}</td>
+            <td style="padding:0.875rem 1.25rem;color:var(--white-30);font-family:monospace;font-size:0.8125rem">${cv.aangemaakt_op || cv.uploadDate || '—'}</td>
             <td style="padding:0.875rem 1.25rem">${statusHtml}</td>
             <td style="padding:0.875rem 1.25rem;text-align:right">
-                <div style="display:flex;justify-content:flex-end;gap:0.375rem">
-                    ${isInactive ? `<button class="ts-action-btn approve" title="Activeren als Developer" onclick="activateCVasDeveloper('${cv.id}')">
-                        <i data-lucide="user-plus" style="width:13px;height:13px"></i>
-                    </button>` : ''}
-                    <button class="ts-action-btn view" title="Download CV" onclick="downloadCV('${cv.id}')">
+                <div style="display:flex;justify-content:flex-end;gap:0.5rem;align-items:center">
+                    ${isInactive ? `<button class="login-ws-btn active" style="font-size:0.625rem;padding:0.25rem 0.5rem;height:auto;flex:none" onclick="activateCVasDeveloper('${cv.developer_id || cv.id}')">ACTIEF</button>` : ''}
+                    <button class="ts-action-btn view" title="Download CV" onclick="downloadCV('${cv.developer_id || cv.id}')">
                         <i data-lucide="download" style="width:13px;height:13px"></i>
                     </button>
                 </div>
@@ -2873,10 +2862,6 @@ function showCVParseResult(data, filename) {
 function renderCVSkillChips() {
     const container = document.getElementById('cv-r-skills');
     if (!container) return;
-    if (_cvParsedSkills.length === 0) {
-        container.innerHTML = '<span style="font-size:0.8125rem;color:var(--white-30)">Geen skills herkend — voeg ze handmatig toe</span>';
-        return;
-    }
     container.innerHTML = _cvParsedSkills.map((s, i) => `
         <span onclick="removeCVSkill(${i})"
               style="display:inline-flex;align-items:center;gap:0.3rem;padding:0.25rem 0.625rem;border-radius:9999px;
@@ -3044,35 +3029,74 @@ async function saveParsedCV() {
 }
 
 // Save only to CV Database (not as developer in DB) — tagged "Nog niet actief"
-function saveParsedCVDatabase() {
+async function saveParsedCVDatabase() {
     const naam  = document.getElementById('cv-r-name')?.value.trim();
     const rol   = document.getElementById('cv-r-role')?.value.trim() || null;
     const rate  = parseFloat(document.getElementById('cv-r-rate')?.value) || null;
     const email = document.getElementById('cv-r-email')?.value.trim() || null;
+    const weekcap = parseInt(document.getElementById('cv-r-cap')?.value) || 40;
 
-    if (!naam) { showToast('⚠ Naam is verplicht.'); return; }
+    if (!naam || !email) { showToast('⚠ Naam en Email zijn verplicht.'); return; }
 
-    // Check for duplicate by email
-    const existingIdx = email ? cvs.findIndex(c => c.email === email) : -1;
-    const cvEntry = {
-        id: existingIdx >= 0 ? cvs[existingIdx].id : genId('cv'),
-        name: naam, email, role: rol, rate,
-        skills: [..._cvParsedSkills],
-        uploadDate: new Date().toISOString().slice(0, 10),
-        status: 'ORIGINAL',
-        active: false,
-        savedFilename: _cvSavedFilename,
-        originalName:  _cvOriginalName,
-    };
-    if (existingIdx >= 0) cvs[existingIdx] = cvEntry;
-    else cvs.unshift(cvEntry);
-    saveCVs();
+    const btn = document.querySelector('[onclick="saveParsedCVDatabase()"]');
+    if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spinner-small"></span> Bezig...'; }
 
-    closeModal('modal-cv-upload');
-    resetCVUpload();
-    renderCVDatabase();
-    updateCVStats();
-    showToast(`✓ CV van ${naam} opgeslagen — gemarkeerd als "Nog niet actief".`);
+    try {
+        const result = await apiFetch('/api/developers', {
+            method: 'POST',
+            body: JSON.stringify({
+                naam, email, rol, type: 'ZZP',
+                uurtarief: rate, weekcapaciteit: weekcap,
+                status: 'candidate',
+                skills: _cvParsedSkills.join(',')
+            })
+        });
+
+        const developer_id = result?.developer_id || result?.data?.developer_id || result?.id;
+
+        // Upload file to storage if exists
+        if (_cvFile && developer_id) {
+            const formData = new FormData();
+            formData.append('file', _cvFile);
+            formData.append('bucket', 'cvs');
+            formData.append('developer_id', developer_id);
+            try {
+                const storageRes = await fetch('/api/storage/upload', { method: 'POST', body: formData });
+                const storageJson = await storageRes.json();
+                if (storageJson.ok) {
+                    await fetch(`/api/developers/${developer_id}`, {
+                        method: 'PATCH',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({ cv_url: storageJson.data.filePath })
+                    });
+                }
+            } catch (err) { console.error('Storage upload failed:', err); }
+        }
+
+        closeModal('modal-cv-upload');
+        resetCVUpload();
+        
+        // Refresh CV database and switch screen
+        await loadCVDatabase();
+        showToast(`✓ CV van ${naam} toegevoegd aan de database.`);
+        
+    } catch (e) {
+        console.error('[ERROR] saveParsedCVDatabase:', e);
+        showToast(`⚠ ${e.message}`);
+    } finally {
+        if (btn) { btn.disabled = false; btn.innerHTML = '<i data-lucide="database" style="width:14px;height:14px"></i> Alleen in CV Database'; if(typeof lucide!=='undefined') lucide.createIcons(); }
+    }
+}
+
+async function loadCVDatabase() {
+    try {
+        const res = await apiFetch('/api/developers/all');
+        cvs = res;
+        renderCVDatabase();
+        updateCVStats();
+    } catch (e) {
+        console.error('Failed to load CV database:', e);
+    }
 }
 
 // Activate an inactive CV as a developer directly from the CV Database table
@@ -3089,9 +3113,10 @@ async function activateCVasDeveloper(cvId) {
             result = await apiFetch('/api/developers', {
                 method: 'POST',
                 body: JSON.stringify({
-                    naam: cv.name, email: cv.email,
-                    rol: cv.role || null, type: 'ZZP',
-                    uurtarief: cv.rate || null, weekcapaciteit: 40
+                    naam: cv.naam || cv.name, email: cv.email,
+                    rol: cv.rol || cv.role || null, type: 'ZZP',
+                    uurtarief: cv.rate || null, weekcapaciteit: 40,
+                    status: 'active'
                 })
             });
         } catch(apiErr) {

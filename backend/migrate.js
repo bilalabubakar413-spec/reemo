@@ -17,7 +17,8 @@ async function run() {
     await pool.query(`
       ALTER TABLE developer 
       ADD COLUMN IF NOT EXISTS skills TEXT,
-      ADD COLUMN IF NOT EXISTS beschikbaarheid VARCHAR DEFAULT 'beschikbaar';
+      ADD COLUMN IF NOT EXISTS beschikbaarheid VARCHAR DEFAULT 'beschikbaar',
+      ADD COLUMN IF NOT EXISTS status VARCHAR DEFAULT 'active';
     `);
     console.log('SQL Success');
   } catch (e) {
