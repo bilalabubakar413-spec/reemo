@@ -404,6 +404,13 @@ function navigateTo(targetScreenId) {
         renderDevDocuments();
         if (typeof lucide !== 'undefined') lucide.createIcons();
     }
+    if (targetScreenId === 'cvs') {
+        loadDevelopers().then(() => {
+            renderCVDatabase();
+            updateCVStats();
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+        });
+    }
 }
 
 async function loadDevDashboard() {
@@ -1652,7 +1659,7 @@ async function refreshTimesheetsSilent(btnElement = null) {
 function renderCVDatabase(data) {
     const tbody = document.getElementById('cvs-body');
     if (!tbody) return;
-    const rows = data || cvs;
+    const rows = data || developers;
 
     if (rows.length === 0) {
         tbody.innerHTML = `<tr><td colspan="6" style="padding:3rem;text-align:center;color:var(--white-30);font-size:0.875rem">
@@ -1672,21 +1679,18 @@ function renderCVDatabase(data) {
             ? 'background:rgba(236,72,153,0.12);border:1px solid rgba(236,72,153,0.25);color:#f9a8d4'
             : 'background:rgba(37,99,235,0.12);border:1px solid rgba(37,99,235,0.25);color:#60a5fa';
 
-        // Status badge
+        // Status badge based on cv_url presence
         let statusHtml;
-        if (isInactive) {
-            statusHtml = `<span style="display:inline-flex;align-items:center;gap:0.3rem;padding:0.25rem 0.625rem;border-radius:0.375rem;font-size:0.5625rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;background:rgba(245,158,11,0.08);color:#fbbf24;border:1px solid rgba(245,158,11,0.2)">
-                <i data-lucide="clock" style="width:9px;height:9px"></i> Nog niet actief
-            </span>`;
-        } else if (isReemo) {
+        if (cv.cv_url) {
             statusHtml = `<span style="display:inline-block;padding:0.25rem 0.625rem;border-radius:0.375rem;font-size:0.5625rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;background:rgba(16,185,129,0.1);color:#34d399;border:1px solid rgba(16,185,129,0.2)">Reemo Format</span>`;
         } else {
-            statusHtml = `<span style="display:inline-block;padding:0.25rem 0.625rem;border-radius:0.375rem;font-size:0.5625rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;background:rgba(37,99,235,0.08);color:#60a5fa;border:1px solid rgba(37,99,235,0.15)">Actief</span>`;
+            statusHtml = `<span style="display:inline-block;padding:0.25rem 0.625rem;border-radius:0.375rem;font-size:0.5625rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;background:rgba(245,158,11,0.08);color:#fbbf24;border:1px solid rgba(245,158,11,0.2)">Nog geen CV</span>`;
         }
 
-        const skillsHtml = (cv.skills || []).slice(0,6).map(s =>
+        const skills = typeof cv.skills === 'string' ? cv.skills.split(',').map(s => s.trim()) : (cv.skills || []);
+        const skillsHtml = skills.slice(0,6).map(s =>
             `<span style="padding:0.2rem 0.45rem;border-radius:0.375rem;background:rgba(255,255,255,0.05);color:var(--white-50);font-size:0.5625rem;font-weight:700;border:1px solid rgba(255,255,255,0.07);white-space:nowrap">${s}</span>`
-        ).join('') + ((cv.skills||[]).length > 6 ? `<span style="padding:0.2rem 0.45rem;border-radius:0.375rem;background:rgba(255,255,255,0.03);color:var(--white-30);font-size:0.5625rem;border:1px solid rgba(255,255,255,0.05)">+${cv.skills.length-6}</span>` : '');
+        ).join('') + (skills.length > 6 ? `<span style="padding:0.2rem 0.45rem;border-radius:0.375rem;background:rgba(255,255,255,0.03);color:var(--white-30);font-size:0.5625rem;border:1px solid rgba(255,255,255,0.05)">+${skills.length-6}</span>` : '');
 
         return `
         <tr class="ts-row" style="animation:fadeIn 0.2s ease-out ${i*0.05}s both">
@@ -1752,14 +1756,21 @@ function uploadCVFile() {
 }
 
 function updateCVStats() {
-    const total    = cvs.length;
-    const original = cvs.filter(c => c.status === 'ORIGINAL').length;
-    const reemo    = cvs.filter(c => c.status === 'REEMO FORMAT').length;
+    const total    = developers.length;
+    const withCV   = developers.filter(c => !!c.cv_url).length;
+    const noCV     = total - withCV;
     const el = id => document.getElementById(id);
     if (el('cv-stat-total'))    el('cv-stat-total').textContent    = total;
-    if (el('cv-stat-original')) el('cv-stat-original').textContent = original;
-    if (el('cv-stat-reemo'))    el('cv-stat-reemo').textContent    = reemo;
-    if (el('cv-stat-week'))     el('cv-stat-week').textContent     = cvs.filter(c => { const d=new Date(c.uploadDate); const n=new Date(); return (n-d)<7*86400000; }).length;
+    if (el('cv-stat-original')) el('cv-stat-original').textContent = noCV;
+    if (el('cv-stat-reemo'))    el('cv-stat-reemo').textContent    = withCV;
+    if (el('cv-stat-week')) {
+        const oneWeekAgo = new Date();
+        oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+        el('cv-stat-week').textContent = developers.filter(c => {
+            const d = c.aangemaakt_op ? new Date(c.aangemaakt_op) : new Date();
+            return d > oneWeekAgo;
+        }).length;
+    }
 }
 
 function downloadCV(cvId) {
@@ -2949,7 +2960,8 @@ async function saveParsedCV() {
             }
         }
 
-        const developer_id = result?.developer_id || result?.data?.developer_id;
+        const developer_id = result?.developer_id || result?.data?.developer_id || result?.id;
+        const isUpdate = result?.upserted || false;
 
         console.log('[DEBUG] saveParsedCV - Result object:', result);
         console.log('[DEBUG] saveParsedCV - Extracted developer_id:', developer_id);
@@ -3018,12 +3030,13 @@ async function saveParsedCV() {
         renderDevelopersGrid();
         renderDashboardStats();
 
-        const msg = wasUpdated
+        const msg = isUpdate
             ? `✓ Developer "${naam}" bijgewerkt (email bestond al).`
             : `✓ ${naam} toegevoegd als developer!`;
         showToast(msg);
 
     } catch (e) {
+        console.error('[ERROR] saveParsedCV:', e);
         showToast(`⚠ ${e.message}`);
     } finally {
         if (btn) { btn.disabled = false; btn.innerHTML = '<i data-lucide="user-plus" style="width:14px;height:14px"></i> Opslaan als Developer'; if(typeof lucide!=='undefined') lucide.createIcons(); }
@@ -3105,7 +3118,28 @@ async function activateCVasDeveloper(cvId) {
                 });
             }
         }
-        const wasUpdated = result?.upserted === true;
+        const developer_id = result?.developer_id || result?.data?.developer_id || result?.id;
+        const isUpdate = result?.upserted || false;
+
+        // If we have a file in memory from a recent upload, upload it now
+        if (_cvFile && developer_id) {
+            const formData = new FormData();
+            formData.append('file', _cvFile);
+            formData.append('bucket', 'cvs');
+            formData.append('developer_id', developer_id);
+            try {
+                const storageRes = await fetch('/api/storage/upload', { method: 'POST', body: formData });
+                const storageJson = await storageRes.json();
+                if (storageJson.ok) {
+                    await fetch(`/api/developers/${developer_id}`, {
+                        method: 'PATCH',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({ cv_url: storageJson.data.filePath })
+                    });
+                }
+            } catch (err) { console.error('Storage upload failed during activation:', err); }
+        }
+
         // Mark CV as active in local store
         const idx = cvs.findIndex(c => c.id === cvId);
         if (idx >= 0) cvs[idx] = { ...cv, active: true };
@@ -3113,7 +3147,7 @@ async function activateCVasDeveloper(cvId) {
         renderCVDatabase();
         await loadDevelopers();
         renderDashboardStats();
-        showToast(wasUpdated
+        showToast(isUpdate
             ? `✓ Developer "${cv.name}" bijgewerkt.`
             : `✓ ${cv.name} geactiveerd als developer!`);
     } catch (e) {
