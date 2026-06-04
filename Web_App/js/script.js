@@ -1647,7 +1647,7 @@ async function renderDashboardStats() {
     const statusBadge = document.getElementById('bezetting-status-badge');
 
     if (circle) {
-        const radius = parseFloat(circle.getAttribute('r')) || 62;
+        const radius = parseFloat(circle.getAttribute('r')) || 54;
         const circumference = 2 * Math.PI * radius;
         const pct = Math.min(100, Math.max(0, parseFloat(bezettingPct) || 0));
         const offset = circumference - (pct / 100) * circumference;
@@ -1663,16 +1663,6 @@ async function renderDashboardStats() {
     const assignedPct = totalDevs > 0 ? ((assignedDevs / totalDevs) * 100).toFixed(1) : 0;
     const benchPct = totalDevs > 0 ? ((benchDevs / totalDevs) * 100).toFixed(1) : 0;
 
-    if (statusBadge) {
-        const pctVal = parseFloat(bezettingPct) || 0;
-        if (pctVal >= 80) {
-            statusBadge.innerHTML = `<span class="status-badge status-approved" style="font-size:10px; padding:2px 8px; font-weight:700; color:#10B981; background:rgba(16,185,129,0.1); border:1px solid rgba(16,185,129,0.25); border-radius:100px;">Gezond niveau</span>`;
-        } else if (pctVal >= 65) {
-            statusBadge.innerHTML = `<span class="status-badge status-pending" style="font-size:10px; padding:2px 8px; font-weight:700; color:#f59e0b; background:rgba(245,158,11,0.1); border:1px solid rgba(245,158,11,0.25); border-radius:100px;">Aandacht vereist</span>`;
-        } else {
-            statusBadge.innerHTML = `<span class="status-badge status-rejected" style="font-size:10px; padding:2px 8px; font-weight:700; color:#ef4444; background:rgba(239,68,68,0.1); border:1px solid rgba(239,68,68,0.25); border-radius:100px;">Kritiek niveau</span>`;
-        }
-    }
 
     if (detailsContainer) {
         detailsContainer.innerHTML = `
