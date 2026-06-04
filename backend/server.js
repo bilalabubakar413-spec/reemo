@@ -1319,43 +1319,80 @@ app.post('/api/cv/parse', upload.single('cv'), async (req, res) => {
 // GET /api/dashboard/cashflow — MTD + cumulatief totaal
 app.get('/api/dashboard/cashflow', async (req, res) => {
   try {
-    const [mtdRows, totaalRows] = await Promise.all([
-      q('SELECT * FROM dashboard_cashflow_mtd'),
-      q('SELECT * FROM dashboard_cashflow_totaal')
-    ]);
-
-    const mtdRaw   = mtdRows[0]   || {};
-    const totaalRaw = totaalRows[0] || {};
-
-    const verwacht  = parseFloat(mtdRaw.verwacht)  || 0;
-    const geleverd  = parseFloat(mtdRaw.geleverd)  || 0;
-    const realisatie_percentage = verwacht > 0 ? ((geleverd / verwacht) * 100).toFixed(1) : 0;
-
-    // Maandnaam voor weergave
     const nu = new Date();
+    const jaar = nu.getFullYear();
+    const maand = nu.getMonth() + 1;
+    const startDatum = `${jaar}-${String(maand).padStart(2,'0')}-01`;
+    const lastDay = new Date(jaar, maand, 0).getDate();
+    const eindDatum = `${jaar}-${String(maand).padStart(2,'0')}-${String(lastDay).padStart(2,'0')}`;
+
+    // 1. Verwacht (Active contracts)
+    const { data: contracten } = await supabase
+      .from('contract')
+      .select('uren_per_week, uurtarief')
+      .eq('status', 'actief');
+    const verwacht = (contracten || []).reduce((sum, c) => sum + ((c.uren_per_week || 0) * (c.uurtarief || 0) * 4), 0);
+
+    // 2. Geleverd (Urenregistratie this month)
+    const { data: uren } = await supabase
+      .from('urenregistratie')
+      .select('bedrag')
+      .eq('status', 'approved')
+      .gte('datum', startDatum)
+      .lte('datum', eindDatum);
+    const geleverd = (uren || []).reduce((sum, u) => sum + parseFloat(u.bedrag || 0), 0);
+
+    // 3. Gefactureerd & Ontvangen (Facturen this month)
+    const { data: facturenMtd } = await supabase
+      .from('factuur')
+      .select('totaalbedrag, betalingsstatus')
+      .gte('factuurdatum', startDatum)
+      .lte('factuurdatum', eindDatum);
+    
+    let gefactureerd = 0;
+    let ontvangen = 0;
+    (facturenMtd || []).forEach(f => {
+      const b = parseFloat(f.totaalbedrag || 0);
+      gefactureerd += b;
+      if (f.betalingsstatus === 'betaald') ontvangen += b;
+    });
+
+    // 4. Totaal (All facturen)
+    const { data: facturenAll } = await supabase
+      .from('factuur')
+      .select('totaalbedrag, betalingsstatus');
+    
+    let ooit_gefactureerd = 0;
+    let ooit_ontvangen = 0;
+    (facturenAll || []).forEach(f => {
+      const b = parseFloat(f.totaalbedrag || 0);
+      ooit_gefactureerd += b;
+      if (f.betalingsstatus === 'betaald') ooit_ontvangen += b;
+    });
+    const openstaand = ooit_gefactureerd - ooit_ontvangen;
+
+    const realisatie_percentage = verwacht > 0 ? ((geleverd / verwacht) * 100).toFixed(1) : 0;
     const maandnaam = nu.toLocaleDateString('nl-NL', { month: 'long', year: 'numeric' });
 
     res.json({
       ok: true,
       data: {
-        // Legacy flat fields (backwards compat met bestaande KPI cards)
         verwacht,
         geleverd,
-        gefactureerd: parseFloat(mtdRaw.gefactureerd) || 0,
-        ontvangen:    parseFloat(mtdRaw.ontvangen)    || 0,
+        gefactureerd,
+        ontvangen,
         realisatie_percentage: parseFloat(realisatie_percentage),
-        // Nieuwe gestructureerde velden
         mtd: {
           verwacht,
           geleverd,
-          gefactureerd: parseFloat(mtdRaw.gefactureerd) || 0,
-          ontvangen:    parseFloat(mtdRaw.ontvangen)    || 0,
+          gefactureerd,
+          ontvangen,
           maand: maandnaam
         },
         totaal: {
-          ooit_gefactureerd: parseFloat(totaalRaw.ooit_gefactureerd) || 0,
-          ooit_ontvangen:    parseFloat(totaalRaw.ooit_ontvangen)    || 0,
-          openstaand:        parseFloat(totaalRaw.openstaand)        || 0
+          ooit_gefactureerd,
+          ooit_ontvangen,
+          openstaand
         }
       }
     });
@@ -1395,26 +1432,36 @@ app.get('/api/dashboard/omzet-trend', async (req, res) => {
     const jaar = parseInt(req.query.jaar) || new Date().getFullYear();
     const kwartaal = req.query.kwartaal || 'all';
 
-    // Bepaal maandbereik
-    let maanden = [];
-    if (kwartaal === 'Q1') maanden = [1,2,3];
-    else if (kwartaal === 'Q2') maanden = [4,5,6];
-    else if (kwartaal === 'Q3') maanden = [7,8,9];
-    else if (kwartaal === 'Q4') maanden = [10,11,12];
-    else if (kwartaal === '6m') {
-      const nu = new Date().getMonth() + 1;
-      for (let i = 5; i >= 0; i--) {
-        let m = nu - i;
-        if (m <= 0) m += 12;
-        maanden.push(m);
-      }
-    }
-    else maanden = [1,2,3,4,5,6,7,8,9,10,11,12];
+    let rangeMonths = [];
 
-    const startDatum = `${jaar}-${String(Math.min(...maanden)).padStart(2,'0')}-01`;
-    const maxMaand = Math.max(...maanden);
-    const lastDay = new Date(jaar, maxMaand, 0).getDate();
-    const eindDatum  = `${jaar}-${String(maxMaand).padStart(2,'0')}-${String(lastDay).padStart(2,'0')}`;
+    if (kwartaal === 'Q1') {
+      for (let m = 0; m < 3; m++) rangeMonths.push({ year: jaar, month: m });
+    } else if (kwartaal === 'Q2') {
+      for (let m = 3; m < 6; m++) rangeMonths.push({ year: jaar, month: m });
+    } else if (kwartaal === 'Q3') {
+      for (let m = 6; m < 9; m++) rangeMonths.push({ year: jaar, month: m });
+    } else if (kwartaal === 'Q4') {
+      for (let m = 9; m < 12; m++) rangeMonths.push({ year: jaar, month: m });
+    } else if (kwartaal === '6m') {
+      const today = new Date();
+      // If selected year is current year, show last 6 months up to today's month.
+      // Otherwise, show last 6 months of that year (Jul-Dec)
+      const referenceDate = (jaar === today.getFullYear()) ? today : new Date(jaar, 11, 31);
+      for (let i = 5; i >= 0; i--) {
+        const d = new Date(referenceDate.getFullYear(), referenceDate.getMonth() - i, 1);
+        rangeMonths.push({ year: d.getFullYear(), month: d.getMonth() });
+      }
+    } else {
+      // all
+      for (let m = 0; m < 12; m++) rangeMonths.push({ year: jaar, month: m });
+    }
+
+    const minDate = new Date(rangeMonths[0].year, rangeMonths[0].month, 1);
+    const lastItem = rangeMonths[rangeMonths.length - 1];
+    const maxDate = new Date(lastItem.year, lastItem.month + 1, 0, 23, 59, 59);
+
+    const startDatum = `${minDate.getFullYear()}-${String(minDate.getMonth() + 1).padStart(2,'0')}-01`;
+    const eindDatum = `${maxDate.getFullYear()}-${String(maxDate.getMonth() + 1).padStart(2,'0')}-${String(maxDate.getDate()).padStart(2,'0')}`;
 
     // Goedgekeurde uren ophalen
     const { data: uren, error: urenError } = await supabase
@@ -1426,29 +1473,47 @@ app.get('/api/dashboard/omzet-trend', async (req, res) => {
 
     if (urenError) throw urenError;
 
-    // Actieve contracten ophalen voor verwacht
+    // Actieve contracten ophalen voor verwacht (alle actieve contracten of die overlappen met de range)
     const { data: contracten, error: contractenError } = await supabase
       .from('contract')
-      .select('uren_per_week, uurtarief')
+      .select('uren_per_week, uurtarief, startdatum, einddatum, status')
       .eq('status', 'actief');
 
     if (contractenError) throw contractenError;
 
-    const verwachtPerMaand = (contracten || [])
-      .reduce((sum, c) => sum + (c.uren_per_week * c.uurtarief * 4), 0);
+    const labels = [];
+    const werkelijk = [];
+    const verwacht = [];
 
     const maandNamen = ['jan','feb','mrt','apr','mei','jun','jul','aug','sep','okt','nov','dec'];
 
-    const labels   = maanden.map(m => maandNamen[m-1]);
-    const werkelijk = maanden.map(m => {
-      const maandStr = `${jaar}-${String(m).padStart(2,'0')}`;
-      return Math.round(
-        (uren || [])
-          .filter(u => u.datum && u.datum.startsWith(maandStr))
-          .reduce((sum, u) => sum + parseFloat(u.bedrag || 0), 0)
-      );
-    });
-    const verwacht = maanden.map(() => Math.round(verwachtPerMaand));
+    for (const item of rangeMonths) {
+      labels.push(maandNamen[item.month]);
+      
+      const maandStr = `${item.year}-${String(item.month + 1).padStart(2, '0')}`;
+      
+      // Werkelijk
+      const w = (uren || [])
+        .filter(u => u.datum && u.datum.startsWith(maandStr))
+        .reduce((sum, u) => sum + parseFloat(u.bedrag || 0), 0);
+      werkelijk.push(Math.round(w));
+
+      // Verwacht
+      const v = (contracten || [])
+        .filter(c => {
+          if (!c.startdatum) return false;
+          const start = new Date(c.startdatum);
+          const end = c.einddatum ? new Date(c.einddatum) : new Date(2099, 11, 31);
+          const startMonth = new Date(item.year, item.month, 1);
+          const endMonth = new Date(item.year, item.month + 1, 0);
+          return start <= endMonth && end >= startMonth;
+        })
+        .reduce((sum, c) => {
+          const ratePerWeek = parseFloat(c.uren_per_week || 40) * parseFloat(c.uurtarief || 0);
+          return sum + ratePerWeek * 4;
+        }, 0);
+      verwacht.push(Math.round(v));
+    }
 
     res.json({ labels, werkelijk, verwacht });
   } catch(err) {
