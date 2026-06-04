@@ -337,20 +337,24 @@
                                 <h3>Bezetting & Capaciteit</h3>
                                 <p class="card-sub">Mensen op projecten versus op de bank</p>
                             </div>
-                            <div id="bezetting-donut-container" style="display:flex; flex-direction:row; flex-wrap:nowrap; align-items:center; justify-content:space-between; gap:1.25rem; padding:0.5rem 0 0.25rem; flex-grow:1; width:100%;">
+                            <div id="bezetting-donut-container" style="display:flex; flex-direction:row; flex-wrap:nowrap; align-items:center; justify-content:space-between; gap:1.5rem; padding:0.5rem 0 0.25rem; flex-grow:1; width:100%;">
                                 <!-- Left side: Circular Progress -->
                                 <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; flex-shrink:0;">
-                                    <div style="position:relative; width:140px; height:140px; display:flex; align-items:center; justify-content:center;">
-                                        <svg width="140" height="140" viewBox="0 0 140 140" style="transform: rotate(-90deg);">
-                                            <circle cx="70" cy="70" r="54" fill="transparent" stroke="rgba(255,255,255,0.05)" stroke-width="10"></circle>
-                                            <circle id="bezetting-progress-circle" cx="70" cy="70" r="54" fill="transparent" stroke="#3b82f6" stroke-width="10" stroke-dasharray="339.3" stroke-dashoffset="339.3" stroke-linecap="round" style="transition: stroke-dashoffset 0.3s ease;"></circle>
+                                    <div style="position:relative; width:180px; height:180px; display:flex; align-items:center; justify-content:center;">
+                                        <svg width="180" height="180" viewBox="0 0 180 180" style="transform: rotate(-90deg);">
+                                            <!-- Track Background with border -->
+                                            <circle cx="90" cy="90" r="72" fill="transparent" stroke="rgba(255,255,255,0.06)" stroke-width="14"></circle>
+                                            <circle cx="90" cy="90" r="72" fill="transparent" stroke="#0a0a0a" stroke-width="11"></circle>
+                                            <!-- Track Foreground Progress with border -->
+                                            <circle id="bezetting-progress-circle-outer" cx="90" cy="90" r="72" fill="transparent" stroke="rgba(255,255,255,0.3)" stroke-width="14" stroke-dasharray="452.4" stroke-dashoffset="452.4" style="transition: stroke-dashoffset 0.3s ease;"></circle>
+                                            <circle id="bezetting-progress-circle-inner" cx="90" cy="90" r="72" fill="transparent" stroke="#3b82f6" stroke-width="11" stroke-dasharray="452.4" stroke-dashoffset="452.4" style="transition: stroke-dashoffset 0.3s ease;"></circle>
                                         </svg>
                                         <div style="position:absolute; display:flex; flex-direction:column; align-items:center; justify-content:center;">
-                                            <div id="bezetting-circle-pct" style="font-size:1.875rem; font-weight:800; color:var(--white); line-height:1;">0%</div>
-                                            <div style="font-size:8px; font-weight:800; color:var(--white-40); letter-spacing:0.1em; margin-top:3px; text-transform:uppercase;">Bezetting</div>
+                                            <div id="bezetting-circle-pct" style="font-size:2.5rem; font-weight:800; color:var(--white); line-height:1; letter-spacing:-0.03em;">0%</div>
+                                            <div style="font-size:9px; font-weight:800; color:var(--white-40); letter-spacing:0.12em; margin-top:6px; text-transform:uppercase;">Bezetting</div>
                                         </div>
                                     </div>
-                                    <div id="bezetting-circle-hours" style="font-size:0.8125rem; font-weight:700; color:var(--white-60); margin-top:8px;">0 / 0u</div>
+                                    <div id="bezetting-circle-hours" style="font-size:0.875rem; font-weight:700; color:var(--white-60); margin-top:8px;">0 / 0u</div>
                                 </div>
 
                                 <!-- Right side: Detailed Cards -->
@@ -2129,7 +2133,7 @@
   flex-direction: column;
   justify-content: center;
 }
-#bezetting-progress-circle {
+#bezetting-progress-circle-inner {
   filter: drop-shadow(0px 0px 5px rgba(59, 130, 246, 0.45));
 }
 </style>

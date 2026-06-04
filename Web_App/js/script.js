@@ -1639,21 +1639,23 @@ async function renderDashboardStats() {
 
     }
 
-    // Update Bezetting Circular Progress Ring, status badge and detail cards
-    const circle = document.getElementById('bezetting-progress-circle');
+    // Update Bezetting Circular Progress Ring and detail cards
+    const circleOuter = document.getElementById('bezetting-progress-circle-outer');
+    const circleInner = document.getElementById('bezetting-progress-circle-inner');
     const pctText = document.getElementById('bezetting-circle-pct');
     const hoursText = document.getElementById('bezetting-circle-hours');
     const detailsContainer = document.getElementById('bezetting-details-container');
-    const statusBadge = document.getElementById('bezetting-status-badge');
 
-    if (circle) {
-        const radius = parseFloat(circle.getAttribute('r')) || 54;
-        const circumference = 2 * Math.PI * radius;
-        const pct = Math.min(100, Math.max(0, parseFloat(bezettingPct) || 0));
-        const offset = circumference - (pct / 100) * circumference;
-        circle.style.strokeDasharray = circumference;
-        circle.style.strokeDashoffset = offset;
-    }
+    const pct = Math.min(100, Math.max(0, parseFloat(bezettingPct) || 0));
+    [circleOuter, circleInner].forEach(circle => {
+        if (circle) {
+            const radius = parseFloat(circle.getAttribute('r')) || 72;
+            const circumference = 2 * Math.PI * radius;
+            const offset = circumference - (pct / 100) * circumference;
+            circle.style.strokeDasharray = circumference;
+            circle.style.strokeDashoffset = offset;
+        }
+    });
     if (pctText) pctText.textContent = Math.round(parseFloat(bezettingPct) || 0) + '%';
     if (hoursText) hoursText.textContent = `${totalAssigned} / ${totalCap}u`;
 
