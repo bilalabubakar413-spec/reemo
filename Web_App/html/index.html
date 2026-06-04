@@ -302,21 +302,21 @@
                             </div>
                         </div>
                         <div class="dashboard-card" id="bezetting-card">
-                            <div class="card-header">
+                            <div class="card-header" style="margin-bottom: 0.75rem;">
                                 <h3>Bezetting & Capaciteit</h3>
                                 <p class="card-sub">Contractuele inzetbaarheid versus daadwerkelijk gemaakte uren</p>
                             </div>
-                            <div id="bezetting-donut-container" style="display:flex; flex-direction:column; align-items:center; justify-content:center; gap:1rem; padding:1rem 0;">
-                                <div style="position:relative; width:120px; height:120px; display:flex; align-items:center; justify-content:center;">
-                                    <svg width="120" height="120" viewBox="0 0 120 120" style="transform: rotate(-90deg);">
-                                        <circle cx="60" cy="60" r="45" fill="transparent" stroke="rgba(255,255,255,0.06)" stroke-width="8"></circle>
-                                        <circle id="bezetting-progress-circle" cx="60" cy="60" r="45" fill="transparent" stroke="#10b981" stroke-width="8" stroke-dasharray="282.7" stroke-dashoffset="282.7" stroke-linecap="round" style="transition: stroke-dashoffset 0.3s ease;"></circle>
+                            <div id="bezetting-donut-container" style="display:flex; flex-direction:column; align-items:center; justify-content:center; gap:1.25rem; padding:0.5rem 0 0.25rem; flex-grow:1;">
+                                <div style="position:relative; width:160px; height:160px; display:flex; align-items:center; justify-content:center;">
+                                    <svg width="160" height="160" viewBox="0 0 160 160" style="transform: rotate(-90deg);">
+                                        <circle cx="80" cy="80" r="62" fill="transparent" stroke="rgba(255,255,255,0.05)" stroke-width="10"></circle>
+                                        <circle id="bezetting-progress-circle" cx="80" cy="80" r="62" fill="transparent" stroke="#10b981" stroke-width="10" stroke-dasharray="389.6" stroke-dashoffset="389.6" stroke-linecap="round" style="transition: stroke-dashoffset 0.3s ease;"></circle>
                                     </svg>
-                                    <div id="bezetting-circle-pct" style="position:absolute; font-size:1.5rem; font-weight:800; color:var(--white);">0%</div>
+                                    <div id="bezetting-circle-pct" style="position:absolute; font-size:2rem; font-weight:800; color:var(--white);">0%</div>
                                 </div>
                                 <div style="text-align:center;">
-                                    <div id="bezetting-circle-hours" style="font-size:1rem; font-weight:700; color:var(--white);">0 / 0u</div>
-                                    <div style="font-size:0.75rem; color:var(--white-40); margin-top:0.25rem;">
+                                    <div id="bezetting-circle-hours" style="font-size:1.125rem; font-weight:700; color:var(--white);">0 / 0u</div>
+                                    <div style="font-size:0.8125rem; color:var(--white-40); margin-top:0.25rem;">
                                         Headcount: <span id="bezetting-headcount" style="font-weight:600; color:var(--white-80);">0 / 0</span>
                                     </div>
                                 </div>
@@ -346,12 +346,12 @@
                                 </tbody>
                             </table>
                         </div>
-                        <div class="dashboard-card">
-                            <div class="card-header">
+                        <div class="dashboard-card" id="aging-card">
+                            <div class="card-header" style="margin-bottom: 0.75rem;">
                                 <h3>Ouderdomsanalyse Debiteuren</h3>
                                 <p class="card-sub">Ouderdomsanalyse Debiteuren</p>
                             </div>
-                            <div id="dashboard-aging-body" style="margin-top:1rem"></div>
+                            <div id="dashboard-aging-body" style="flex-grow:1; display:flex; flex-direction:column; justify-content:center;"></div>
                         </div>
                     </div>
 
@@ -2111,6 +2111,17 @@
   font-size: 11px;
   color: #64748B;
   border-top: 1px solid rgba(255, 255, 255, 0.03);
+}
+#bezetting-card, #aging-card {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+#bezetting-donut-container, #dashboard-aging-body {
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 </style>
 
