@@ -1395,111 +1395,64 @@ app.get('/api/dashboard/omzet-trend', async (req, res) => {
     const jaar = parseInt(req.query.jaar) || new Date().getFullYear();
     const kwartaal = req.query.kwartaal || 'all';
 
-    let startDate, endDate;
-    let rangeMonths = [];
-
-    if (kwartaal === 'Q1') {
-      startDate = new Date(jaar, 0, 1);
-      endDate = new Date(jaar, 2, 31, 23, 59, 59);
-      for (let m = 0; m < 3; m++) {
-        rangeMonths.push({ year: jaar, month: m });
-      }
-    } else if (kwartaal === 'Q2') {
-      startDate = new Date(jaar, 3, 1);
-      endDate = new Date(jaar, 5, 30, 23, 59, 59);
-      for (let m = 3; m < 6; m++) {
-        rangeMonths.push({ year: jaar, month: m });
-      }
-    } else if (kwartaal === 'Q3') {
-      startDate = new Date(jaar, 6, 1);
-      endDate = new Date(jaar, 8, 30, 23, 59, 59);
-      for (let m = 6; m < 9; m++) {
-        rangeMonths.push({ year: jaar, month: m });
-      }
-    } else if (kwartaal === 'Q4') {
-      startDate = new Date(jaar, 9, 1);
-      endDate = new Date(jaar, 11, 31, 23, 59, 59);
-      for (let m = 9; m < 12; m++) {
-        rangeMonths.push({ year: jaar, month: m });
-      }
-    } else if (kwartaal === '6m') {
-      const today = new Date();
-      const referenceDate = (jaar === today.getFullYear()) ? today : new Date(jaar, 11, 31);
-      startDate = new Date(referenceDate.getFullYear(), referenceDate.getMonth() - 5, 1);
-      endDate = new Date(referenceDate.getFullYear(), referenceDate.getMonth() + 1, 0, 23, 59, 59);
+    // Bepaal maandbereik
+    let maanden = [];
+    if (kwartaal === 'Q1') maanden = [1,2,3];
+    else if (kwartaal === 'Q2') maanden = [4,5,6];
+    else if (kwartaal === 'Q3') maanden = [7,8,9];
+    else if (kwartaal === 'Q4') maanden = [10,11,12];
+    else if (kwartaal === '6m') {
+      const nu = new Date().getMonth() + 1;
       for (let i = 5; i >= 0; i--) {
-        const d = new Date(referenceDate.getFullYear(), referenceDate.getMonth() - i, 1);
-        rangeMonths.push({ year: d.getFullYear(), month: d.getMonth() });
-      }
-    } else {
-      // all (Full Year)
-      startDate = new Date(jaar, 0, 1);
-      endDate = new Date(jaar, 11, 31, 23, 59, 59);
-      for (let m = 0; m < 12; m++) {
-        rangeMonths.push({ year: jaar, month: m });
+        let m = nu - i;
+        if (m <= 0) m += 12;
+        maanden.push(m);
       }
     }
+    else maanden = [1,2,3,4,5,6,7,8,9,10,11,12];
 
-    const uren = await q(`
-      SELECT datum, COALESCE(bedrag, 0)::float AS bedrag, status 
-      FROM urenregistratie 
-      WHERE status = 'approved' 
-        AND datum >= $1 AND datum <= $2
-    `, [startDate, endDate]);
+    const startDatum = `${jaar}-${String(Math.min(...maanden)).padStart(2,'0')}-01`;
+    const maxMaand = Math.max(...maanden);
+    const lastDay = new Date(jaar, maxMaand, 0).getDate();
+    const eindDatum  = `${jaar}-${String(maxMaand).padStart(2,'0')}-${String(lastDay).padStart(2,'0')}`;
 
-    const contracten = await q(`
-      SELECT uren_per_week, uurtarief, startdatum, einddatum, status 
-      FROM contract 
-      WHERE status = 'actief'
-        AND startdatum <= $2 
-        AND (einddatum IS NULL OR einddatum >= $1)
-    `, [startDate, endDate]);
+    // Goedgekeurde uren ophalen
+    const { data: uren, error: urenError } = await supabase
+      .from('urenregistratie')
+      .select('datum, bedrag')
+      .eq('status', 'approved')
+      .gte('datum', startDatum)
+      .lte('datum', eindDatum);
 
-    const labels = [];
-    const werkelijk = [];
-    const verwacht = [];
+    if (urenError) throw urenError;
 
-    for (const item of rangeMonths) {
-      const d = new Date(item.year, item.month, 1);
-      const maandNaam = d.toLocaleString('nl-NL', { month: 'short' });
-      const labelName = maandNaam.charAt(0).toUpperCase() + maandNaam.slice(1);
-      labels.push(labelName);
+    // Actieve contracten ophalen voor verwacht
+    const { data: contracten, error: contractenError } = await supabase
+      .from('contract')
+      .select('uren_per_week, uurtarief')
+      .eq('status', 'actief');
 
-      const maandStr = `${item.year}-${String(item.month + 1).padStart(2, '0')}`;
+    if (contractenError) throw contractenError;
 
-      const w = uren
-        .filter(u => {
-          let uDatumStr = '';
-          if (u.datum instanceof Date) {
-            uDatumStr = u.datum.toISOString();
-          } else if (typeof u.datum === 'string') {
-            uDatumStr = u.datum;
-          } else if (u.datum) {
-            uDatumStr = String(u.datum);
-          }
-          return uDatumStr.startsWith(maandStr);
-        })
-        .reduce((sum, u) => sum + u.bedrag, 0);
-      werkelijk.push(Math.round(w));
+    const verwachtPerMaand = (contracten || [])
+      .reduce((sum, c) => sum + (c.uren_per_week * c.uurtarief * 4), 0);
 
-      const v = contracten
-        .filter(c => {
-          const start = new Date(c.startdatum);
-          const end = c.einddatum ? new Date(c.einddatum) : new Date(2099, 11, 31);
-          const startMonth = new Date(item.year, item.month, 1);
-          const endMonth = new Date(item.year, item.month + 1, 0);
-          return start <= endMonth && end >= startMonth;
-        })
-        .reduce((sum, c) => {
-          const ratePerWeek = parseFloat(c.uren_per_week || 40) * parseFloat(c.uurtarief || 0);
-          return sum + ratePerWeek * 4;
-        }, 0);
-      verwacht.push(Math.round(v));
-    }
+    const maandNamen = ['jan','feb','mrt','apr','mei','jun','jul','aug','sep','okt','nov','dec'];
+
+    const labels   = maanden.map(m => maandNamen[m-1]);
+    const werkelijk = maanden.map(m => {
+      const maandStr = `${jaar}-${String(m).padStart(2,'0')}`;
+      return Math.round(
+        (uren || [])
+          .filter(u => u.datum && u.datum.startsWith(maandStr))
+          .reduce((sum, u) => sum + parseFloat(u.bedrag || 0), 0)
+      );
+    });
+    const verwacht = maanden.map(() => Math.round(verwachtPerMaand));
 
     res.json({ labels, werkelijk, verwacht });
-  } catch (err) {
-    console.error('[GET /api/dashboard/omzet-trend] Error:', err);
+  } catch(err) {
+    console.error('Omzet trend fout:', err);
     res.status(500).json({ error: err.message });
   }
 });

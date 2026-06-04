@@ -1526,73 +1526,11 @@ async function renderDashboardStats() {
         </div>
     `).join('');
 
-    // Cashflow Funnel Render
-    const funnelContainer = document.getElementById('dashboard-cashflow-funnel');
-    if (funnelContainer) {
-        const fmtEuro = v => '€' + Number(v||0).toLocaleString('nl-NL', { maximumFractionDigits: 0 });
-        const maandLabel = cashflow.maand || new Date().toLocaleDateString('nl-NL', { month: 'long', year: 'numeric' });
-
-        const verwacht     = cashflow.verwacht     || 0;
-        const geleverd     = cashflow.geleverd     || 0;
-        const gefactureerd = cashflow.gefactureerd || 0;
-        const ontvangen    = cashflow.ontvangen    || 0;
-
-        const steps = [
-            { label: 'VERWACHT',     value: verwacht,     color: '#94a3b8', sub: 'Contracten', className: '' },
-            { label: 'GELEVERD',     value: geleverd,     color: '#60a5fa', sub: 'Urenreg.',   className: '' },
-            { label: 'GEFACT.',      value: gefactureerd, color: '#a78bfa', sub: 'Facturen',   className: '' },
-            { label: 'ONTVANGEN',    value: ontvangen,    color: '#34d399', sub: 'Betaald',    className: 'ontvangen' },
-        ];
-
-        const cardsHtml = steps.map((s, i) => {
-            return `<div class="funnel-step ${s.className}">
-                <div class="step-number">0${i+1}</div>
-                <div class="step-label" style="color:${s.color}">${s.label}</div>
-                <div class="step-value">${fmtEuro(s.value)}</div>
-                <div class="step-sub">${s.sub}</div>
-            </div>`;
-        });
-
-        const gap1 = geleverd - verwacht;
-        const gap2 = gefactureerd - geleverd;
-        const gap3 = ontvangen - gefactureerd;
-
-        const fmtGapValue = (val) => {
-            if (val === 0) return '€0';
-            const prefix = val < 0 ? '−' : '+';
-            return `${prefix}${fmtEuro(Math.abs(val))}`;
-        };
-
-        const renderChevron = (gapVal) => {
-            const color = gapVal < 0 ? '#EF4444' : (gapVal > 0 ? '#34d399' : '#64748B');
-            return `<div class="funnel-chevron">
-                <div>›</div>
-                <div class="gap-amount" style="color:${color}">${fmtGapValue(gapVal)} gap</div>
-            </div>`;
-        };
-
-        funnelContainer.innerHTML = `
-            <div class="cashflow-funnel">
-                ${cardsHtml[0]}
-                ${renderChevron(gap1)}
-                ${cardsHtml[1]}
-                ${renderChevron(gap2)}
-                ${cardsHtml[2]}
-                ${renderChevron(gap3)}
-                ${cardsHtml[3]}
-            </div>
-            <div class="funnel-totaal-row">
-                <div style="margin-right:auto; display:flex; align-items:center; gap:0.375rem">
-                    <i data-lucide="calendar" style="width:10px;height:10px;color:rgba(255,255,255,0.25)"></i>
-                    <span style="text-transform:uppercase; letter-spacing:0.08em; color:#64748B">MTD &mdash; ${maandLabel}</span>
-                </div>
-                <span>Totaal Gefactureerd: <strong>${fmtEuro(cashflowTotaal.ooit_gefactureerd)}</strong></span>
-                <span>Totaal Ontvangen: <strong>${fmtEuro(cashflowTotaal.ooit_ontvangen)}</strong></span>
-                <span>Openstaand: <strong style="color:#fbbf24">${fmtEuro(cashflowTotaal.openstaand)}</strong></span>
-            </div>
-        `;
-        if (typeof lucide !== 'undefined') lucide.createIcons();
+    // Cashflow Funnel Render (Async via live DB)
+    if (typeof renderCashflowFunnel === 'function') {
+        renderCashflowFunnel();
     }
+
 
 
     // Per-klant Table Render
@@ -1729,103 +1667,189 @@ async function renderDashboardStats() {
     if (typeof lucide !== 'undefined') lucide.createIcons();
 }
 
+async function renderCashflowFunnel() {
+  try {
+    const res = await fetch('/api/dashboard/cashflow');
+    if (!res.ok) throw new Error('Cashflow endpoint niet bereikbaar');
+    const json = await res.json();
+    const data = json.data || json;
+
+    const mtd = data.mtd || {};
+    const totaal = data.totaal || {};
+
+    const fmt = (v) => '€' + Math.round(v || 0).toLocaleString('nl-NL');
+
+    const gapBench     = (mtd.verwacht || 0) - (mtd.geleverd || 0);
+    const gapFacturatie = (mtd.geleverd || 0) - (mtd.gefactureerd || 0);
+    const gapDebiteuren = (mtd.gefactureerd || 0) - (mtd.ontvangen || 0);
+
+    const html = `
+      <div class="cashflow-funnel">
+        <div class="funnel-step">
+          <div class="step-number">1 van 4</div>
+          <div class="step-label" style="color:#3B82F6;">Verwacht</div>
+          <div class="step-value">${fmt(mtd.verwacht)}</div>
+          <div class="step-sub">Op basis van contracten</div>
+        </div>
+
+        <div class="funnel-chevron">
+          ›
+          <span class="gap-amount">-${fmt(gapBench)}</span>
+        </div>
+
+        <div class="funnel-step">
+          <div class="step-number">2 van 4</div>
+          <div class="step-label" style="color:#60A5FA;">Geleverd</div>
+          <div class="step-value">${fmt(mtd.geleverd)}</div>
+          <div class="step-sub">Goedgekeurde uren</div>
+        </div>
+
+        <div class="funnel-chevron">
+          ›
+          <span class="gap-amount">-${fmt(gapFacturatie)}</span>
+        </div>
+
+        <div class="funnel-step">
+          <div class="step-number">3 van 4</div>
+          <div class="step-label" style="color:#22C55E;">Gefactureerd</div>
+          <div class="step-value">${fmt(mtd.gefactureerd)}</div>
+          <div class="step-sub">Factuur verstuurd</div>
+        </div>
+
+        <div class="funnel-chevron">
+          ›
+          <span class="gap-amount">-${fmt(gapDebiteuren)}</span>
+        </div>
+
+        <div class="funnel-step ontvangen">
+          <div class="step-number">4 van 4</div>
+          <div class="step-label" style="color:#22C55E;">Ontvangen</div>
+          <div class="step-value">${fmt(mtd.ontvangen)}</div>
+          <div class="step-sub">Betaald op bank</div>
+        </div>
+      </div>
+
+      <div class="funnel-gap-row">
+        <span>-${fmt(gapBench)} <small>bench</small></span>
+        <span>-${fmt(gapFacturatie)} <small>te factureren</small></span>
+        <span>-${fmt(gapDebiteuren)} <small>debiteuren</small></span>
+      </div>
+
+      <div class="funnel-totaal-row">
+        <span>Ooit gefactureerd: <strong style="color:#94A3B8;">${fmt(totaal.ooit_gefactureerd)}</strong></span>
+        <span>Ontvangen: <strong style="color:#94A3B8;">${fmt(totaal.ooit_ontvangen)}</strong></span>
+        <span>Openstaand: <strong style="color:#F59E0B;">${fmt(totaal.openstaand)}</strong></span>
+      </div>
+    `;
+
+    const container = document.getElementById('dashboard-cashflow-funnel');
+    if (container) container.innerHTML = html;
+
+  } catch(err) {
+    console.error('Funnel laden mislukt:', err);
+  }
+}
+
 async function renderOmzetTrendChart() {
-    try {
-        const jaar = document.getElementById('chart-year-select')?.value || new Date().getFullYear();
-        const kwartaal = document.getElementById('chart-quarter-select')?.value || 'all';
+  const jaar     = document.getElementById('chart-year-select')?.value    || new Date().getFullYear();
+  const kwartaal = document.getElementById('chart-quarter-select')?.value || 'all';
 
-        const data = await apiFetchSafe(`/api/dashboard/omzet-trend?jaar=${jaar}&kwartaal=${kwartaal}`);
-        if (!data || !data.labels) return;
+  try {
+    const res  = await fetch(`/api/dashboard/omzet-trend?jaar=${jaar}&kwartaal=${kwartaal}`);
+    const data = await res.json();
 
-        // Update subtitle
-        const sub = document.getElementById('chart-subtitle');
-        if (sub) sub.textContent = `${kwartaal === 'all' ? 'Volledig jaar' : kwartaal} ${jaar}`;
+    // Update titel dynamisch
+    const periodeLabels = {
+      'all':'Volledig jaar','Q1':'Q1 (jan–mrt)','Q2':'Q2 (apr–jun)',
+      'Q3':'Q3 (jul–sep)','Q4':'Q4 (okt–dec)','6m':'Laatste 6 maanden'
+    };
+    const sub = document.getElementById('chart-subtitle');
+    if (sub) sub.textContent = `${periodeLabels[kwartaal] || kwartaal} ${jaar} — werkelijk vs verwacht`;
 
-        const ctx = document.getElementById('revenueChart');
-        if (!ctx) return;
+    // Destroy bestaande chart
+    if (window._omzetChart) window._omzetChart.destroy();
 
-        // Destroy existing chart if it exists
-        if (window._omzetChart) {
-            window._omzetChart.destroy();
-        }
+    const ctx = document.getElementById('revenueChart') || document.getElementById('omzetTrendChart');
+    if (!ctx) return;
 
-        window._omzetChart = new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: data.labels,
-                datasets: [
-                    {
-                        label: 'Werkelijk',
-                        data: data.werkelijk,
-                        borderColor: '#3B82F6',
-                        backgroundColor: 'rgba(59,130,246,0.12)',
-                        borderWidth: 2.5,
-                        tension: 0.4,
-                        fill: true,
-                        pointBackgroundColor: '#3B82F6',
-                        pointRadius: 4,
-                        pointHoverRadius: 7,
-                    },
-                    {
-                        label: 'Verwacht',
-                        data: data.verwacht,
-                        borderColor: '#F59E0B',
-                        borderDash: [6, 4],
-                        borderWidth: 2,
-                        tension: 0.4,
-                        fill: false,
-                        pointBackgroundColor: '#F59E0B',
-                        pointRadius: 4,
-                        pointHoverRadius: 7,
-                    }
-                ]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                interaction: { mode: 'index', intersect: false },
-                plugins: {
-                    legend: {
-                        position: 'top',
-                        align: 'end',
-                        labels: {
-                            color: '#94A3B8',
-                            usePointStyle: true,
-                            pointStyle: 'circle',
-                            padding: 20,
-                            font: { size: 12 }
-                        }
-                    },
-                    tooltip: {
-                        backgroundColor: '#1E293B',
-                        borderColor: '#334155',
-                        borderWidth: 1,
-                        titleColor: '#CBD5E1',
-                        bodyColor: '#94A3B8',
-                        callbacks: {
-                            label: (ctx) => ` ${ctx.dataset.label}: €${ctx.parsed.y.toLocaleString('nl-NL')}`
-                        }
-                    }
-                },
-                scales: {
-                    x: {
-                        ticks: { color: '#94A3B8', font: { size: 11 } },
-                        grid: { color: 'rgba(51,65,85,0.5)' }
-                    },
-                    y: {
-                        ticks: {
-                            color: '#94A3B8',
-                            font: { size: 11 },
-                            callback: (v) => '€' + (v >= 1000 ? (v/1000).toFixed(0) + 'k' : v)
-                        },
-                        grid: { color: 'rgba(51,65,85,0.5)' }
-                    }
-                }
+    window._omzetChart = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: data.labels,
+        datasets: [
+          {
+            label: 'Werkelijk',
+            data: data.werkelijk,
+            borderColor: '#3B82F6',
+            backgroundColor: 'rgba(59,130,246,0.1)',
+            borderWidth: 2.5,
+            tension: 0.4,
+            fill: true,
+            pointBackgroundColor: '#3B82F6',
+            pointRadius: 4,
+            pointHoverRadius: 7,
+          },
+          {
+            label: 'Verwacht',
+            data: data.verwacht,
+            borderColor: '#F59E0B',
+            borderDash: [6,4],
+            borderWidth: 2,
+            tension: 0.4,
+            fill: false,
+            pointBackgroundColor: '#F59E0B',
+            pointRadius: 4,
+            pointHoverRadius: 7,
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: { mode: 'index', intersect: false },
+        plugins: {
+          legend: {
+            position: 'top',
+            align: 'end',
+            labels: {
+              color: '#94A3B8',
+              usePointStyle: true,
+              pointStyle: 'circle',
+              padding: 16,
+              font: { size: 11 }
             }
-        });
-    } catch(err) {
-        console.error('Omzet trend chart fout:', err);
-    }
+          },
+          tooltip: {
+            backgroundColor: '#1E293B',
+            borderColor: '#334155',
+            borderWidth: 1,
+            titleColor: '#CBD5E1',
+            bodyColor: '#94A3B8',
+            callbacks: {
+              label: (ctx) => ` ${ctx.dataset.label}: €${ctx.parsed.y.toLocaleString('nl-NL')}`
+            }
+          }
+        },
+        scales: {
+          x: {
+            ticks: { color: '#94A3B8', font: { size: 11 } },
+            grid:  { color: 'rgba(51,65,85,0.4)' }
+          },
+          y: {
+            ticks: {
+              color: '#94A3B8',
+              font: { size: 11 },
+              callback: (v) => '€' + (v >= 1000 ? (v/1000).toFixed(0)+'k' : v)
+            },
+            grid: { color: 'rgba(51,65,85,0.4)' }
+          }
+        }
+      }
+    });
+
+  } catch(err) {
+    console.error('Grafiek laden mislukt:', err);
+  }
 }
 
 

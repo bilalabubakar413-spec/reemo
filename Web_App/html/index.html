@@ -1908,18 +1908,18 @@
 /* Cashflow Funnel Styling */
 .cashflow-funnel {
   display: grid;
-  grid-template-columns: 1fr 40px 1fr 40px 1fr 40px 1fr;
+  grid-template-columns: 1fr 32px 1fr 32px 1fr 32px 1fr;
   align-items: stretch;
   gap: 0;
-  margin: 1.5rem 0 0.5rem;
+  margin: 1rem 0 0.25rem;
 }
 
 .funnel-step {
-  background: linear-gradient(135deg, rgba(30,41,59,0.8), rgba(15,23,42,0.9));
-  border: 1px solid #334155;
-  border-radius: 12px;
-  padding: 20px 18px;
-  transition: border-color 0.2s, transform 0.2s;
+  background: rgba(30,41,59,0.6);
+  border: 1px solid #1E293B;
+  border-radius: 10px;
+  padding: 14px 16px;
+  transition: border-color 0.2s, transform 0.15s;
   display: flex;
   flex-direction: column;
 }
@@ -1930,32 +1930,36 @@
 }
 
 .funnel-step .step-number {
-  font-size: 10px;
-  color: #64748B;
+  font-size: 9px;
+  color: #475569;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  margin-bottom: 8px;
+  margin-bottom: 4px;
 }
 
 .funnel-step .step-label {
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  margin-bottom: 10px;
+  margin-bottom: 8px;
 }
 
 .funnel-step .step-value {
-  font-size: 26px;
+  font-size: 20px;
   font-weight: 700;
   color: #FFFFFF;
   line-height: 1;
-  margin-bottom: 6px;
+  margin-bottom: 4px;
 }
 
 .funnel-step .step-sub {
-  font-size: 11px;
-  color: #64748B;
+  font-size: 10px;
+  color: #475569;
+}
+
+.funnel-step.ontvangen .step-value {
+  color: #22C55E;
 }
 
 .funnel-chevron {
@@ -1963,36 +1967,39 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  font-size: 22px;
+  font-size: 18px;
   color: #F59E0B;
-  gap: 4px;
 }
 
 .funnel-chevron .gap-amount {
-  font-size: 10px;
+  font-size: 9px;
   color: #EF4444;
   white-space: nowrap;
+  margin-top: 2px;
 }
 
-/* Laatste stap groen als er ontvangen is */
-.funnel-step.ontvangen .step-value {
-  color: #22C55E;
+.funnel-gap-row {
+  display: flex;
+  justify-content: space-around;
+  padding: 6px 0 0;
+  font-size: 10px;
+  color: #EF4444;
+  border-top: 1px solid #1E293B;
+  margin-top: 6px;
 }
 
-/* Cumulatief totaal rij */
+.funnel-gap-row small {
+  color: #475569;
+  margin-left: 3px;
+}
+
 .funnel-totaal-row {
   display: flex;
   justify-content: flex-end;
-  gap: 2rem;
-  padding: 10px 4px 0;
-  font-size: 11px;
-  color: #64748B;
-  border-top: 1px solid #1E293B;
-  margin-top: 0.5rem;
-}
-
-.funnel-totaal-row span strong {
-  color: #94A3B8;
+  gap: 1.5rem;
+  padding: 8px 4px 0;
+  font-size: 10px;
+  color: #475569;
 }
 </style>
 
