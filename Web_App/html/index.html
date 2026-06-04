@@ -265,12 +265,12 @@
                         <div class="profile-section-card">
                             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.25rem;flex-wrap:wrap;gap:0.75rem">
                                 <div>
-                                    <div style="font-weight:700;font-size:1rem;color:var(--white)">Revenue Overview</div>
-                                    <div style="font-size:0.75rem;color:var(--white-40);margin-top:0.15rem">Monthly billed revenue</div>
+                                    <div style="font-weight:700;font-size:1rem;color:var(--white)" id="revenue-chart-title">Revenue Overview</div>
+                                    <div style="font-size:0.75rem;color:var(--white-40);margin-top:0.15rem" id="chart-subtitle">Monthly billed revenue</div>
                                 </div>
                                 <div style="display:flex;align-items:center;gap:0.5rem">
                                     <div class="filter-select-wrap" style="width:auto">
-                                        <select id="chart-year" class="filter-select" style="padding-right:2rem" onchange="updateRevenueChart()">
+                                        <select id="chart-year-select" class="filter-select" style="padding-right:2rem" onchange="_changeYear(this.value)">
                                             <option value="2026">2026</option>
                                             <option value="2025">2025</option>
                                             <option value="2024">2024</option>
@@ -280,13 +280,12 @@
                                         <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
                                     </div>
                                     <div class="filter-select-wrap" style="width:auto">
-                                        <select id="chart-period" class="filter-select" style="padding-right:2rem" onchange="updateRevenueChart()">
-                                            <option value="all">Full Year</option>
-                                            <option value="q1">Q1 (Jan–Mar)</option>
-                                            <option value="q2">Q2 (Apr–Jun)</option>
-                                            <option value="q3">Q3 (Jul–Sep)</option>
-                                            <option value="q4">Q4 (Oct–Dec)</option>
-                                            <option value="6">Last 6 Months</option>
+                                        <select id="chart-quarter-select" class="filter-select" style="padding-right:2rem" onchange="_changeQuarter(this.value)">
+                                            <option value="null">Full Year</option>
+                                            <option value="1">Q1 (Jan–Mar)</option>
+                                            <option value="2">Q2 (Apr–Jun)</option>
+                                            <option value="3">Q3 (Jul–Sep)</option>
+                                            <option value="4">Q4 (Oct–Dec)</option>
                                         </select>
                                         <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
                                     </div>
@@ -751,11 +750,19 @@
                             <h2>Invoices</h2>
                             <p>Billing and payment tracking for all clients.</p>
                         </div>
-                        <div class="page-header-actions">
-                            <button class="btn-outline">
+                        <div class="page-header-actions" style="display:flex;align-items:center;gap:0.5rem">
+                            <div style="display:flex;align-items:center;gap:0.4rem">
+                                <select id="maand-dropdown" class="filter-select" style="display:none;width:150px;font-size:0.75rem;padding:0.25rem 0.5rem"></select>
+                                <button id="btn-genereer-facturen" class="btn-blue" onclick="genereerFacturen()" style="background:#10b981;border-color:#10b981;color:#fff;display:inline-flex;align-items:center;gap:6px">
+                                    <i data-lucide="sparkles" style="width:14px;height:14px"></i>
+                                    <span id="btn-genereer-label">Genereer facturen</span>
+                                    <span id="genereer-badge" class="badge" style="background:#065f46;color:#34d399;font-size:0.625rem;padding:0.1rem 0.4rem;border-radius:4px;display:none"></span>
+                                </button>
+                            </div>
+                            <button class="btn-outline" onclick="exportInvoices()">
                                 <i data-lucide="download" style="width:14px;height:14px"></i> Export
                             </button>
-                            <button class="btn-blue">
+                            <button class="btn-blue" onclick="openCreateInvoiceModal()">
                                 <i data-lucide="plus" style="width:14px;height:14px"></i> Create Invoice
                             </button>
                         </div>
@@ -847,11 +854,32 @@
                 <div id="screen-dev-dashboard" class="screen-content">
                     <!-- Header -->
                     <div class="page-header">
-                        <div class="page-header-left">
-                            <h2>Dashboard</h2>
-                            <p>Welcome back, <strong style="color:var(--white)">Alex Rivera</strong>. Here is your current status.</p>
+                        <div class="page-header-left" style="display:flex;align-items:center;gap:1.5rem">
+                            <div>
+                                <h2>Dashboard</h2>
+                                <p>Welcome back, <strong id="dev-welcome-name" style="color:var(--white)">-</strong>.</p>
+                            </div>
+                            <!-- Availability dropdown in header -->
+                            <div style="position:relative;margin-top:0.5rem" id="dev-status-wrapper">
+                                <button id="dev-status-btn" class="profile-status-btn" style="color:#22C55E;border-color:#22C55E50;background:#14532D" onclick="toggleDevStatusDropdown(event)">
+                                    <span class="profile-status-dot" id="dev-status-dot" style="background:#22C55E;box-shadow:0 0 5px #22C55E"></span>
+                                    <span id="dev-status-label">Available</span>
+                                    <i data-lucide="chevron-down" style="width:11px;height:11px;opacity:0.6"></i>
+                                </button>
+                                <div class="profile-status-dropdown" id="dev-status-dropdown" style="display:none">
+                                    <button class="profile-status-option" onclick="setDevBeschikbaarheid('available')">
+                                        <span class="profile-status-option-dot" style="background:#22C55E"></span> Available
+                                    </button>
+                                    <button class="profile-status-option" onclick="setDevBeschikbaarheid('on_assignment')">
+                                        <span class="profile-status-option-dot" style="background:#3B82F6"></span> On Assignment
+                                    </button>
+                                    <button class="profile-status-option" onclick="setDevBeschikbaarheid('unavailable')">
+                                        <span class="profile-status-option-dot" style="background:#EF4444"></span> Unavailable
+                                    </button>
+                                </div>
+                            </div>
                         </div>
-                        <button class="btn-blue">
+                        <button class="btn-blue" onclick="navigateTo('dev-timesheets')">
                             <i data-lucide="plus" style="width:14px;height:14px"></i> Log Hours
                         </button>
                     </div>
@@ -863,77 +891,55 @@
                                 <div style="width:2rem;height:2rem;border-radius:0.5rem;background:rgba(59,130,246,0.1);display:flex;align-items:center;justify-content:center;color:#60a5fa">
                                     <i data-lucide="clock" style="width:14px;height:14px"></i>
                                 </div>
-                                <span class="dev-stat-badge blue">ON TRACK</span>
+                                <span class="dev-stat-badge blue" id="dev-capacity-stat">-</span>
                             </div>
                             <div>
                                 <div class="dev-stat-label">Hours This Week</div>
-                                <div class="dev-stat-value">38<span class="dev-stat-unit">h</span></div>
+                                <div class="dev-stat-value" id="dev-dash-uren">0<span class="dev-stat-unit">h</span></div>
                             </div>
                             <div class="capacity-bar-track" style="margin-top:0.75rem">
-                                <div class="capacity-bar-fill" style="width:95%;background:#3b82f6;box-shadow:0 0 8px #3b82f688"></div>
+                                <div class="capacity-bar-fill" id="dev-dash-progress-fill" style="width:0%;background:#3b82f6;box-shadow:0 0 8px #3b82f688"></div>
                             </div>
+                            <div class="dev-stat-label" id="dev-dash-resterend" style="margin-top:0.4rem;font-size:0.7rem;color:var(--white-30)"></div>
                         </div>
 
                         <div class="dev-stat-card">
                             <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:auto">
                                 <div style="width:2rem;height:2rem;border-radius:0.5rem;background:rgba(16,185,129,0.1);display:flex;align-items:center;justify-content:center;color:#34d399">
-                                    <i data-lucide="briefcase" style="width:14px;height:14px"></i>
+                                    <i data-lucide="percent" style="width:14px;height:14px"></i>
                                 </div>
                                 <span class="dev-stat-badge green">STABLE</span>
                             </div>
                             <div>
-                                <div class="dev-stat-label">Active Projects</div>
-                                <div class="dev-stat-value">2</div>
+                                <div class="dev-stat-label">Realisatie deze maand</div>
+                                <div class="dev-stat-value" id="dev-dash-realisatie">0<span class="dev-stat-unit">%</span></div>
                             </div>
                         </div>
 
                         <div class="dev-stat-card">
                             <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:auto">
                                 <div style="width:2rem;height:2rem;border-radius:0.5rem;background:rgba(245,158,11,0.1);display:flex;align-items:center;justify-content:center;color:#fbbf24">
-                                    <i data-lucide="file-text" style="width:14px;height:14px"></i>
+                                    <i data-lucide="briefcase" style="width:14px;height:14px"></i>
                                 </div>
-                                <span class="dev-stat-badge amber">DUE SOON</span>
+                                <span class="dev-stat-badge amber">ACTIVE</span>
                             </div>
                             <div>
-                                <div class="dev-stat-label">Pending Invoices</div>
-                                <div class="dev-stat-value">1</div>
+                                <div class="dev-stat-label">Active Projects</div>
+                                <div class="dev-stat-value" id="dev-dash-projecten">0</div>
                             </div>
                         </div>
                     </div>
 
                     <!-- Lower content grid -->
                     <div class="dev-content-grid">
-                        <!-- Current Assignment -->
-                        <div class="dev-assignment-card">
-                            <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:1.25rem">
-                                <div>
-                                    <div style="font-size:0.625rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--white-40);margin-bottom:0.5rem">Current Assignment</div>
-                                    <h3 style="font-size:1.25rem;font-weight:700;color:#60a5fa;margin-bottom:0.25rem">Checkout Redesign</h3>
-                                    <div style="font-size:0.875rem;color:var(--white-40)">Acme Corp</div>
-                                </div>
-                                <span style="background:rgba(59,130,246,0.1);color:#60a5fa;font-size:0.625rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;padding:0.25rem 0.75rem;border-radius:0.375rem;border:1px solid rgba(59,130,246,0.2);white-space:nowrap">ACTIVE</span>
-                            </div>
-
-                            <p style="font-size:0.875rem;color:var(--white-50);line-height:1.7;margin-bottom:1.5rem">
-                                Leading the frontend implementation of the new checkout experience using React and Tailwind CSS. Focusing on performance and accessibility.
-                            </p>
-
-                            <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;margin-bottom:1.25rem">
-                                <div class="dev-inner-box">
-                                    <div class="dev-inner-label"><i data-lucide="calendar" style="width:10px;height:10px"></i> Period</div>
-                                    <div style="font-weight:600;font-size:0.8125rem;color:var(--white)">Jan 2024 – Jun 2024</div>
-                                </div>
-                                <div class="dev-inner-box">
-                                    <div class="dev-inner-label"><i data-lucide="clock" style="width:10px;height:10px"></i> Hours/Week</div>
-                                    <div style="font-weight:600;font-size:0.8125rem;color:var(--white)">40 Hours</div>
-                                </div>
-                            </div>
-
-                            <button class="dev-view-btn" style="margin-top:auto">View Project Details</button>
-                        </div>
+                        <!-- Current Assignment List Container -->
+                        <div id="dev-contracts-container" style="display:flex;flex-direction:column;gap:1rem;flex:1"></div>
 
                         <!-- Right column -->
                         <div style="display:flex;flex-direction:column;gap:1.5rem">
+                            <!-- Capacity Allocation (dynamic) -->
+                            <div id="dev-capacity-allocation-container"></div>
+
                             <!-- Upcoming Deadlines -->
                             <div>
                                 <div style="font-size:0.75rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--white-40);margin-bottom:0.875rem">Upcoming Deadlines</div>
@@ -995,199 +1001,8 @@
 
                 <!-- Dev Profile Screen -->
                 <div id="screen-dev-profile" class="screen-content">
-                    <!-- Header -->
-                    <div class="page-header">
-                        <div class="page-header-left">
-                            <h2>My Profile</h2>
-                            <p>Manage your professional information and CV.</p>
-                        </div>
-                        <button class="btn-outline">
-                            <i data-lucide="edit-2" style="width:14px;height:14px"></i> Edit Profile
-                        </button>
-                    </div>
-
-                    <!-- Hero identity card -->
-                    <div class="profile-hero-card">
-                        <div class="profile-avatar">AR</div>
-                        <div style="flex:1;min-width:0">
-                            <div style="font-size:1.5rem;font-weight:800;color:var(--white);line-height:1.1">Alex Rivera</div>
-                            <div style="font-size:0.875rem;color:var(--white-50);margin-top:0.35rem">Senior Frontend Developer</div>
-                            <div style="display:flex;align-items:center;gap:0.625rem;margin-top:0.75rem;flex-wrap:wrap">
-                                <span class="dev-stat-badge blue">Senior Level</span>
-                                <span class="dev-stat-badge green" style="background:rgba(16,185,129,0.1);color:#34d399;border:1px solid rgba(16,185,129,0.15)">On Assignment</span>
-                                <span style="font-size:0.75rem;color:var(--white-40);display:flex;align-items:center;gap:0.375rem">
-                                    <i data-lucide="mail" style="width:12px;height:12px"></i> alex@reemo.io
-                                </span>
-                            </div>
-                        </div>
-                        <div class="profile-hero-stats">
-                            <div style="text-align:center">
-                                <div style="font-size:1.75rem;font-weight:800;color:var(--white)">38</div>
-                                <div style="font-size:0.625rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--white-40);margin-top:0.2rem">Hrs/Week</div>
-                            </div>
-                            <div class="profile-hero-divider"></div>
-                            <div style="text-align:center">
-                                <div style="font-size:1.75rem;font-weight:800;color:var(--white)">2</div>
-                                <div style="font-size:0.625rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--white-40);margin-top:0.2rem">Projects</div>
-                            </div>
-                            <div class="profile-hero-divider"></div>
-                            <div style="text-align:center">
-                                <div style="font-size:1.75rem;font-weight:800;color:var(--white)">$85</div>
-                                <div style="font-size:0.625rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--white-40);margin-top:0.2rem">Rate/Hr</div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Content grid -->
-                    <div class="profile-grid">
-                        <!-- Left: details + CV -->
-                        <div style="display:flex;flex-direction:column;gap:1.25rem">
-                            <!-- Personal Details -->
-                            <div class="profile-section-card">
-                                <div class="profile-section-header">
-                                    <i data-lucide="user" style="width:14px;height:14px;color:#60a5fa"></i>
-                                    <span>Personal Details</span>
-                                </div>
-                                <div class="profile-info-grid">
-                                    <div class="profile-info-item">
-                                        <div class="profile-info-label">Full Name</div>
-                                        <div class="profile-info-value">Alex Rivera</div>
-                                    </div>
-                                    <div class="profile-info-item">
-                                        <div class="profile-info-label">Role</div>
-                                        <div class="profile-info-value">Senior Frontend Developer</div>
-                                    </div>
-                                    <div class="profile-info-item">
-                                        <div class="profile-info-label">Experience Level</div>
-                                        <div class="profile-info-value">Senior</div>
-                                    </div>
-                                    <div class="profile-info-item">
-                                        <div class="profile-info-label">Availability</div>
-                                        <div class="profile-info-value">40 hrs/week</div>
-                                    </div>
-                                    <div class="profile-info-item" style="grid-column:span 2">
-                                        <div class="profile-info-label">Email</div>
-                                        <div class="profile-info-value">alex@reemo.io</div>
-                                    </div>
-                                </div>
-
-                                <!-- Skills -->
-                                <div style="margin-top:1.25rem;padding-top:1.25rem;border-top:1px solid #1e1e1e">
-                                    <div class="profile-info-label" style="margin-bottom:0.75rem">Skills</div>
-                                    <div style="display:flex;flex-wrap:wrap;gap:0.5rem">
-                                        <span class="skill-tag">React</span>
-                                        <span class="skill-tag">TypeScript</span>
-                                        <span class="skill-tag">Tailwind CSS</span>
-                                        <span class="skill-tag">Next.js</span>
-                                        <span class="skill-tag">Node.js</span>
-                                        <span class="skill-tag add-skill"><i data-lucide="plus" style="width:11px;height:11px"></i> Add Skill</span>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- CV Management -->
-                            <div class="profile-section-card">
-                                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.25rem">
-                                    <div class="profile-section-header" style="margin-bottom:0">
-                                        <i data-lucide="layers" style="width:14px;height:14px;color:#60a5fa"></i>
-                                        <span>CV Management</span>
-                                    </div>
-                                    <button style="font-size:0.75rem;font-weight:700;color:#60a5fa;background:rgba(59,130,246,0.08);border:1px solid rgba(59,130,246,0.2);border-radius:0.5rem;padding:0.375rem 0.75rem;cursor:pointer;display:flex;align-items:center;gap:0.35rem;transition:all 0.2s">
-                                        <i data-lucide="zap" style="width:11px;height:11px"></i> Convert to Reemo CV
-                                    </button>
-                                </div>
-
-                                <div style="display:grid;grid-template-columns:1fr 1.5fr;gap:0.875rem">
-                                    <!-- Upload zone -->
-                                    <div class="cv-upload-zone">
-                                        <i data-lucide="upload-cloud" style="width:1.5rem;height:1.5rem;color:var(--white-30);margin-bottom:0.5rem"></i>
-                                        <div style="font-weight:700;font-size:0.8125rem;color:var(--white-60)">Upload New CV</div>
-                                        <div style="font-size:0.625rem;color:var(--white-30);margin-top:0.25rem">PDF only, max 5MB</div>
-                                    </div>
-
-                                    <!-- Existing CV -->
-                                    <div class="dev-inner-box" style="display:flex;align-items:center;justify-content:space-between;gap:0.75rem">
-                                        <div style="display:flex;align-items:center;gap:0.75rem;min-width:0">
-                                            <div style="width:2.5rem;height:2.5rem;border-radius:0.625rem;background:rgba(244,63,94,0.1);border:1px solid rgba(244,63,94,0.2);display:flex;align-items:center;justify-content:center;color:#fb7185;flex-shrink:0">
-                                                <i data-lucide="file-text" style="width:1rem;height:1rem"></i>
-                                            </div>
-                                            <div style="min-width:0">
-                                                <div style="font-weight:700;font-size:0.8125rem;color:var(--white);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Alex_Rivera_CV.pdf</div>
-                                                <div style="font-size:0.6875rem;color:var(--white-40);margin-top:0.15rem">Uploaded 2 months ago</div>
-                                            </div>
-                                        </div>
-                                        <button class="client-card-btn download" title="Download">
-                                            <i data-lucide="download" style="width:13px;height:13px"></i>
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Right: status + support -->
-                        <div style="display:flex;flex-direction:column;gap:1.25rem">
-                            <!-- Status card -->
-                            <div class="profile-section-card">
-                                <div class="profile-section-header">
-                                    <i data-lucide="activity" style="width:14px;height:14px;color:#60a5fa"></i>
-                                    <span>Availability Status</span>
-                                </div>
-
-                                <div class="dev-inner-box" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.875rem">
-                                    <div style="display:flex;align-items:center;gap:0.625rem">
-                                        <div style="width:0.5rem;height:0.5rem;border-radius:50%;background:#10b981;box-shadow:0 0 8px rgba(16,185,129,0.7)"></div>
-                                        <span style="font-weight:700;font-size:0.875rem;color:#34d399">On Assignment</span>
-                                    </div>
-                                    <button style="font-size:0.625rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--white-40);background:transparent;border:1px solid #1e1e1e;border-radius:0.375rem;padding:0.2rem 0.625rem;cursor:pointer;transition:all 0.2s">Change</button>
-                                </div>
-
-                                <p style="font-size:0.8125rem;color:var(--white-40);line-height:1.6">
-                                    Your status is <strong style="color:var(--white-60)">On Assignment</strong>. The Reemo team knows you're currently engaged and not seeking new opportunities.
-                                </p>
-
-                                <!-- Status options -->
-                                <div style="display:flex;flex-direction:column;gap:0.5rem;margin-top:1rem">
-                                    <div class="profile-status-option active">
-                                        <div style="width:0.5rem;height:0.5rem;border-radius:50%;background:#10b981;flex-shrink:0"></div>
-                                        <div style="flex:1">
-                                            <div style="font-weight:600;font-size:0.8125rem">On Assignment</div>
-                                            <div style="font-size:0.6875rem;color:var(--white-40)">Currently working on a project</div>
-                                        </div>
-                                        <div style="width:1rem;height:1rem;border-radius:50%;background:#10b981;display:flex;align-items:center;justify-content:center;flex-shrink:0">
-                                            <i data-lucide="check" style="width:10px;height:10px;color:#000"></i>
-                                        </div>
-                                    </div>
-                                    <div class="profile-status-option">
-                                        <div style="width:0.5rem;height:0.5rem;border-radius:50%;background:#3b82f6;flex-shrink:0"></div>
-                                        <div style="flex:1">
-                                            <div style="font-weight:600;font-size:0.8125rem">Available</div>
-                                            <div style="font-size:0.6875rem;color:var(--white-40)">Open to new assignments</div>
-                                        </div>
-                                    </div>
-                                    <div class="profile-status-option">
-                                        <div style="width:0.5rem;height:0.5rem;border-radius:50%;background:var(--white-30);flex-shrink:0"></div>
-                                        <div style="flex:1">
-                                            <div style="font-weight:600;font-size:0.8125rem">Unavailable</div>
-                                            <div style="font-size:0.6875rem;color:var(--white-40)">Not seeking opportunities</div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Support card -->
-                            <div class="profile-support-card">
-                                <div style="width:2.5rem;height:2.5rem;border-radius:0.75rem;background:rgba(255,255,255,0.15);display:flex;align-items:center;justify-content:center;margin-bottom:1rem">
-                                    <i data-lucide="headphones" style="width:1.25rem;height:1.25rem;color:var(--white)"></i>
-                                </div>
-                                <div style="font-size:1.25rem;font-weight:800;color:var(--white);margin-bottom:0.5rem">Need Help?</div>
-                                <p style="font-size:0.8125rem;color:rgba(255,255,255,0.7);line-height:1.6;margin-bottom:1.5rem">
-                                    Questions about your profile or assignment? Our support team is here for you.
-                                </p>
-                                <button style="width:100%;background:var(--white);color:#1d4ed8;font-weight:700;font-size:0.875rem;border:none;border-radius:0.75rem;padding:0.875rem;cursor:pointer;transition:opacity 0.2s" onmouseover="this.style.opacity='0.9'" onmouseout="this.style.opacity='1'">
-                                    Contact Support
-                                </button>
-                            </div>
-                        </div>
+                    <div id="dev-profile-dynamic-content">
+                        <!-- Loaded dynamically via script.js -->
                     </div>
                 </div>
 
@@ -1361,7 +1176,10 @@
                             </div>
                             <div>
                                 <div style="font-size:0.5625rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--white-30);margin-bottom:0.2rem">Total Files</div>
-                                <div id="doc-total" style="font-size:1.25rem;font-weight:800;color:var(--white)">4</div>
+                                <div style="display:flex;align-items:baseline;gap:0.5rem">
+                                    <div id="doc-total" style="font-size:1.25rem;font-weight:800;color:var(--white)">0</div>
+                                    <div id="doc-last-upload" style="font-size:0.6875rem;color:var(--white-40)">—</div>
+                                </div>
                             </div>
                         </div>
                         <div class="profile-section-card" style="display:flex;align-items:center;gap:0.875rem">
@@ -1388,39 +1206,28 @@
                     <div style="display:grid;grid-template-columns:1fr 1.6fr;gap:1.25rem;align-items:start">
 
                         <!-- CV Card -->
-                        <div class="profile-section-card">
-                            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.25rem">
-                                <div style="font-weight:700;font-size:0.9375rem;color:var(--white)">Current CV</div>
-                                <span style="background:rgba(16,185,129,0.1);color:#34d399;border:1px solid rgba(16,185,129,0.2);padding:0.2rem 0.625rem;border-radius:0.375rem;font-size:0.5625rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em">Reemo Format</span>
-                            </div>
-
-                            <!-- File preview area -->
-                            <div onclick="downloadDevCV()" style="background:rgba(255,255,255,0.03);border:1.5px dashed rgba(255,255,255,0.12);border-radius:0.875rem;padding:2rem 1rem;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;margin-bottom:1rem;cursor:pointer;transition:all 0.2s" onmouseover="this.style.borderColor='rgba(37,99,235,0.4)';this.style.background='rgba(37,99,235,0.04)'" onmouseout="this.style.borderColor='rgba(255,255,255,0.12)';this.style.background='rgba(255,255,255,0.03)'">
-                                <div style="width:3rem;height:3rem;border-radius:0.75rem;background:rgba(37,99,235,0.1);border:1px solid rgba(37,99,235,0.2);display:flex;align-items:center;justify-content:center;margin-bottom:0.75rem">
-                                    <i data-lucide="file-text" style="width:22px;height:22px;color:#60a5fa"></i>
-                                </div>
-                                <div style="font-weight:700;font-size:0.875rem;color:var(--white);margin-bottom:0.25rem">Alex_Rivera_CV.pdf</div>
-                                <div style="font-size:0.6875rem;color:var(--white-40)">Uploaded 3 days ago &bull; 1.2 MB</div>
-                                <div style="margin-top:0.75rem;font-size:0.625rem;color:#60a5fa;font-weight:700;text-transform:uppercase;letter-spacing:0.08em">Click to download</div>
-                            </div>
-
-                            <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.625rem">
-                                <button class="btn-outline" onclick="downloadDevCV()" style="justify-content:center;font-size:0.75rem;padding:0.5rem 0.75rem">
-                                    <i data-lucide="download" style="width:13px;height:13px"></i> Download
-                                </button>
-                                <button class="btn-outline" onclick="triggerDocUpload('cv')" style="justify-content:center;font-size:0.75rem;padding:0.5rem 0.75rem">
-                                    <i data-lucide="upload-cloud" style="width:13px;height:13px"></i> Replace
-                                </button>
-                            </div>
+                        <div class="profile-section-card" id="dev-docs-cv-preview">
+                            <!-- Loaded dynamically via script.js -->
                         </div>
 
                         <!-- Documents List -->
                         <div class="profile-section-card" style="padding:0;overflow:hidden">
                             <div style="padding:1.25rem;border-bottom:1px solid #1a1a1a;display:flex;justify-content:space-between;align-items:center">
                                 <div style="font-weight:700;font-size:0.9375rem;color:var(--white)">All Documents</div>
-                                <button class="btn-outline" onclick="triggerDocUpload()" style="font-size:0.75rem;padding:0.35rem 0.75rem">
-                                    <i data-lucide="plus" style="width:12px;height:12px"></i> Add
-                                </button>
+                                <div style="display:flex;align-items:center;gap:0.5rem">
+                                    <div class="filter-select-wrap" style="width:100px;font-size:0.75rem">
+                                        <select id="dev-docs-filter" class="filter-select" onchange="renderDevDocsList()" style="padding:0.2rem 0.5rem">
+                                            <option value="">All Types</option>
+                                            <option value="CV">CV</option>
+                                            <option value="Contract">Contract</option>
+                                            <option value="ID/Passport">ID/Passport</option>
+                                            <option value="Other">Other</option>
+                                        </select>
+                                    </div>
+                                    <button class="btn-outline" onclick="triggerDocUpload()" style="font-size:0.75rem;padding:0.35rem 0.75rem">
+                                        <i data-lucide="plus" style="width:12px;height:12px"></i> Add
+                                    </button>
+                                </div>
                             </div>
 
                             <table style="width:100%;border-collapse:collapse">
@@ -1928,9 +1735,15 @@
                     </select>
                 </div>
             </div>
-            <div>
-                <label style="display:block;font-size:0.5625rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--white-40);margin-bottom:0.5rem">Rol op project</label>
-                <input type="text" id="assign-project-role" class="filter-input" placeholder="bijv. Senior Developer" style="width:100%">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem">
+                <div>
+                    <label style="display:block;font-size:0.5625rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--white-40);margin-bottom:0.5rem">Rol op project</label>
+                    <input type="text" id="assign-project-role" class="filter-input" placeholder="bijv. Senior Developer" style="width:100%">
+                </div>
+                <div>
+                    <label style="display:block;font-size:0.5625rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--white-40);margin-bottom:0.5rem">Uren per week</label>
+                    <input type="number" id="assign-project-hours" class="filter-input" value="40" min="1" max="80" style="width:100%">
+                </div>
             </div>
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem">
                 <div>
@@ -2026,6 +1839,38 @@
 <style>
 @keyframes spin { to { transform: rotate(360deg); } }
 </style>
+
+<!-- ===== CREATE INVOICE MODAL ===== -->
+<div id="modal-create-invoice" class="modal-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);backdrop-filter:blur(6px);z-index:9999;align-items:center;justify-content:center">
+    <div class="modal-card" style="background:#0a0a0a;border:1px solid #1e1e1e;border-radius:1rem;width:100%;max-width:460px;overflow:hidden;box-shadow:0 25px 50px -12px rgba(0,0,0,0.5)">
+        <div style="padding:1.5rem;border-bottom:1px solid #1e1e1e;display:flex;justify-content:space-between;align-items:center">
+            <h3 style="font-size:1.125rem;font-weight:800;color:var(--white)">Nieuwe Factuur Aanmaken</h3>
+            <button onclick="closeModal('modal-create-invoice')" style="width:2rem;height:2rem;border-radius:50%;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:var(--white-60);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:1rem">✕</button>
+        </div>
+        <div style="padding:1.5rem;display:flex;flex-direction:column;gap:1.25rem">
+            <div>
+                <label style="display:block;font-size:0.5625rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--white-40);margin-bottom:0.5rem">Klant *</label>
+                <div class="filter-select-wrap" style="width:100%">
+                    <select id="new-inv-client" class="filter-select" style="width:100%">
+                        <!-- Filled by JS -->
+                    </select>
+                </div>
+            </div>
+            <div>
+                <label style="display:block;font-size:0.5625rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--white-40);margin-bottom:0.5rem">Totaalbedrag (€) *</label>
+                <input type="number" id="new-inv-amount" class="filter-input" placeholder="bijv. 4250" style="width:100%">
+            </div>
+            <div>
+                <label style="display:block;font-size:0.5625rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--white-40);margin-bottom:0.5rem">Vervaldatum *</label>
+                <input type="date" id="new-inv-deadline" class="filter-input" style="width:100%">
+            </div>
+            <div style="display:flex;justify-content:flex-end;gap:0.75rem;margin-top:0.5rem">
+                <button class="btn-outline" onclick="closeModal('modal-create-invoice')">Annuleren</button>
+                <button class="btn-blue" onclick="submitCreateInvoice()"><i data-lucide="check" style="width:14px;height:14px"></i> Opslaan</button>
+            </div>
+        </div>
+    </div>
+</div>
 
 </body>
 </html>

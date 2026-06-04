@@ -563,6 +563,11 @@ function renderDevDashboard(data) {
             const resterend = Math.max(0, capacity - data.stats.hoursThisWeek);
             resterendLabel.textContent = `${resterend} of ${capacity} hours remaining this week`;
         }
+        const progressFill = document.getElementById('dev-dash-progress-fill');
+        if (progressFill) {
+            const pct = Math.min((data.stats.hoursThisWeek / capacity) * 100, 100);
+            progressFill.style.width = `${pct}%`;
+        }
         
         // Utilization This Month
         const realCard = statsCards[1];
@@ -5115,7 +5120,7 @@ async function saveParsedCVDatabase() {
     const rol   = document.getElementById('cv-r-role')?.value.trim() || null;
     const rate  = parseFloat(document.getElementById('cv-r-rate')?.value) || null;
     const email = document.getElementById('cv-r-email')?.value.trim() || null;
-    const weekcap = parseInt(document.getElementById('cv-r-cap')?.value) || 40;
+    const weekcap = parseInt(document.getElementById('cv-r-weekcap')?.value) || 40;
 
     if (!naam || !email) { showToast('⚠ Naam en Email zijn verplicht.'); return; }
 
