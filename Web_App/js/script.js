@@ -1528,7 +1528,7 @@ async function renderDashboardStats() {
 
     // Cashflow Funnel Render (Async via live DB)
     if (typeof renderCashflowFunnel === 'function') {
-        renderCashflowFunnel();
+        await renderCashflowFunnel();
     }
 
 
@@ -3049,6 +3049,9 @@ async function approveTimesheet(id, btnElement) {
         });
         await refreshTimesheetsSilent();
         showToast('✓ Timesheet goedgekeurd');
+        // Refresh dashboard live data
+        if (typeof renderCashflowFunnel === 'function') renderCashflowFunnel();
+        if (typeof renderOmzetTrendChart === 'function') renderOmzetTrendChart();
     } catch (e) {
         showToast(`⚠ Fout bij goedkeuren: ${e.message}`);
         if (btnElement) {
@@ -3089,6 +3092,9 @@ async function approveAllTimesheets(btnElement) {
         await apiFetch('/api/timesheets', { method: 'PATCH' });
         await refreshTimesheetsSilent();
         showToast('✓ Alle openstaande timesheets goedgekeurd');
+        // Refresh dashboard live data
+        if (typeof renderCashflowFunnel === 'function') renderCashflowFunnel();
+        if (typeof renderOmzetTrendChart === 'function') renderOmzetTrendChart();
     } catch (e) {
         showToast(`⚠ Fout bij alles goedkeuren: ${e.message}`);
     } finally {
@@ -3418,13 +3424,16 @@ async function confirmMarkeerBetaald(invId) {
         const json = await resp.json();
         if (!resp.ok || !json.ok) throw new Error(json.error || 'Onbekende fout');
 
-        showToast(`\u2713 Factuur #${invId} gemarkeerd als betaald`, 'success');
+        showToast(`✓ Factuur #${invId} gemarkeerd als betaald`, 'success');
 
         // Refresh invoices + stats + dashboard funnel
         await loadInvoices();
         renderInvoicesTable();
         updateInvoiceStats();
         renderDashboardStats();
+        // Refresh dashboard live data
+        if (typeof renderCashflowFunnel === 'function') renderCashflowFunnel();
+        if (typeof renderOmzetTrendChart === 'function') renderOmzetTrendChart();
     } catch (e) {
         showToast('Fout: ' + e.message, 'error');
     }
@@ -3619,6 +3628,9 @@ async function genereerFacturen() {
         renderInvoicesTable();
         updateInvoiceStats();
         if (typeof renderDashboardStats === 'function') renderDashboardStats();
+        // Refresh dashboard live data
+        if (typeof renderCashflowFunnel === 'function') renderCashflowFunnel();
+        if (typeof renderOmzetTrendChart === 'function') renderOmzetTrendChart();
         await loadFactuurAanbeveling(); // Knop update naar volgende openstaande maand
     } catch (err) {
         showToast(`⚠ Fout bij genereren: ${err.message}`, 'error');
