@@ -295,7 +295,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     updateCVStats();
     updateInvoiceStats();
     updateTimesheetSummary();
-    initCharts();
+    if (typeof renderOmzetTrendChart === 'function') renderOmzetTrendChart();
 
     // ── HTML Structure Guard ────────────────────────────────────────────────────
     // Detects if any .screen-content is nested inside another .screen-content,
@@ -1674,65 +1674,79 @@ async function renderCashflowFunnel() {
     const json = await res.json();
     const data = json.data || json;
 
-    const mtd = data.mtd || {};
+    const mtd    = data.mtd    || {};
     const totaal = data.totaal || {};
 
     const fmt = (v) => '€' + Math.round(v || 0).toLocaleString('nl-NL');
 
-    const gapBench     = (mtd.verwacht || 0) - (mtd.geleverd || 0);
-    const gapFacturatie = (mtd.geleverd || 0) - (mtd.gefactureerd || 0);
-    const gapDebiteuren = (mtd.gefactureerd || 0) - (mtd.ontvangen || 0);
+    const v = mtd.verwacht    || 0;
+    const g = mtd.geleverd    || 0;
+    const f = mtd.gefactureerd || 0;
+    const o = mtd.ontvangen   || 0;
+
+    const gapBench      = Math.max(0, v - g);
+    const gapFacturatie = Math.max(0, g - f);
+    const gapDebiteuren = Math.max(0, f - o);
+
+    // Progress bars: percentage of verwacht
+    const pG = v > 0 ? Math.min(100, (g / v) * 100) : 0;
+    const pF = v > 0 ? Math.min(100, (f / v) * 100) : 0;
+    const pO = v > 0 ? Math.min(100, (o / v) * 100) : 0;
 
     const html = `
       <div class="cashflow-funnel">
-        <div class="funnel-step">
-          <div class="step-number">1 van 4</div>
-          <div class="step-label" style="color:#3B82F6;">Verwacht</div>
-          <div class="step-value">${fmt(mtd.verwacht)}</div>
+        <div class="funnel-step verwacht">
+          <div class="step-number">Stap 1 / 4</div>
+          <div class="step-label">Verwacht</div>
+          <div class="step-value">${fmt(v)}</div>
           <div class="step-sub">Op basis van contracten</div>
+          <div class="step-bar-wrap"><div class="step-bar" style="width:100%"></div></div>
         </div>
 
         <div class="funnel-chevron">
-          ›
-          <span class="gap-amount">-${fmt(gapBench)}</span>
+          <div class="chev-arrow">›</div>
+          <div class="gap-amount">${gapBench > 0 ? '-' + fmt(gapBench) : '✓'}</div>
         </div>
 
-        <div class="funnel-step">
-          <div class="step-number">2 van 4</div>
-          <div class="step-label" style="color:#60A5FA;">Geleverd</div>
-          <div class="step-value">${fmt(mtd.geleverd)}</div>
+        <div class="funnel-step geleverd">
+          <div class="step-number">Stap 2 / 4</div>
+          <div class="step-label">Geleverd</div>
+          <div class="step-value">${fmt(g)}</div>
           <div class="step-sub">Goedgekeurde uren</div>
+          <div class="step-bar-wrap"><div class="step-bar" style="width:${pG}%"></div></div>
         </div>
 
         <div class="funnel-chevron">
-          ›
-          <span class="gap-amount">-${fmt(gapFacturatie)}</span>
+          <div class="chev-arrow">›</div>
+          <div class="gap-amount">${gapFacturatie > 0 ? '-' + fmt(gapFacturatie) : '✓'}</div>
         </div>
 
-        <div class="funnel-step">
-          <div class="step-number">3 van 4</div>
-          <div class="step-label" style="color:#22C55E;">Gefactureerd</div>
-          <div class="step-value">${fmt(mtd.gefactureerd)}</div>
+        <div class="funnel-step gefact">
+          <div class="step-number">Stap 3 / 4</div>
+          <div class="step-label">Gefactureerd</div>
+          <div class="step-value">${fmt(f)}</div>
           <div class="step-sub">Factuur verstuurd</div>
+          <div class="step-bar-wrap"><div class="step-bar" style="width:${pF}%"></div></div>
         </div>
 
         <div class="funnel-chevron">
-          ›
-          <span class="gap-amount">-${fmt(gapDebiteuren)}</span>
+          <div class="chev-arrow">›</div>
+          <div class="gap-amount">${gapDebiteuren > 0 ? '-' + fmt(gapDebiteuren) : '✓'}</div>
         </div>
 
         <div class="funnel-step ontvangen">
-          <div class="step-number">4 van 4</div>
-          <div class="step-label" style="color:#22C55E;">Ontvangen</div>
-          <div class="step-value">${fmt(mtd.ontvangen)}</div>
+          <div class="step-number">Stap 4 / 4</div>
+          <div class="step-label">Ontvangen</div>
+          <div class="step-value">${fmt(o)}</div>
           <div class="step-sub">Betaald op bank</div>
+          <div class="step-bar-wrap"><div class="step-bar" style="width:${pO}%"></div></div>
         </div>
       </div>
 
       <div class="funnel-gap-row">
-        <span>-${fmt(gapBench)} <small>bench</small></span>
-        <span>-${fmt(gapFacturatie)} <small>te factureren</small></span>
-        <span>-${fmt(gapDebiteuren)} <small>debiteuren</small></span>
+        <span>${gapBench > 0 ? '-' + fmt(gapBench) : '—'} <small>bench verlies</small></span>
+        <span>${gapFacturatie > 0 ? '-' + fmt(gapFacturatie) : '—'} <small>te factureren</small></span>
+        <span>${gapDebiteuren > 0 ? '-' + fmt(gapDebiteuren) : '—'} <small>openstaand debiteur</small></span>
       </div>
 
       <div class="funnel-totaal-row">
@@ -1744,9 +1758,12 @@ async function renderCashflowFunnel() {
 
     const container = document.getElementById('dashboard-cashflow-funnel');
     if (container) container.innerHTML = html;
+    else console.error('dashboard-cashflow-funnel container niet gevonden');
 
   } catch(err) {
     console.error('Funnel laden mislukt:', err);
+    const container = document.getElementById('dashboard-cashflow-funnel');
+    if (container) container.innerHTML = '<p style="color:#EF4444;font-size:12px;padding:8px 0;">Funnel data kon niet worden geladen.</p>';
   }
 }
 
@@ -3155,7 +3172,7 @@ async function refreshTimesheetsSilent(btnElement = null) {
             );
             updateTimesheetSummary();
             if (typeof renderDashboardStats === 'function') renderDashboardStats();
-            if (typeof initCharts === 'function') initCharts();
+            if (typeof renderOmzetTrendChart === 'function') renderOmzetTrendChart();
         }
     } catch(e) {
         console.warn('Auto-refresh mislukt:', e);
@@ -4055,45 +4072,8 @@ async function initCharts() {
     Chart.defaults.color = 'rgba(255,255,255,0.4)';
     Chart.defaults.font.family = "'Inter', sans-serif";
 
-    // ── Load quarterly + monthly data in parallel ──────────────────────────────
-    const [kwartaalRows, maandRows] = await Promise.all([
-        apiFetchSafe('/api/revenue-per-kwartaal'),
-        apiFetchSafe('/api/revenue-per-maand')
-    ]);
-
-    // Store quarterly rows
-    if (kwartaalRows && kwartaalRows.length > 0) {
-        _kwartaalRows = kwartaalRows;
-        console.log('[Charts] Kwartaal revenue loaded ✓', kwartaalRows.length, 'rows');
-    } else {
-        const yr = new Date().getFullYear();
-        _kwartaalRows = [1,2,3,4].map(q => ({ jaar: yr, kwartaal: q, geleverd: 0, verwacht: 0 }));
-        console.warn('[Charts] No quarterly data, using empty fallback');
-    }
-
-    // Store monthly rows (for drill-down)
-    if (maandRows && maandRows.length > 0) {
-        _maandRows = maandRows.map(r => ({
-            jaar: parseInt(r.jaar),
-            maand: parseInt(r.maand),
-            totaal_bedrag: parseFloat(r.totaal_bedrag || 0)
-        }));
-        console.log('[Charts] Maand data loaded ✓', _maandRows.length, 'rows');
-    }
-
-    // Auto-select most recent year overall
-    const allYears = [...new Set([
-        ..._kwartaalRows.map(r => r.jaar),
-        ..._maandRows.map(r => r.jaar)
-    ])];
-    _activeRevenueYear = allYears.length > 0
-        ? Math.max(...allYears)
-        : new Date().getFullYear();
-    _activeRevenueKwartaal = null;
-
-    // Populate dropdown and draw chart
-    populateYearSelect();
-    updateRevenueChart();
+    // NOTE: Revenue/omzet chart is driven by renderOmzetTrendChart() via live Supabase data.
+    // The legacy populateYearSelect / updateRevenueChart code is NOT called here to avoid conflict.
 
     // ── Hours per Client ───────────────────────────────────────────────────────
     const hoursRows = await apiFetchSafe('/api/uren-per-klant');
@@ -4102,7 +4082,7 @@ async function initCharts() {
         const nameKey  = Object.keys(first).find(k => /klant|client|naam|name/i.test(k)) || Object.keys(first)[0];
         const hoursKey = Object.keys(first).find(k => /uren|hours|uur/i.test(k))  || Object.keys(first)[1];
         _drawHoursChart(hoursRows.map(r => r[nameKey]), hoursRows.map(r => parseFloat(r[hoursKey]) || 0));
-        console.log('[Charts] Hours-per-client loaded ✓');
+        console.log('[Charts] Hours-per-client loaded \u2713');
     } else {
         _drawHoursChart(['Geen data'], [0]);
     }
