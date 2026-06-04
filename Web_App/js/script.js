@@ -1709,7 +1709,7 @@ async function renderCashflowFunnel() {
 
         <div class="funnel-chevron">
           <div class="chev-arrow">›</div>
-          <div class="gap-amount">${gapBench > 0 ? '-' + fmt(gapBench) : '✓'}</div>
+          <div class="gap-amount ${gapBench > 0 ? 'warning' : 'success'}">${gapBench > 0 ? '-' + fmt(gapBench) : '✓'}</div>
         </div>
 
         <div class="funnel-step geleverd">
@@ -1722,7 +1722,7 @@ async function renderCashflowFunnel() {
 
         <div class="funnel-chevron">
           <div class="chev-arrow">›</div>
-          <div class="gap-amount">${gapFacturatie > 0 ? '-' + fmt(gapFacturatie) : '✓'}</div>
+          <div class="gap-amount ${gapFacturatie > 0 ? 'warning' : 'success'}">${gapFacturatie > 0 ? '-' + fmt(gapFacturatie) : '✓'}</div>
         </div>
 
         <div class="funnel-step gefact">
@@ -1735,7 +1735,7 @@ async function renderCashflowFunnel() {
 
         <div class="funnel-chevron">
           <div class="chev-arrow">›</div>
-          <div class="gap-amount">${gapDebiteuren > 0 ? '-' + fmt(gapDebiteuren) : '✓'}</div>
+          <div class="gap-amount ${gapDebiteuren > 0 ? 'warning' : 'success'}">${gapDebiteuren > 0 ? '-' + fmt(gapDebiteuren) : '✓'}</div>
         </div>
 
         <div class="funnel-step ontvangen">
@@ -1787,86 +1787,94 @@ async function renderOmzetTrendChart() {
     const sub = document.getElementById('chart-subtitle');
     if (sub) sub.textContent = `${periodeLabels[kwartaal] || kwartaal} ${jaar} — werkelijk vs verwacht`;
 
-    // Destroy bestaande chart
-    if (window._omzetChart) window._omzetChart.destroy();
-
     const ctx = document.getElementById('revenueChart') || document.getElementById('omzetTrendChart');
     if (!ctx) return;
 
-    window._omzetChart = new Chart(ctx, {
-      type: 'line',
-      data: {
-        labels: data.labels,
-        datasets: [
-          {
-            label: 'Werkelijk',
-            data: data.werkelijk,
-            borderColor: '#3B82F6',
-            backgroundColor: 'rgba(59,130,246,0.1)',
-            borderWidth: 2.5,
-            tension: 0.4,
-            fill: true,
-            pointBackgroundColor: '#3B82F6',
-            pointRadius: 4,
-            pointHoverRadius: 7,
-          },
-          {
-            label: 'Verwacht',
-            data: data.verwacht,
-            borderColor: '#F59E0B',
-            borderDash: [6,4],
-            borderWidth: 2,
-            tension: 0.4,
-            fill: false,
-            pointBackgroundColor: '#F59E0B',
-            pointRadius: 4,
-            pointHoverRadius: 7,
-          }
-        ]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        interaction: { mode: 'index', intersect: false },
-        plugins: {
-          legend: {
-            position: 'top',
-            align: 'end',
-            labels: {
-              color: '#94A3B8',
-              usePointStyle: true,
-              pointStyle: 'circle',
-              padding: 16,
-              font: { size: 11 }
-            }
-          },
-          tooltip: {
-            backgroundColor: '#1E293B',
-            borderColor: '#334155',
-            borderWidth: 1,
-            titleColor: '#CBD5E1',
-            bodyColor: '#94A3B8',
-            callbacks: {
-              label: (ctx) => ` ${ctx.dataset.label}: €${ctx.parsed.y.toLocaleString('nl-NL')}`
-            }
-          }
-        },
-        scales: {
-          x: {
-            ticks: { color: '#94A3B8', font: { size: 11 } },
-            grid:  { color: 'rgba(51,65,85,0.4)' }
-          },
-          y: {
-            ticks: {
-              color: '#94A3B8',
-              font: { size: 11 },
-              callback: (v) => '€' + (v >= 1000 ? (v/1000).toFixed(0)+'k' : v)
+    if (window._omzetChart) {
+      window._omzetChart.data.labels = data.labels;
+      window._omzetChart.data.datasets[0].data = data.werkelijk;
+      window._omzetChart.data.datasets[1].data = data.verwacht;
+      window._omzetChart.update();
+    } else {
+      window._omzetChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: data.labels,
+          datasets: [
+            {
+              label: 'Werkelijk',
+              data: data.werkelijk,
+              borderColor: '#3B82F6',
+              backgroundColor: 'rgba(59,130,246,0.1)',
+              borderWidth: 2.5,
+              tension: 0.4,
+              fill: true,
+              pointBackgroundColor: '#3B82F6',
+              pointRadius: 4,
+              pointHoverRadius: 7,
             },
-            grid: { color: 'rgba(51,65,85,0.4)' }
+            {
+              label: 'Verwacht',
+              data: data.verwacht,
+              borderColor: '#F59E0B',
+              borderDash: [6,4],
+              borderWidth: 2,
+              tension: 0.4,
+              fill: false,
+              pointBackgroundColor: '#F59E0B',
+              pointRadius: 4,
+              pointHoverRadius: 7,
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          animation: {
+            duration: 1000,
+            easing: 'easeOutBack'
+          },
+          interaction: { mode: 'index', intersect: false },
+          plugins: {
+            legend: {
+              position: 'top',
+              align: 'end',
+              labels: {
+                color: '#94A3B8',
+                usePointStyle: true,
+                pointStyle: 'circle',
+                padding: 16,
+                font: { size: 11 }
+              }
+            },
+            tooltip: {
+              backgroundColor: '#1E293B',
+              borderColor: '#334155',
+              borderWidth: 1,
+              titleColor: '#CBD5E1',
+              bodyColor: '#94A3B8',
+              callbacks: {
+                label: (ctx) => ` ${ctx.dataset.label}: €${ctx.parsed.y.toLocaleString('nl-NL')}`
+              }
+            }
+          },
+          scales: {
+            x: {
+              ticks: { color: '#94A3B8', font: { size: 11 } },
+              grid:  { color: 'rgba(51,65,85,0.4)' }
+            },
+            y: {
+              ticks: {
+                color: '#94A3B8',
+                font: { size: 11 },
+                callback: (v) => '€' + (v >= 1000 ? (v/1000).toFixed(0)+'k' : v)
+              },
+              grid: { color: 'rgba(51,65,85,0.4)' }
+            }
           }
         }
-      }
-    });
+      });
+    }
 
   } catch(err) {
     console.error('Grafiek laden mislukt:', err);
