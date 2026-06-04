@@ -1538,51 +1538,57 @@ async function renderDashboardStats() {
         const ontvangen    = cashflow.ontvangen    || 0;
 
         const steps = [
-            { label: '1. VERWACHT',     value: verwacht,     color: '#94a3b8', sub: 'Contracten' },
-            { label: '2. GELEVERD',     value: geleverd,     color: '#60a5fa', sub: 'Urenreg.' },
-            { label: '3. GEFACT.',      value: gefactureerd, color: '#a78bfa', sub: 'Facturen' },
-            { label: '4. ONTVANGEN',    value: ontvangen,    color: '#34d399', sub: 'Betaald' },
+            { label: 'VERWACHT',     value: verwacht,     color: '#94a3b8', sub: 'Contracten', className: '' },
+            { label: 'GELEVERD',     value: geleverd,     color: '#60a5fa', sub: 'Urenreg.',   className: '' },
+            { label: 'GEFACT.',      value: gefactureerd, color: '#a78bfa', sub: 'Facturen',   className: '' },
+            { label: 'ONTVANGEN',    value: ontvangen,    color: '#34d399', sub: 'Betaald',    className: 'ontvangen' },
         ];
 
         const cardsHtml = steps.map((s, i) => {
-            return `<div class="funnel-step">
+            return `<div class="funnel-step ${s.className}">
+                <div class="step-number">0${i+1}</div>
                 <div class="step-label" style="color:${s.color}">${s.label}</div>
                 <div class="step-value">${fmtEuro(s.value)}</div>
                 <div class="step-sub">${s.sub}</div>
             </div>`;
         });
 
-        const chevron = `<div class="funnel-chevron">›</div>`;
-
         const gap1 = geleverd - verwacht;
         const gap2 = gefactureerd - geleverd;
         const gap3 = ontvangen - gefactureerd;
 
-        const fmtGap = (val, label) => {
-            if (val === 0) return `<div>€0 gap <small>(${label})</small></div>`;
+        const fmtGapValue = (val) => {
+            if (val === 0) return '€0';
             const prefix = val < 0 ? '−' : '+';
-            const color = val < 0 ? '#EF4444' : '#34d399';
-            return `<div style="color:${color}">${prefix}${fmtEuro(Math.abs(val))} gap <small>(${label})</small></div>`;
+            return `${prefix}${fmtEuro(Math.abs(val))}`;
+        };
+
+        const renderChevron = (gapVal) => {
+            const color = gapVal < 0 ? '#EF4444' : (gapVal > 0 ? '#34d399' : '#64748B');
+            return `<div class="funnel-chevron">
+                <div>›</div>
+                <div class="gap-amount" style="color:${color}">${fmtGapValue(gapVal)} gap</div>
+            </div>`;
         };
 
         funnelContainer.innerHTML = `
             <div class="cashflow-funnel">
                 ${cardsHtml[0]}
-                ${chevron}
+                ${renderChevron(gap1)}
                 ${cardsHtml[1]}
-                ${chevron}
+                ${renderChevron(gap2)}
                 ${cardsHtml[2]}
-                ${chevron}
+                ${renderChevron(gap3)}
                 ${cardsHtml[3]}
             </div>
-            <div class="funnel-gap-row">
-                ${fmtGap(gap1, 'geleverd vs verw')}
-                ${fmtGap(gap2, 'gefact vs gel')}
-                ${fmtGap(gap3, 'ontv vs gefact')}
-            </div>
-            <div style="margin-top:0.75rem;padding-top:0.625rem;border-top:1px solid rgba(255,255,255,0.05);display:flex;align-items:center;gap:0.375rem">
-                <i data-lucide="calendar" style="width:10px;height:10px;color:rgba(255,255,255,0.25)"></i>
-                <span style="font-size:0.5625rem;font-weight:600;color:rgba(255,255,255,0.3);text-transform:uppercase;letter-spacing:0.08em">MTD &mdash; ${maandLabel}</span>
+            <div class="funnel-totaal-row">
+                <div style="margin-right:auto; display:flex; align-items:center; gap:0.375rem">
+                    <i data-lucide="calendar" style="width:10px;height:10px;color:rgba(255,255,255,0.25)"></i>
+                    <span style="text-transform:uppercase; letter-spacing:0.08em; color:#64748B">MTD &mdash; ${maandLabel}</span>
+                </div>
+                <span>Totaal Gefactureerd: <strong>${fmtEuro(cashflowTotaal.ooit_gefactureerd)}</strong></span>
+                <span>Totaal Ontvangen: <strong>${fmtEuro(cashflowTotaal.ooit_ontvangen)}</strong></span>
+                <span>Openstaand: <strong style="color:#fbbf24">${fmtEuro(cashflowTotaal.openstaand)}</strong></span>
             </div>
         `;
         if (typeof lucide !== 'undefined') lucide.createIcons();
@@ -1725,8 +1731,18 @@ async function renderDashboardStats() {
 
 async function renderOmzetTrendChart() {
     try {
-        const data = await apiFetchSafe('/api/dashboard/omzet-trend');
+        const jaar = document.getElementById('chart-year-select')?.value || new Date().getFullYear();
+        const kwartaal = document.getElementById('chart-quarter-select')?.value || 'all';
+
+        const data = await apiFetchSafe(`/api/dashboard/omzet-trend?jaar=${jaar}&kwartaal=${kwartaal}`);
         if (!data || !data.labels) return;
+
+        // Update subtitle
+        const sub = document.getElementById('chart-subtitle');
+        if (sub) {
+            const qText = kwartaal === 'all' ? 'Volledig jaar' : (kwartaal === '6m' ? 'Laatste 6 maanden' : kwartaal);
+            sub.textContent = `${qText} ${jaar} — werkelijk vs verwacht`;
+        }
 
         const ctx = document.getElementById('revenueChart');
         if (!ctx) return;
@@ -1745,30 +1761,67 @@ async function renderOmzetTrendChart() {
                         label: 'Werkelijk',
                         data: data.werkelijk,
                         borderColor: '#3B82F6',
-                        backgroundColor: 'rgba(59,130,246,0.1)',
+                        backgroundColor: 'rgba(59,130,246,0.12)',
+                        borderWidth: 2.5,
                         tension: 0.4,
                         fill: true,
+                        pointBackgroundColor: '#3B82F6',
+                        pointRadius: 4,
+                        pointHoverRadius: 7,
                     },
                     {
                         label: 'Verwacht',
                         data: data.verwacht,
                         borderColor: '#F59E0B',
-                        borderDash: [5, 5],
+                        borderDash: [6, 4],
+                        borderWidth: 2,
                         tension: 0.4,
                         fill: false,
+                        pointBackgroundColor: '#F59E0B',
+                        pointRadius: 4,
+                        pointHoverRadius: 7,
                     }
                 ]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
-                plugins: { legend: { labels: { color: '#94A3B8' } } },
+                interaction: { mode: 'index', intersect: false },
+                plugins: {
+                    legend: {
+                        position: 'top',
+                        align: 'end',
+                        labels: {
+                            color: '#94A3B8',
+                            usePointStyle: true,
+                            pointStyle: 'circle',
+                            padding: 20,
+                            font: { size: 12 }
+                        }
+                    },
+                    tooltip: {
+                        backgroundColor: '#1E293B',
+                        borderColor: '#334155',
+                        borderWidth: 1,
+                        titleColor: '#CBD5E1',
+                        bodyColor: '#94A3B8',
+                        callbacks: {
+                            label: (ctx) => ` ${ctx.dataset.label}: €${ctx.parsed.y.toLocaleString('nl-NL')}`
+                        }
+                    }
+                },
                 scales: {
-                    x: { ticks: { color: '#94A3B8' }, grid: { color: 'rgba(255,255,255,0.05)' } },
-                    y: { 
-                        ticks: { color: '#94A3B8' }, 
-                        grid: { color: 'rgba(255,255,255,0.05)' },
-                        callback: (v) => '€' + (v/1000).toFixed(0) + 'k'
+                    x: {
+                        ticks: { color: '#94A3B8', font: { size: 11 } },
+                        grid: { color: 'rgba(51,65,85,0.5)' }
+                    },
+                    y: {
+                        ticks: {
+                            color: '#94A3B8',
+                            font: { size: 11 },
+                            callback: (v) => '€' + (v >= 1000 ? (v/1000).toFixed(0) + 'k' : v)
+                        },
+                        grid: { color: 'rgba(51,65,85,0.5)' }
                     }
                 }
             }

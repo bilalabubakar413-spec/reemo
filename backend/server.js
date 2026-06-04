@@ -1389,34 +1389,83 @@ app.get('/api/dashboard/per-klant', async (req, res) => {
   }
 });
 
-// GET /api/dashboard/omzet-trend — 6 maanden trend
+// GET /api/dashboard/omzet-trend — 6 maanden of specifieke jaar/kwartaal trend
 app.get('/api/dashboard/omzet-trend', async (req, res) => {
   try {
+    const jaar = parseInt(req.query.jaar) || new Date().getFullYear();
+    const kwartaal = req.query.kwartaal || 'all';
+
+    let startDate, endDate;
+    let rangeMonths = [];
+
+    if (kwartaal === 'Q1') {
+      startDate = new Date(jaar, 0, 1);
+      endDate = new Date(jaar, 2, 31, 23, 59, 59);
+      for (let m = 0; m < 3; m++) {
+        rangeMonths.push({ year: jaar, month: m });
+      }
+    } else if (kwartaal === 'Q2') {
+      startDate = new Date(jaar, 3, 1);
+      endDate = new Date(jaar, 5, 30, 23, 59, 59);
+      for (let m = 3; m < 6; m++) {
+        rangeMonths.push({ year: jaar, month: m });
+      }
+    } else if (kwartaal === 'Q3') {
+      startDate = new Date(jaar, 6, 1);
+      endDate = new Date(jaar, 8, 30, 23, 59, 59);
+      for (let m = 6; m < 9; m++) {
+        rangeMonths.push({ year: jaar, month: m });
+      }
+    } else if (kwartaal === 'Q4') {
+      startDate = new Date(jaar, 9, 1);
+      endDate = new Date(jaar, 11, 31, 23, 59, 59);
+      for (let m = 9; m < 12; m++) {
+        rangeMonths.push({ year: jaar, month: m });
+      }
+    } else if (kwartaal === '6m') {
+      const today = new Date();
+      const referenceDate = (jaar === today.getFullYear()) ? today : new Date(jaar, 11, 31);
+      startDate = new Date(referenceDate.getFullYear(), referenceDate.getMonth() - 5, 1);
+      endDate = new Date(referenceDate.getFullYear(), referenceDate.getMonth() + 1, 0, 23, 59, 59);
+      for (let i = 5; i >= 0; i--) {
+        const d = new Date(referenceDate.getFullYear(), referenceDate.getMonth() - i, 1);
+        rangeMonths.push({ year: d.getFullYear(), month: d.getMonth() });
+      }
+    } else {
+      // all (Full Year)
+      startDate = new Date(jaar, 0, 1);
+      endDate = new Date(jaar, 11, 31, 23, 59, 59);
+      for (let m = 0; m < 12; m++) {
+        rangeMonths.push({ year: jaar, month: m });
+      }
+    }
+
     const uren = await q(`
       SELECT datum, COALESCE(bedrag, 0)::float AS bedrag, status 
       FROM urenregistratie 
       WHERE status = 'approved' 
-        AND datum >= CURRENT_DATE - INTERVAL '6 month'
-    `);
+        AND datum >= $1 AND datum <= $2
+    `, [startDate, endDate]);
 
     const contracten = await q(`
       SELECT uren_per_week, uurtarief, startdatum, einddatum, status 
       FROM contract 
       WHERE status = 'actief'
-    `);
+        AND startdatum <= $2 
+        AND (einddatum IS NULL OR einddatum >= $1)
+    `, [startDate, endDate]);
 
-    const maanden = [];
+    const labels = [];
     const werkelijk = [];
     const verwacht = [];
 
-    const nu = new Date();
-    for (let i = 5; i >= 0; i--) {
-      const d = new Date(nu.getFullYear(), nu.getMonth() - i, 1);
+    for (const item of rangeMonths) {
+      const d = new Date(item.year, item.month, 1);
       const maandNaam = d.toLocaleString('nl-NL', { month: 'short' });
-      const jaar = d.getFullYear();
-      const maandStr = `${jaar}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      const labelName = maandNaam.charAt(0).toUpperCase() + maandNaam.slice(1);
+      labels.push(labelName);
 
-      maanden.push(maandNaam.charAt(0).toUpperCase() + maandNaam.slice(1));
+      const maandStr = `${item.year}-${String(item.month + 1).padStart(2, '0')}`;
 
       const w = uren
         .filter(u => {
@@ -1436,9 +1485,9 @@ app.get('/api/dashboard/omzet-trend', async (req, res) => {
       const v = contracten
         .filter(c => {
           const start = new Date(c.startdatum);
-          const end = c.einddatum ? new Date(c.einddatum) : new Date(2099, 12, 31);
-          const startMonth = new Date(jaar, d.getMonth(), 1);
-          const endMonth = new Date(jaar, d.getMonth() + 1, 0);
+          const end = c.einddatum ? new Date(c.einddatum) : new Date(2099, 11, 31);
+          const startMonth = new Date(item.year, item.month, 1);
+          const endMonth = new Date(item.year, item.month + 1, 0);
           return start <= endMonth && end >= startMonth;
         })
         .reduce((sum, c) => {
@@ -1448,7 +1497,7 @@ app.get('/api/dashboard/omzet-trend', async (req, res) => {
       verwacht.push(Math.round(v));
     }
 
-    res.json({ labels: maanden, werkelijk, verwacht });
+    res.json({ labels, werkelijk, verwacht });
   } catch (err) {
     console.error('[GET /api/dashboard/omzet-trend] Error:', err);
     res.status(500).json({ error: err.message });

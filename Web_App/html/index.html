@@ -268,11 +268,29 @@
                     <!-- Rij 2: Omzet trend + Bezetting -->
                     <div class="dashboard-row" style="display:grid; grid-template-columns: 2fr 1fr; gap:1.5rem; margin-bottom:1.5rem;">
                         <div class="dashboard-card" id="omzet-trend-card">
-                            <div class="card-header">
-                                <h3>Omzet-trend (Laatste 6 Maanden)</h3>
-                                <p class="card-sub">Werkelijke versus verwachte omzet (€)</p>
+                            <div class="chart-header">
+                              <div>
+                                <h3>Omzet-trend</h3>
+                                <p class="card-sub" id="chart-subtitle">Werkelijke versus verwachte omzet (€)</p>
+                              </div>
+                              <div class="chart-filters">
+                                <!-- Jaar selector -->
+                                <select id="chart-year-select" onchange="renderOmzetTrendChart()" class="filter-select">
+                                  <option value="2026">2026</option>
+                                  <option value="2025">2025</option>
+                                </select>
+                                <!-- Periode selector -->
+                                <select id="chart-quarter-select" onchange="renderOmzetTrendChart()" class="filter-select">
+                                  <option value="all">Volledig jaar</option>
+                                  <option value="Q1">Q1 (jan–mrt)</option>
+                                  <option value="Q2">Q2 (apr–jun)</option>
+                                  <option value="Q3">Q3 (jul–sep)</option>
+                                  <option value="Q4">Q4 (okt–dec)</option>
+                                  <option value="6m">Laatste 6 maanden</option>
+                                </select>
+                              </div>
                             </div>
-                            <div style="position:relative;height:260px">
+                            <div style="position:relative;height:280px">
                                 <canvas id="revenueChart"></canvas>
                             </div>
                         </div>
@@ -1867,54 +1885,116 @@
     border-bottom: 1px solid #1a1a1a;
 }
 
+#omzetTrendChart, #revenueChart {
+  height: 280px !important;
+  min-height: 280px;
+}
+
+#omzet-trend-card {
+  padding: 24px;
+  min-height: 380px;
+}
+
+.chart-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.25rem;
+}
+
+.chart-filters {
+  display: flex;
+  gap: 8px;
+}
+
 /* Cashflow Funnel Styling */
 .cashflow-funnel {
-    display: grid;
-    grid-template-columns: 1fr auto 1fr auto 1fr auto 1fr;
-    align-items: center;
-    gap: 8px;
-    margin-bottom: 0.5rem;
+  display: grid;
+  grid-template-columns: 1fr 40px 1fr 40px 1fr 40px 1fr;
+  align-items: stretch;
+  gap: 0;
+  margin: 1.5rem 0 0.5rem;
 }
+
 .funnel-step {
-    background: #0d0d0d;
-    border: 1px solid rgba(255,255,255,0.05);
-    border-radius: 12px;
-    padding: 16px;
+  background: linear-gradient(135deg, rgba(30,41,59,0.8), rgba(15,23,42,0.9));
+  border: 1px solid #334155;
+  border-radius: 12px;
+  padding: 20px 18px;
+  transition: border-color 0.2s, transform 0.2s;
+  display: flex;
+  flex-direction: column;
 }
+
+.funnel-step:hover {
+  border-color: #3B82F6;
+  transform: translateY(-2px);
+}
+
+.funnel-step .step-number {
+  font-size: 10px;
+  color: #64748B;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 8px;
+}
+
 .funnel-step .step-label {
-    font-size: 10px;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: var(--white-30);
-    margin-bottom: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 10px;
 }
+
 .funnel-step .step-value {
-    font-size: 22px;
-    font-weight: 600;
-    color: white;
+  font-size: 26px;
+  font-weight: 700;
+  color: #FFFFFF;
+  line-height: 1;
+  margin-bottom: 6px;
 }
+
 .funnel-step .step-sub {
-    font-size: 11px;
-    color: var(--white-50);
-    margin-top: 4px;
+  font-size: 11px;
+  color: #64748B;
 }
+
 .funnel-chevron {
-    font-size: 24px;
-    color: #F59E0B;
-    text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  color: #F59E0B;
+  gap: 4px;
 }
-.funnel-gap-row {
-    display: flex;
-    justify-content: space-around;
-    padding: 8px 0;
-    font-size: 12px;
-    color: #EF4444;
-    font-weight: 600;
+
+.funnel-chevron .gap-amount {
+  font-size: 10px;
+  color: #EF4444;
+  white-space: nowrap;
 }
-.funnel-gap-row small {
-    color: var(--white-30);
-    margin-left: 4px;
-    font-weight: normal;
+
+/* Laatste stap groen als er ontvangen is */
+.funnel-step.ontvangen .step-value {
+  color: #22C55E;
+}
+
+/* Cumulatief totaal rij */
+.funnel-totaal-row {
+  display: flex;
+  justify-content: flex-end;
+  gap: 2rem;
+  padding: 10px 4px 0;
+  font-size: 11px;
+  color: #64748B;
+  border-top: 1px solid #1E293B;
+  margin-top: 0.5rem;
+}
+
+.funnel-totaal-row span strong {
+  color: #94A3B8;
 }
 </style>
 
