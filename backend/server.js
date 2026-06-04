@@ -1316,7 +1316,7 @@ app.post('/api/cv/parse', upload.single('cv'), async (req, res) => {
 });
 // ── Dashboard Endpoints ────────────────────────────────────────────────────────
 
-// GET /api/dashboard/cashflow — MTD + cumulatief totaal
+// GET /api/dashboard/cashflow — MTD (correct: filtert gefactureerd via urenregistratie.datum)
 app.get('/api/dashboard/cashflow', async (req, res) => {
   try {
     const nu = new Date();
@@ -1324,54 +1324,89 @@ app.get('/api/dashboard/cashflow', async (req, res) => {
     const maand = nu.getMonth() + 1;
     const startDatum = `${jaar}-${String(maand).padStart(2,'0')}-01`;
     const lastDay = new Date(jaar, maand, 0).getDate();
-    const eindDatum = `${jaar}-${String(maand).padStart(2,'0')}-${String(lastDay).padStart(2,'0')}`;
+    const eindDatum  = `${jaar}-${String(maand).padStart(2,'0')}-${String(lastDay).padStart(2,'0')}`;
 
-    // 1. Verwacht (Active contracts)
+    // 1. Verwacht — actieve contracten, maandwaarde
     const { data: contracten } = await supabase
       .from('contract')
-      .select('uren_per_week, uurtarief')
+      .select('uren_per_week, uurtarief, startdatum, einddatum')
       .eq('status', 'actief');
-    const verwacht = (contracten || []).reduce((sum, c) => sum + ((c.uren_per_week || 0) * (c.uurtarief || 0) * 4), 0);
+    const verwacht = (contracten || []).reduce((sum, c) =>
+      sum + ((c.uren_per_week || 0) * (c.uurtarief || 0) * 4), 0);
 
-    // 2. Geleverd (Urenregistratie this month)
-    const { data: uren } = await supabase
+    // 2. Geleverd — approved uren DEZE maand
+    const { data: urenMtd } = await supabase
       .from('urenregistratie')
       .select('bedrag')
       .eq('status', 'approved')
       .gte('datum', startDatum)
       .lte('datum', eindDatum);
-    const geleverd = (uren || []).reduce((sum, u) => sum + parseFloat(u.bedrag || 0), 0);
+    const geleverd = (urenMtd || []).reduce((sum, u) => sum + parseFloat(u.bedrag || 0), 0);
 
-    // 3. Gefactureerd & Ontvangen (Facturen this month)
-    const { data: facturenMtd } = await supabase
-      .from('factuur')
-      .select('totaalbedrag, betalingsstatus')
-      .gte('factuurdatum', startDatum)
-      .lte('factuurdatum', eindDatum);
-    
+    // 3. Gefactureerd + Ontvangen — via factuur_regelitem → urenregistratie.datum
+    //    (NIET op factuurdatum — anders pakt het facturen voor vorige maand mee)
+    const { data: regelitems } = await supabase
+      .from('factuur_regelitem')
+      .select('factuur_id, urenregistratie(datum)')
+      .gte('urenregistratie.datum', startDatum)
+      .lte('urenregistratie.datum', eindDatum);
+
+    // Collect unieke factuur_ids waarvan de uren in deze maand vallen
+    const factuurIdsDezeMailand = [...new Set(
+      (regelitems || [])
+        .filter(r => r.urenregistratie && r.urenregistratie.datum)
+        .map(r => r.factuur_id)
+    )];
+
     let gefactureerd = 0;
-    let ontvangen = 0;
-    (facturenMtd || []).forEach(f => {
-      const b = parseFloat(f.totaalbedrag || 0);
-      gefactureerd += b;
-      if (f.betalingsstatus === 'betaald') ontvangen += b;
-    });
+    let ontvangen    = 0;
 
-    // 4. Totaal (All facturen)
-    const { data: facturenAll } = await supabase
-      .from('factuur')
-      .select('totaalbedrag, betalingsstatus');
-    
+    if (factuurIdsDezeMailand.length > 0) {
+      const { data: facturenMtd } = await supabase
+        .from('factuur')
+        .select('totaalbedrag, betalingsstatus')
+        .in('factuur_id', factuurIdsDezeMailand);
+      (facturenMtd || []).forEach(f => {
+        const b = parseFloat(f.totaalbedrag || 0);
+        gefactureerd += b;
+        if (f.betalingsstatus === 'betaald') ontvangen += b;
+      });
+    }
+
+    // 4. Cumulatief totaal (YTD huidig jaar — sluit testfacturen zonder regelitems uit)
+    const ytdStart = `${jaar}-01-01`;
+    const { data: regelitemsYtd } = await supabase
+      .from('factuur_regelitem')
+      .select('factuur_id, urenregistratie(datum)')
+      .gte('urenregistratie.datum', ytdStart)
+      .lte('urenregistratie.datum', eindDatum);
+
+    const factuurIdsYtd = [...new Set(
+      (regelitemsYtd || [])
+        .filter(r => r.urenregistratie && r.urenregistratie.datum)
+        .map(r => r.factuur_id)
+    )];
+
     let ooit_gefactureerd = 0;
-    let ooit_ontvangen = 0;
-    (facturenAll || []).forEach(f => {
-      const b = parseFloat(f.totaalbedrag || 0);
-      ooit_gefactureerd += b;
-      if (f.betalingsstatus === 'betaald') ooit_ontvangen += b;
-    });
-    const openstaand = ooit_gefactureerd - ooit_ontvangen;
+    let ooit_ontvangen    = 0;
+    let openstaand        = 0;
 
-    const realisatie_percentage = verwacht > 0 ? ((geleverd / verwacht) * 100).toFixed(1) : 0;
+    if (factuurIdsYtd.length > 0) {
+      const { data: facturenYtd } = await supabase
+        .from('factuur')
+        .select('totaalbedrag, betalingsstatus')
+        .in('factuur_id', factuurIdsYtd);
+      (facturenYtd || []).forEach(f => {
+        const b = parseFloat(f.totaalbedrag || 0);
+        ooit_gefactureerd += b;
+        if (f.betalingsstatus === 'betaald') ooit_ontvangen += b;
+        else openstaand += b;
+      });
+    }
+
+    const realisatie_percentage = verwacht > 0
+      ? parseFloat(((geleverd / verwacht) * 100).toFixed(1))
+      : 0;
     const maandnaam = nu.toLocaleDateString('nl-NL', { month: 'long', year: 'numeric' });
 
     res.json({
@@ -1381,19 +1416,9 @@ app.get('/api/dashboard/cashflow', async (req, res) => {
         geleverd,
         gefactureerd,
         ontvangen,
-        realisatie_percentage: parseFloat(realisatie_percentage),
-        mtd: {
-          verwacht,
-          geleverd,
-          gefactureerd,
-          ontvangen,
-          maand: maandnaam
-        },
-        totaal: {
-          ooit_gefactureerd,
-          ooit_ontvangen,
-          openstaand
-        }
+        realisatie_percentage,
+        mtd: { verwacht, geleverd, gefactureerd, ontvangen, maand: maandnaam },
+        totaal: { ooit_gefactureerd, ooit_ontvangen, openstaand }
       }
     });
   } catch (e) {
@@ -1401,6 +1426,7 @@ app.get('/api/dashboard/cashflow', async (req, res) => {
     res.status(500).json({ ok: false, error: e.message });
   }
 });
+
 
 // GET /api/dashboard/per-klant
 app.get('/api/dashboard/per-klant', async (req, res) => {

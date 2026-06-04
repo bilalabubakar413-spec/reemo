@@ -1677,6 +1677,10 @@ async function renderCashflowFunnel() {
     const mtd    = data.mtd    || {};
     const totaal = data.totaal || {};
 
+    // Update maand badge
+    const maandLabel = document.getElementById('cashflow-maand-label');
+    if (maandLabel) maandLabel.textContent = mtd.maand || '';
+
     const fmt = (v) => '€' + Math.round(v || 0).toLocaleString('nl-NL');
 
     const v = mtd.verwacht    || 0;
