@@ -254,129 +254,101 @@
                         </div>
                     </div>
 
-                    <!-- Stats Grid (filled by JS) -->
-                    <div id="dashboard-stats" style="display:grid;grid-template-columns:repeat(4,1fr);gap:1rem;margin-bottom:1.5rem">
-                        <!-- Filled by JS -->
+                    <!-- KPI kaarten — worden gevuld door renderDashboardStats() -->
+                    <div id="dashboard-stats" class="dashboard-kpi-grid">
+                        <div class="kpi-card" id="kpi-klanten"></div>
+                        <div class="kpi-card" id="kpi-bezetting"></div>
+                        <div class="kpi-card" id="kpi-omzet"></div>
+                        <div class="kpi-card" id="kpi-realisatie"></div>
                     </div>
 
-                    <!-- Charts grid -->
-                    <div style="display:grid;grid-template-columns:1.6fr 1fr;gap:1.25rem;margin-bottom:1.25rem">
-                        <!-- Revenue Chart -->
-                        <div class="profile-section-card">
-                            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.25rem;flex-wrap:wrap;gap:0.75rem">
-                                <div>
-                                    <div style="font-weight:700;font-size:1rem;color:var(--white)" id="revenue-chart-title">Revenue Overview</div>
-                                    <div style="font-size:0.75rem;color:var(--white-40);margin-top:0.15rem" id="chart-subtitle">Monthly billed revenue</div>
-                                </div>
-                                <div style="display:flex;align-items:center;gap:0.5rem">
-                                    <div class="filter-select-wrap" style="width:auto">
-                                        <select id="chart-year-select" class="filter-select" style="padding-right:2rem" onchange="_changeYear(this.value)">
-                                            <option value="2026">2026</option>
-                                            <option value="2025">2025</option>
-                                            <option value="2024">2024</option>
-                                            <option value="2023">2023</option>
-                                            <option value="2022">2022</option>
-                                        </select>
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
-                                    </div>
-                                    <div class="filter-select-wrap" style="width:auto">
-                                        <select id="chart-quarter-select" class="filter-select" style="padding-right:2rem" onchange="_changeQuarter(this.value)">
-                                            <option value="null">Full Year</option>
-                                            <option value="1">Q1 (Jan–Mar)</option>
-                                            <option value="2">Q2 (Apr–Jun)</option>
-                                            <option value="3">Q3 (Jul–Sep)</option>
-                                            <option value="4">Q4 (Oct–Dec)</option>
-                                        </select>
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
-                                    </div>
-                                </div>
+                    <!-- Cashflow funnel — wordt gevuld door renderDashboardStats() -->
+                    <div id="dashboard-cashflow-funnel" style="margin: 1.5rem 0;"></div>
+
+                    <!-- Rij 2: Omzet trend + Bezetting -->
+                    <div class="dashboard-row" style="display:grid; grid-template-columns: 2fr 1fr; gap:1.5rem; margin-bottom:1.5rem;">
+                        <div class="dashboard-card" id="omzet-trend-card">
+                            <div class="card-header">
+                                <h3>Omzet-trend (Laatste 6 Maanden)</h3>
+                                <p class="card-sub">Werkelijke versus verwachte omzet (€)</p>
                             </div>
-                            <!-- Year totals strip -->
-                            <div id="revenue-year-strip" style="display:flex;gap:0.5rem;margin-bottom:1rem;flex-wrap:wrap"></div>
                             <div style="position:relative;height:260px">
                                 <canvas id="revenueChart"></canvas>
                             </div>
                         </div>
-
-                        <!-- Hours per client -->
-                        <div class="profile-section-card">
-                            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.25rem">
-                                <div>
-                                    <div style="font-weight:700;font-size:1rem;color:var(--white)">Hours per Client</div>
-                                    <div style="font-size:0.75rem;color:var(--white-40);margin-top:0.15rem">Current month</div>
-                                </div>
-                                <button class="btn-outline" style="font-size:0.6875rem;padding:0.35rem 0.75rem" onclick="navigateTo('clients')">View All</button>
+                        <div class="dashboard-card" id="bezetting-card">
+                            <div class="card-header">
+                                <h3>Bezetting & Capaciteit</h3>
+                                <p class="card-sub">Contractuele inzetbaarheid versus daadwerkelijk gemaakte uren</p>
                             </div>
-                            <div style="position:relative;height:260px">
-                                <canvas id="hoursChart"></canvas>
+                            <div id="bezetting-donut-container" style="display:flex; flex-direction:column; align-items:center; justify-content:center; gap:1rem; padding:1rem 0;">
+                                <div style="position:relative; width:120px; height:120px; display:flex; align-items:center; justify-content:center;">
+                                    <svg width="120" height="120" viewBox="0 0 120 120" style="transform: rotate(-90deg);">
+                                        <circle cx="60" cy="60" r="45" fill="transparent" stroke="rgba(255,255,255,0.06)" stroke-width="8"></circle>
+                                        <circle id="bezetting-progress-circle" cx="60" cy="60" r="45" fill="transparent" stroke="#10b981" stroke-width="8" stroke-dasharray="282.7" stroke-dashoffset="282.7" stroke-linecap="round" style="transition: stroke-dashoffset 0.3s ease;"></circle>
+                                    </svg>
+                                    <div id="bezetting-circle-pct" style="position:absolute; font-size:1.5rem; font-weight:800; color:var(--white);">0%</div>
+                                </div>
+                                <div style="text-align:center;">
+                                    <div id="bezetting-circle-hours" style="font-size:1rem; font-weight:700; color:var(--white);">0 / 0u</div>
+                                    <div style="font-size:0.75rem; color:var(--white-40); margin-top:0.25rem;">
+                                        Headcount: <span id="bezetting-headcount" style="font-weight:600; color:var(--white-80);">0 / 0</span>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Bottom section -->
-                    <div style="display:grid;grid-template-columns:1.6fr 1fr;gap:1.25rem">
-                        <!-- Recent Timesheets -->
-                        <div class="profile-section-card" style="padding:0;overflow:hidden">
-                            <div style="display:flex;justify-content:space-between;align-items:center;padding:1.25rem 1.25rem 0">
-                                <div style="font-weight:700;font-size:0.9375rem;color:var(--white);margin-bottom:1rem">Recent Timesheets</div>
-                                <button style="font-size:0.6875rem;font-weight:700;color:#60a5fa;background:none;border:none;cursor:pointer" onclick="navigateTo('timesheets')">View all →</button>
+                    <!-- Rij 3: Per klant + Aging -->
+                    <div class="dashboard-row" style="display:grid; grid-template-columns: 2fr 1fr; gap:1.5rem; margin-bottom:1.5rem;">
+                        <div class="dashboard-card" style="padding:0;overflow:hidden">
+                            <div class="card-header" style="padding:1.25rem 1.25rem 0">
+                                <h3>Resultaten per Klant (MTD)</h3>
+                                <p class="card-sub">Onderverdeling van contractwaarde, leveringen en facturaties per actieve relatie</p>
                             </div>
-                            <table class="table w-full">
+                            <table class="data-table">
                                 <thead>
                                     <tr>
-                                        <th style="padding:0.625rem 1.25rem;font-size:0.5625rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--white-40);border-bottom:1px solid #1a1a1a">Developer</th>
-                                        <th style="padding:0.625rem 1.25rem;font-size:0.5625rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--white-40);border-bottom:1px solid #1a1a1a">Client</th>
-                                        <th style="padding:0.625rem 1.25rem;font-size:0.5625rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--white-40);border-bottom:1px solid #1a1a1a">Hours</th>
-                                        <th style="padding:0.625rem 1.25rem;font-size:0.5625rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--white-40);border-bottom:1px solid #1a1a1a">Status</th>
+                                        <th style="padding:0.625rem 1.25rem;">Klant</th>
+                                        <th style="padding:0.625rem 1.25rem;text-align:right">Verwacht (contract)</th>
+                                        <th style="padding:0.625rem 1.25rem;text-align:right">Geleverd (uren)</th>
+                                        <th style="padding:0.625rem 1.25rem;text-align:right">Gefactureerd</th>
+                                        <th style="padding:0.625rem 1.25rem;text-align:right">Realisatie %</th>
                                     </tr>
                                 </thead>
-                                <tbody id="dashboard-timesheets-body">
-                                    <!-- Filled by JS -->
+                                <tbody id="dashboard-per-klant-body">
+                                    <tr><td colspan="5" style="text-align:center; color:var(--white-30); padding:2rem;">Laden...</td></tr>
                                 </tbody>
                             </table>
                         </div>
-
-                        <!-- Quick Actions -->
-                        <div class="profile-section-card">
-                            <div style="font-weight:700;font-size:0.9375rem;color:var(--white);margin-bottom:1rem">Quick Actions</div>
-                            <div style="display:flex;flex-direction:column;gap:0.5rem">
-                                <button class="quick-action-btn" onclick="navigateTo('invoices')">
-                                    <div class="quick-action-icon" style="background:rgba(37,99,235,0.15);color:#60a5fa;border:1px solid rgba(37,99,235,0.25)">
-                                        <i data-lucide="file-text" style="width:14px;height:14px"></i>
-                                    </div>
-                                    <span style="font-size:0.875rem;font-weight:600;color:var(--white-80)">Generate Monthly Invoice</span>
-                                    <i data-lucide="chevron-right" style="width:14px;height:14px;color:var(--white-30);margin-left:auto"></i>
-                                </button>
-                                <button class="quick-action-btn" onclick="(function(){ timesheets.forEach(ts => timesheetStatuses[ts.id]='Approved'); navigateTo('timesheets'); })()">
-                                    <div class="quick-action-icon" style="background:rgba(16,185,129,0.12);color:#34d399;border:1px solid rgba(16,185,129,0.2)">
-                                        <i data-lucide="check-circle-2" style="width:14px;height:14px"></i>
-                                    </div>
-                                    <span style="font-size:0.875rem;font-weight:600;color:var(--white-80)">Approve All Timesheets</span>
-                                    <i data-lucide="chevron-right" style="width:14px;height:14px;color:var(--white-30);margin-left:auto"></i>
-                                </button>
-                                <button class="quick-action-btn" onclick="navigateTo('developers')">
-                                    <div class="quick-action-icon" style="background:rgba(99,102,241,0.12);color:var(--indigo-400);border:1px solid rgba(99,102,241,0.2)">
-                                        <i data-lucide="user-plus" style="width:14px;height:14px"></i>
-                                    </div>
-                                    <span style="font-size:0.875rem;font-weight:600;color:var(--white-80)">Add New Developer</span>
-                                    <i data-lucide="chevron-right" style="width:14px;height:14px;color:var(--white-30);margin-left:auto"></i>
-                                </button>
-                                <button class="quick-action-btn" onclick="navigateTo('invoices')">
-                                    <div class="quick-action-icon" style="background:rgba(244,63,94,0.1);color:#fb7185;border:1px solid rgba(244,63,94,0.2)">
-                                        <i data-lucide="alert-circle" style="width:14px;height:14px"></i>
-                                    </div>
-                                    <span style="font-size:0.875rem;font-weight:600;color:var(--white-80)">Review Overdue Payments</span>
-                                    <i data-lucide="chevron-right" style="width:14px;height:14px;color:var(--white-30);margin-left:auto"></i>
-                                </button>
-                                <button class="quick-action-btn" onclick="navigateTo('cvs')">
-                                    <div class="quick-action-icon" style="background:rgba(245,158,11,0.1);color:#fbbf24;border:1px solid rgba(245,158,11,0.2)">
-                                        <i data-lucide="upload" style="width:14px;height:14px"></i>
-                                    </div>
-                                    <span style="font-size:0.875rem;font-weight:600;color:var(--white-80)">Upload New CV</span>
-                                    <i data-lucide="chevron-right" style="width:14px;height:14px;color:var(--white-30);margin-left:auto"></i>
-                                </button>
+                        <div class="dashboard-card">
+                            <div class="card-header">
+                                <h3>Ouderdomsanalyse Debiteuren</h3>
+                                <p class="card-sub">Ouderdomsanalyse Debiteuren</p>
                             </div>
+                            <div id="dashboard-aging-body" style="margin-top:1rem"></div>
                         </div>
+                    </div>
+
+                    <!-- Rij 4: Laatste timesheets -->
+                    <div class="dashboard-card" style="padding:0;overflow:hidden;margin-bottom:1.5rem;">
+                        <div class="card-header" style="padding:1.25rem 1.25rem 0">
+                            <h3>Laatste Timesheets</h3>
+                            <p class="card-sub">Recent ingediend door developers over de laatste periode</p>
+                        </div>
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th style="padding:0.625rem 1.25rem;">Developer</th>
+                                    <th style="padding:0.625rem 1.25rem;">Klant</th>
+                                    <th style="padding:0.625rem 1.25rem;">Uren</th>
+                                    <th style="padding:0.625rem 1.25rem;">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="dashboard-timesheets-body">
+                                <tr><td colspan="4" style="text-align:center; color:var(--white-30); padding:2rem;">Laden...</td></tr>
+                            </tbody>
+                        </table>
                     </div>
                 </div>
 
@@ -1838,6 +1810,62 @@
 
 <style>
 @keyframes spin { to { transform: rotate(360deg); } }
+
+/* Dashboard Styling */
+.dashboard-kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+.kpi-card {
+    background-color: #0d0d0d;
+    border: 1px solid rgba(255,255,255,0.05);
+    border-radius: 0.875rem;
+    padding: 1.25rem 1.375rem;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.5);
+}
+.dashboard-card {
+    background-color: #0a0a0a;
+    border: 1px solid #1e1e1e;
+    border-radius: 1.25rem;
+    padding: 1.25rem;
+}
+.card-header {
+    margin-bottom: 1.25rem;
+}
+.card-header h3 {
+    font-weight: 700;
+    font-size: 1rem;
+    color: var(--white);
+    margin: 0;
+}
+.card-sub {
+    font-size: 0.75rem;
+    color: var(--white-40);
+    margin-top: 0.15rem;
+    margin-bottom: 0;
+}
+.data-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+.data-table th {
+    padding: 0.625rem 1.25rem;
+    font-size: 0.5625rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--white-40);
+    border-bottom: 1px solid #1a1a1a;
+    text-align: left;
+}
+.data-table td {
+    padding: 0.75rem 1.25rem;
+    font-size: 0.875rem;
+    color: var(--white);
+    border-bottom: 1px solid #1a1a1a;
+}
 </style>
 
 <!-- ===== CREATE INVOICE MODAL ===== -->
