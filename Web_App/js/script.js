@@ -1739,10 +1739,7 @@ async function renderOmzetTrendChart() {
 
         // Update subtitle
         const sub = document.getElementById('chart-subtitle');
-        if (sub) {
-            const qText = kwartaal === 'all' ? 'Volledig jaar' : (kwartaal === '6m' ? 'Laatste 6 maanden' : kwartaal);
-            sub.textContent = `${qText} ${jaar} — werkelijk vs verwacht`;
-        }
+        if (sub) sub.textContent = `${kwartaal === 'all' ? 'Volledig jaar' : kwartaal} ${jaar}`;
 
         const ctx = document.getElementById('revenueChart');
         if (!ctx) return;

@@ -268,24 +268,22 @@
                     <!-- Rij 2: Omzet trend + Bezetting -->
                     <div class="dashboard-row" style="display:grid; grid-template-columns: 2fr 1fr; gap:1.5rem; margin-bottom:1.5rem;">
                         <div class="dashboard-card" id="omzet-trend-card">
-                            <div class="chart-header">
+                            <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:16px;">
                               <div>
                                 <h3>Omzet-trend</h3>
-                                <p class="card-sub" id="chart-subtitle">Werkelijke versus verwachte omzet (€)</p>
+                                <p id="chart-subtitle" style="color:#94A3B8; font-size:12px;">Werkelijk vs verwacht</p>
                               </div>
-                              <div class="chart-filters">
-                                <!-- Jaar selector -->
-                                <select id="chart-year-select" onchange="renderOmzetTrendChart()" class="filter-select">
+                              <div style="display:flex; gap:8px;">
+                                <select id="chart-year-select" onchange="renderOmzetTrendChart()" style="background:#1E293B; color:white; border:1px solid #334155; padding:6px 10px; border-radius:6px; font-size:12px;">
                                   <option value="2026">2026</option>
                                   <option value="2025">2025</option>
                                 </select>
-                                <!-- Periode selector -->
-                                <select id="chart-quarter-select" onchange="renderOmzetTrendChart()" class="filter-select">
+                                <select id="chart-quarter-select" onchange="renderOmzetTrendChart()" style="background:#1E293B; color:white; border:1px solid #334155; padding:6px 10px; border-radius:6px; font-size:12px;">
                                   <option value="all">Volledig jaar</option>
-                                  <option value="Q1">Q1 (jan–mrt)</option>
-                                  <option value="Q2">Q2 (apr–jun)</option>
-                                  <option value="Q3">Q3 (jul–sep)</option>
-                                  <option value="Q4">Q4 (okt–dec)</option>
+                                  <option value="Q1">Q1 jan–mrt</option>
+                                  <option value="Q2">Q2 apr–jun</option>
+                                  <option value="Q3">Q3 jul–sep</option>
+                                  <option value="Q4">Q4 okt–dec</option>
                                   <option value="6m">Laatste 6 maanden</option>
                                 </select>
                               </div>
