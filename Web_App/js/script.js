@@ -1536,52 +1536,49 @@ async function renderDashboardStats() {
         const geleverd     = cashflow.geleverd     || 0;
         const gefactureerd = cashflow.gefactureerd || 0;
         const ontvangen    = cashflow.ontvangen    || 0;
-        const maxVal       = Math.max(verwacht, 1);
 
         const steps = [
-            { label: 'Verwacht',     value: verwacht,     color: '#94a3b8', bg: 'rgba(148,163,184,0.07)', border: 'rgba(148,163,184,0.2)', sub: 'Op basis van contracten' },
-            { label: 'Geleverd',     value: geleverd,     color: '#60a5fa', bg: 'rgba(96,165,250,0.07)',  border: 'rgba(96,165,250,0.2)',  sub: 'Goedgekeurde uren' },
-            { label: 'Gefactureerd', value: gefactureerd, color: '#a78bfa', bg: 'rgba(167,139,250,0.07)', border: 'rgba(167,139,250,0.2)', sub: 'Facturen verstuurd' },
-            { label: 'Ontvangen',    value: ontvangen,    color: '#34d399', bg: 'rgba(52,211,153,0.07)',  border: 'rgba(52,211,153,0.2)',  sub: 'Ontvangen op bank' },
+            { label: '1. VERWACHT',     value: verwacht,     color: '#94a3b8', sub: 'Contracten' },
+            { label: '2. GELEVERD',     value: geleverd,     color: '#60a5fa', sub: 'Urenreg.' },
+            { label: '3. GEFACT.',      value: gefactureerd, color: '#a78bfa', sub: 'Facturen' },
+            { label: '4. ONTVANGEN',    value: ontvangen,    color: '#34d399', sub: 'Betaald' },
         ];
 
-        const arrow = '<div style="display:flex;align-items:center;flex-shrink:0;padding:0 0.25rem"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.18)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></div>';
-
         const cardsHtml = steps.map((s, i) => {
-            const pct     = Math.round(Math.min((s.value / maxVal) * 100, 100));
-            const loss    = i === 0 ? 0 : Math.max(0, steps[i-1].value - s.value);
-            const hasLoss = loss > 0;
-            const statusTxt = i === 0
-                ? `<span style="color:rgba(255,255,255,0.25)">Startpunt</span>`
-                : (hasLoss
-                    ? `<span style="color:#f59e0b">&#8722;&thinsp;${fmtEuro(loss)}</span>`
-                    : `<span style="color:#34d399">&#10003;&nbsp;Geen verlies</span>`);
-
-            return `<div style="flex:1;min-width:0;background:${s.bg};border:1px solid ${s.border};border-radius:0.875rem;padding:1.125rem 1rem;display:flex;flex-direction:column">
-                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.625rem">
-                    <span style="font-size:0.5625rem;font-weight:800;text-transform:uppercase;letter-spacing:0.1em;color:${s.color}">${s.label}</span>
-                    <span style="font-size:0.5rem;font-weight:600;color:rgba(255,255,255,0.2);background:rgba(255,255,255,0.05);padding:1px 6px;border-radius:99px">${i+1}/4</span>
-                </div>
-                <div style="font-size:1.375rem;font-weight:800;color:#fff;letter-spacing:-0.02em;line-height:1">${fmtEuro(s.value)}</div>
-                <div style="font-size:0.6875rem;color:rgba(255,255,255,0.4);margin-top:0.3rem">${s.sub}</div>
-                <div style="font-size:0.6875rem;font-weight:600;margin-top:0.25rem">${statusTxt}</div>
-                <div style="margin-top:auto;padding-top:0.75rem">
-                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.3rem">
-                        <span style="font-size:0.5625rem;color:rgba(255,255,255,0.3)">van verwacht</span>
-                        <span style="font-size:0.6875rem;font-weight:800;color:${s.color}">${pct}%</span>
-                    </div>
-                    <div style="height:3px;background:rgba(255,255,255,0.07);border-radius:3px;overflow:hidden">
-                        <div style="height:100%;width:${pct}%;background:${s.color};border-radius:3px"></div>
-                    </div>
-                </div>
+            return `<div class="funnel-step">
+                <div class="step-label" style="color:${s.color}">${s.label}</div>
+                <div class="step-value">${fmtEuro(s.value)}</div>
+                <div class="step-sub">${s.sub}</div>
             </div>`;
         });
 
-        const chevron = `<div style="display:flex;align-items:center;flex-shrink:0;padding:0 0.25rem"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.18)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></div>`;
+        const chevron = `<div class="funnel-chevron">›</div>`;
+
+        const gap1 = geleverd - verwacht;
+        const gap2 = gefactureerd - geleverd;
+        const gap3 = ontvangen - gefactureerd;
+
+        const fmtGap = (val, label) => {
+            if (val === 0) return `<div>€0 gap <small>(${label})</small></div>`;
+            const prefix = val < 0 ? '−' : '+';
+            const color = val < 0 ? '#EF4444' : '#34d399';
+            return `<div style="color:${color}">${prefix}${fmtEuro(Math.abs(val))} gap <small>(${label})</small></div>`;
+        };
 
         funnelContainer.innerHTML = `
-            <div style="display:flex;align-items:stretch;gap:0.75rem;width:100%">
-                ${cardsHtml[0]}${chevron}${cardsHtml[1]}${chevron}${cardsHtml[2]}${chevron}${cardsHtml[3]}
+            <div class="cashflow-funnel">
+                ${cardsHtml[0]}
+                ${chevron}
+                ${cardsHtml[1]}
+                ${chevron}
+                ${cardsHtml[2]}
+                ${chevron}
+                ${cardsHtml[3]}
+            </div>
+            <div class="funnel-gap-row">
+                ${fmtGap(gap1, 'geleverd vs verw')}
+                ${fmtGap(gap2, 'gefact vs gel')}
+                ${fmtGap(gap3, 'ontv vs gefact')}
             </div>
             <div style="margin-top:0.75rem;padding-top:0.625rem;border-top:1px solid rgba(255,255,255,0.05);display:flex;align-items:center;gap:0.375rem">
                 <i data-lucide="calendar" style="width:10px;height:10px;color:rgba(255,255,255,0.25)"></i>
@@ -1719,7 +1716,66 @@ async function renderDashboardStats() {
         headcountText.textContent = `${assignedDevs} / ${developers.length}`;
     }
 
+    if (typeof renderOmzetTrendChart === 'function') {
+        renderOmzetTrendChart();
+    }
+
     if (typeof lucide !== 'undefined') lucide.createIcons();
+}
+
+async function renderOmzetTrendChart() {
+    try {
+        const data = await apiFetchSafe('/api/dashboard/omzet-trend');
+        if (!data || !data.labels) return;
+
+        const ctx = document.getElementById('revenueChart');
+        if (!ctx) return;
+
+        // Destroy existing chart if it exists
+        if (window._omzetChart) {
+            window._omzetChart.destroy();
+        }
+
+        window._omzetChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: data.labels,
+                datasets: [
+                    {
+                        label: 'Werkelijk',
+                        data: data.werkelijk,
+                        borderColor: '#3B82F6',
+                        backgroundColor: 'rgba(59,130,246,0.1)',
+                        tension: 0.4,
+                        fill: true,
+                    },
+                    {
+                        label: 'Verwacht',
+                        data: data.verwacht,
+                        borderColor: '#F59E0B',
+                        borderDash: [5, 5],
+                        tension: 0.4,
+                        fill: false,
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { labels: { color: '#94A3B8' } } },
+                scales: {
+                    x: { ticks: { color: '#94A3B8' }, grid: { color: 'rgba(255,255,255,0.05)' } },
+                    y: { 
+                        ticks: { color: '#94A3B8' }, 
+                        grid: { color: 'rgba(255,255,255,0.05)' },
+                        callback: (v) => '€' + (v/1000).toFixed(0) + 'k'
+                    }
+                }
+            }
+        });
+    } catch(err) {
+        console.error('Omzet trend chart fout:', err);
+    }
 }
 
 

@@ -1866,6 +1866,56 @@
     color: var(--white);
     border-bottom: 1px solid #1a1a1a;
 }
+
+/* Cashflow Funnel Styling */
+.cashflow-funnel {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr auto 1fr auto 1fr;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 0.5rem;
+}
+.funnel-step {
+    background: #0d0d0d;
+    border: 1px solid rgba(255,255,255,0.05);
+    border-radius: 12px;
+    padding: 16px;
+}
+.funnel-step .step-label {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--white-30);
+    margin-bottom: 6px;
+}
+.funnel-step .step-value {
+    font-size: 22px;
+    font-weight: 600;
+    color: white;
+}
+.funnel-step .step-sub {
+    font-size: 11px;
+    color: var(--white-50);
+    margin-top: 4px;
+}
+.funnel-chevron {
+    font-size: 24px;
+    color: #F59E0B;
+    text-align: center;
+}
+.funnel-gap-row {
+    display: flex;
+    justify-content: space-around;
+    padding: 8px 0;
+    font-size: 12px;
+    color: #EF4444;
+    font-weight: 600;
+}
+.funnel-gap-row small {
+    color: var(--white-30);
+    margin-left: 4px;
+    font-weight: normal;
+}
 </style>
 
 <!-- ===== CREATE INVOICE MODAL ===== -->

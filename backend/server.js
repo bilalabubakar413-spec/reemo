@@ -418,13 +418,12 @@ app.get('/api/developers', async (req, res) => {
     const rows = await q(`
       SELECT d.developer_id, d.naam, d.email, d.type, d.rol, d.uurtarief, d.weekcapaciteit,
              d.aangemaakt_op, d.skills, d.beschikbaarheid, d.cv_url, d.status,
-             (SELECT COUNT(*) FROM contract c WHERE c.developer_id = d.developer_id AND c.status = 'actief' AND (c.einddatum IS NULL OR c.einddatum >= CURRENT_DATE)) as project_count,
+             (SELECT COUNT(*) FROM developer_project dp WHERE dp.developer_id = d.developer_id AND (dp.eind_datum IS NULL OR dp.eind_datum >= CURRENT_DATE)) as project_count,
              (SELECT SUM(aantal_uren) FROM urenregistratie u WHERE u.developer_id = d.developer_id AND u.status = 'approved' AND u.datum >= date_trunc('week', CURRENT_DATE)) as uren_week,
-             (SELECT SUM(c.uren_per_week) FROM contract c WHERE c.developer_id = d.developer_id AND c.status = 'actief' AND (c.einddatum IS NULL OR c.einddatum >= CURRENT_DATE)) as assigned_hours,
-             (SELECT project_id FROM contract c2 WHERE c2.developer_id = d.developer_id AND c2.status = 'actief' LIMIT 1) as first_project_id,
-             (SELECT klant_id FROM contract c3 WHERE c3.developer_id = d.developer_id AND c3.status = 'actief' LIMIT 1) as first_klant_id
+             (SELECT SUM(dp.uren_per_week) FROM developer_project dp WHERE dp.developer_id = d.developer_id AND (dp.eind_datum IS NULL OR dp.eind_datum >= CURRENT_DATE)) as assigned_hours,
+             (SELECT project_id FROM developer_project dp2 WHERE dp2.developer_id = d.developer_id LIMIT 1) as first_project_id,
+             (SELECT p.klant_id FROM developer_project dp3 JOIN project p ON dp3.project_id = p.project_id WHERE dp3.developer_id = d.developer_id LIMIT 1) as first_klant_id
       FROM developer d
-      WHERE d.status = 'active'
       ORDER BY d.naam
     `);
     res.json({ ok: true, data: rows });
@@ -1389,6 +1388,73 @@ app.get('/api/dashboard/per-klant', async (req, res) => {
     res.status(500).json({ ok: false, error: e.message });
   }
 });
+
+// GET /api/dashboard/omzet-trend — 6 maanden trend
+app.get('/api/dashboard/omzet-trend', async (req, res) => {
+  try {
+    const uren = await q(`
+      SELECT datum, COALESCE(bedrag, 0)::float AS bedrag, status 
+      FROM urenregistratie 
+      WHERE status = 'approved' 
+        AND datum >= CURRENT_DATE - INTERVAL '6 month'
+    `);
+
+    const contracten = await q(`
+      SELECT uren_per_week, uurtarief, startdatum, einddatum, status 
+      FROM contract 
+      WHERE status = 'actief'
+    `);
+
+    const maanden = [];
+    const werkelijk = [];
+    const verwacht = [];
+
+    const nu = new Date();
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(nu.getFullYear(), nu.getMonth() - i, 1);
+      const maandNaam = d.toLocaleString('nl-NL', { month: 'short' });
+      const jaar = d.getFullYear();
+      const maandStr = `${jaar}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+
+      maanden.push(maandNaam.charAt(0).toUpperCase() + maandNaam.slice(1));
+
+      const w = uren
+        .filter(u => {
+          let uDatumStr = '';
+          if (u.datum instanceof Date) {
+            uDatumStr = u.datum.toISOString();
+          } else if (typeof u.datum === 'string') {
+            uDatumStr = u.datum;
+          } else if (u.datum) {
+            uDatumStr = String(u.datum);
+          }
+          return uDatumStr.startsWith(maandStr);
+        })
+        .reduce((sum, u) => sum + u.bedrag, 0);
+      werkelijk.push(Math.round(w));
+
+      const v = contracten
+        .filter(c => {
+          const start = new Date(c.startdatum);
+          const end = c.einddatum ? new Date(c.einddatum) : new Date(2099, 12, 31);
+          const startMonth = new Date(jaar, d.getMonth(), 1);
+          const endMonth = new Date(jaar, d.getMonth() + 1, 0);
+          return start <= endMonth && end >= startMonth;
+        })
+        .reduce((sum, c) => {
+          const ratePerWeek = parseFloat(c.uren_per_week || 40) * parseFloat(c.uurtarief || 0);
+          return sum + ratePerWeek * 4;
+        }, 0);
+      verwacht.push(Math.round(v));
+    }
+
+    res.json({ labels: maanden, werkelijk, verwacht });
+  } catch (err) {
+    console.error('[GET /api/dashboard/omzet-trend] Error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 
 // GET /api/facturen/klaar-om-te-genereren — Vind alle maanden met goedgekeurde uren die nog niet gefactureerd zijn
 app.get('/api/facturen/klaar-om-te-genereren', async (req, res) => {
