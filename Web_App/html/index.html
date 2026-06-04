@@ -15,6 +15,9 @@
     <!-- Chart.js for charts -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
+    <!-- Tabler Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
+
     <link rel="stylesheet" href="/css/styles.css">
 </head>
 <body>
@@ -428,7 +431,9 @@
                     <!-- Hero header card (static shell, JS fills ids) -->
                     <div class="client-detail-hero" id="client-detail-hero">
                         <div style="display:flex;align-items:center;gap:1.25rem;flex:1;min-width:0">
-                            <div class="client-detail-logo" id="detail-client-logo">?</div>
+                            <div style="position:relative;" class="client-logo-container" id="detail-client-logo-container">
+                                <div class="client-detail-logo client-avatar" id="detail-client-logo" onclick="event.stopPropagation(); uploadClientLogo(_currentClientId)" title="Upload logo">?</div>
+                            </div>
                             <div style="min-width:0">
                                 <h2 style="font-size:1.625rem;font-weight:800;letter-spacing:-0.01em;color:var(--white)" id="detail-client-name">—</h2>
                                 <p style="font-size:0.875rem;color:var(--white-40);margin-top:0.2rem" id="detail-client-industry">—</p>
@@ -456,8 +461,18 @@
                                 <div class="client-detail-stat-value" id="detail-stat-devs">—</div>
                             </div>
                         </div>
-                        <!-- Edit button -->
+                        <!-- Edit & Contracts buttons -->
                         <div style="display:flex;align-items:center;gap:0.625rem;flex-shrink:0">
+                            <button class="btn-outline" id="btn-contracts-client-detail" onclick="openClientContractsModal(_currentClientId)" style="color:#3B82F6;border-color:rgba(59,130,246,0.3);display:inline-flex;align-items:center;gap:6px">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle">
+                                  <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                                  <path d="M14 3v4a1 1 0 0 0 1 1h4"/>
+                                  <path d="M17 21h-10a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2h7l5 5v11a2 2 0 0 1 -2 2z"/>
+                                  <line x1="9" y1="9" x2="10" y2="9"/>
+                                  <line x1="9" y1="13" x2="15" y2="13"/>
+                                  <line x1="9" y1="17" x2="15" y2="17"/>
+                                </svg> Contracten
+                            </button>
                             <button class="btn-outline" id="btn-edit-client-detail" onclick="toggleClientDetailEdit()">
                                 <i data-lucide="pencil" style="width:14px;height:14px"></i> Bewerken
                             </button>
@@ -1930,6 +1945,79 @@
             <div style="display:flex;justify-content:flex-end;gap:0.75rem">
                 <button class="btn-outline" onclick="closeModal('modal-assign-project')">Annuleren</button>
                 <button class="btn-blue" onclick="submitAssignProject()"><i data-lucide="check" style="width:14px;height:14px"></i> Toewijzen</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<input type="file" id="client-logo-input" style="display:none" accept=".png,.jpg,.jpeg,.svg" onchange="handleLogoUpload(event)">
+
+<!-- ===== CLIENT CONTRACTS MODAL ===== -->
+<div id="modal-client-contracts" class="modal-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);backdrop-filter:blur(6px);z-index:9999;align-items:center;justify-content:center">
+    <div class="modal-card" style="background:#0a0a0a;border:1px solid #1e1e1e;border-radius:1rem;width:100%;max-width:600px;overflow:hidden;box-shadow:0 25px 50px -12px rgba(0,0,0,0.5)">
+        <div style="padding:1.5rem;border-bottom:1px solid #1e1e1e;display:flex;justify-content:space-between;align-items:center">
+            <h3 style="font-size:1.125rem;font-weight:800;color:var(--white)">Contracten — <span id="contracts-client-name">Klantnaam</span></h3>
+            <button onclick="closeModal('modal-client-contracts')" style="width:2rem;height:2rem;border-radius:50%;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:var(--white-60);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:1rem">✕</button>
+        </div>
+        <div style="padding:1.5rem;max-height:70vh;overflow-y:auto;display:flex;flex-direction:column;gap:1.5rem">
+            <!-- Contract List -->
+            <div id="contracts-list-container" style="display:flex;flex-direction:column;gap:1rem"></div>
+
+            <!-- Toggle Form Button -->
+            <button id="btn-toggle-add-contract" class="btn-outline" style="align-self:flex-start;font-size:0.8125rem" onclick="toggleAddContractForm()">
+                <i class="ti ti-plus" style="font-size:14px;vertical-align:middle;margin-right:4px"></i> Nieuw contract toevoegen
+            </button>
+
+            <!-- Add Contract Form -->
+            <div id="add-contract-form-container" style="display:none;border-top:1px solid #1e1e1e;padding-top:1.5rem;flex-direction:column;gap:1rem">
+                <h4 style="font-size:0.9375rem;font-weight:700;color:var(--white)">Nieuw Contract</h4>
+                <input type="hidden" id="contract-client-id">
+                
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem">
+                    <div>
+                        <label style="display:block;font-size:0.5625rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--white-40);margin-bottom:0.5rem">Project *</label>
+                        <div class="filter-select-wrap" style="width:100%">
+                            <select id="contract-project-id" class="filter-select" style="width:100%">
+                                <option value="">Selecteer project...</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div>
+                        <label style="display:block;font-size:0.5625rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--white-40);margin-bottom:0.5rem">Developer *</label>
+                        <div class="filter-select-wrap" style="width:100%">
+                            <select id="contract-developer-id" class="filter-select" style="width:100%" onchange="onContractDeveloperChange(this.value)">
+                                <option value="">Selecteer developer...</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem">
+                    <div>
+                        <label style="display:block;font-size:0.5625rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--white-40);margin-bottom:0.5rem">Uurtarief (€) *</label>
+                        <input type="number" id="contract-rate" class="filter-input" placeholder="bijv. 85" style="width:100%">
+                    </div>
+                    <div>
+                        <label style="display:block;font-size:0.5625rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--white-40);margin-bottom:0.5rem">Uren per week *</label>
+                        <input type="number" id="contract-hours" class="filter-input" placeholder="bijv. 40" value="40" min="1" max="60" style="width:100%">
+                    </div>
+                </div>
+
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem">
+                    <div>
+                        <label style="display:block;font-size:0.5625rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--white-40);margin-bottom:0.5rem">Startdatum *</label>
+                        <input type="date" id="contract-start" class="filter-input" style="width:100%">
+                    </div>
+                    <div>
+                        <label style="display:block;font-size:0.5625rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--white-40);margin-bottom:0.5rem">Einddatum</label>
+                        <input type="date" id="contract-end" class="filter-input" style="width:100%">
+                    </div>
+                </div>
+
+                <div style="display:flex;justify-content:flex-end;gap:0.75rem;margin-top:0.5rem">
+                    <button class="btn-outline" type="button" onclick="toggleAddContractForm()">Annuleren</button>
+                    <button class="btn-blue" type="button" onclick="submitContractForm()"><i class="ti ti-check" style="font-size:14px;vertical-align:middle;margin-right:4px"></i> Opslaan</button>
+                </div>
             </div>
         </div>
     </div>

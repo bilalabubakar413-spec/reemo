@@ -12,6 +12,9 @@ let developers = [];
 let timesheets = [];
 let cvs        = [];           // CV database still uses localStorage (no DB table yet)
 let invoices   = [];
+let activeDeveloper = null;
+
+const CV_CONVERTER_ENABLED = false;
 
 // ── CV Upload modal state (var = always hoisted, never causes TDZ errors) ──────
 var _cvParsedSkills  = [];
@@ -48,16 +51,25 @@ const _DEF_INV = [
 
 // CV database: still localStorage until a cvs table exists
 const _DEF_CVS = [
-    { id:'cv1', name:'Thomas Anderson', skills:['React','Node.js','TypeScript'], uploadDate:'2024-03-20', status:'ORIGINAL'     },
-    { id:'cv2', name:'Trinity Knight',  skills:['Python','Django','AWS'],        uploadDate:'2024-03-21', status:'REEMO FORMAT' },
-    { id:'cv3', name:'Morpheus Dream',  skills:['Kubernetes','Docker','Go'],     uploadDate:'2024-03-22', status:'ORIGINAL'     },
-    { id:'cv4', name:'Niobe Captain',   skills:['Java','Spring Boot','SQL'],     uploadDate:'2024-03-23', status:'REEMO FORMAT' },
-    { id:'cv5', name:'Cypher Traitor',  skills:['PHP','Laravel','Vue.js'],       uploadDate:'2024-03-24', status:'ORIGINAL'     },
+    { id:'cv1', name:'Thomas Anderson', skills:['React','Node.js','TypeScript'], uploadDate:'2024-03-20', status:'ORIGINAL', cv_url: 'uploads/thomas_anderson_cv.pdf' },
+    { id:'cv2', name:'Trinity Knight',  skills:['Python','Django','AWS'],        uploadDate:'2024-03-21', status:'REEMO FORMAT', cv_url: 'uploads/trinity_knight_cv.pdf' },
+    { id:'cv3', name:'Morpheus Dream',  skills:['Kubernetes','Docker','Go'],     uploadDate:'2024-03-22', status:'ORIGINAL', cv_url: 'uploads/morpheus_dream_cv.pdf' },
+    { id:'cv4', name:'Niobe Captain',   skills:['Java','Spring Boot','SQL'],     uploadDate:'2024-03-23', status:'REEMO FORMAT', cv_url: 'uploads/niobe_captain_cv.pdf' },
+    { id:'cv5', name:'Cypher Traitor',  skills:['PHP','Laravel','Vue.js'],       uploadDate:'2024-03-24', status:'ORIGINAL', cv_url: 'uploads/cypher_traitor_cv.pdf' },
 ];
 function _ls(k, d) { try { const v=localStorage.getItem(k); return v?JSON.parse(v):JSON.parse(JSON.stringify(d)); } catch{return JSON.parse(JSON.stringify(d));} }
 function _lss(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} }
 cvs = _ls('reemo_cvs', _DEF_CVS);
+// Ensure all loaded CVs have a cv_url
+let _needsSave = false;
+cvs.forEach(c => {
+    if (!c.cv_url) {
+        c.cv_url = 'uploads/' + (c.name || 'cv').toLowerCase().replace(/\s+/g, '_') + '.pdf';
+        _needsSave = true;
+    }
+});
 function saveCVs() { _lss('reemo_cvs', cvs); }
+if (_needsSave) saveCVs();
 
 // ── Generic API fetch helper ──────────────────────────────────────────────────
 // Also translates PostgreSQL errors to Dutch user-friendly messages
@@ -65,7 +77,6 @@ const FK_ERRORS = {
     'violates foreign key constraint': 'De gekoppelde record bestaat niet (controleer of de klant/developer/project bestaat).',
     'violates not-null constraint':    'Een verplicht veld ontbreekt. Vul alle velden in.',
     'duplicate key value':             'Er bestaat al een record met deze gegevens.',
-    'relation':                        'Databasetabel niet gevonden. Controleer de serverinstellingen.',
 };
 async function apiFetch(path, options = {}) {
     try {
@@ -99,25 +110,44 @@ async function apiFetchSafe(path, opts = {}) {
 async function loadClients() {
     const data = await apiFetchSafe('/api/klanten');
     clients = data ? data.map(r => ({
-        id: r.klant_id, naam: r.naam, name: r.naam,
-        contactPerson: r.contactpersoon, contactpersoon: r.contactpersoon,
-        email: r.email, sector: r.sector, industry: r.sector,
-        developersCount: 0, totalHoursMonth: 0, invoiceStatus: 'Open'
+        id: r.klant_id, 
+        klant_id: r.klant_id,
+        naam: r.naam, 
+        name: r.naam,
+        contactPerson: r.contactpersoon, 
+        contactpersoon: r.contactpersoon,
+        email: r.email, 
+        sector: r.sector, 
+        industry: r.sector,
+        telefoonnummer: r.telefoonnummer,
+        logo_url: r.logo_url,
+        project_count: parseInt(r.project_count) || 0,
+        developer_count: parseInt(r.developer_count) || 0,
+        developersCount: parseInt(r.developer_count) || 0,
+        totalHoursMonth: 0, 
+        invoiceStatus: 'Open'
     })) : (clients.length ? clients : _DEF_CLIENTS);
 }
 
 async function loadDevelopers() {
     const data = await apiFetchSafe('/api/developers');
-    developers = data ? data.map(r => ({
-        id: r.developer_id, naam: r.naam, name: r.naam,
-        email: r.email, role: r.rol, rol: r.rol,
-        hourlyRate: parseFloat(r.uurtarief)||0, uurtarief: r.uurtarief,
-        weekcapaciteit: r.weekcapaciteit || 40,
-        hoursThisWeek: parseFloat(r.uren_week) || 0,
-        activeProjects: parseInt(r.project_count) || 0,
-        firstProjectId: r.first_project_id,
-        firstClientId: r.first_klant_id
-    })) : (developers.length ? developers : _DEF_DEVS);
+    developers = data ? data.map(r => {
+        let parsedSkills = [];
+        try { parsedSkills = r.skills ? (typeof r.skills === 'string' ? JSON.parse(r.skills) : r.skills) : []; } catch(e){}
+        return {
+            id: r.developer_id, naam: r.naam, name: r.naam,
+            email: r.email, role: r.rol, rol: r.rol,
+            hourlyRate: parseFloat(r.uurtarief)||0, uurtarief: r.uurtarief,
+            weekcapaciteit: r.weekcapaciteit || 40,
+            hoursThisWeek: parseFloat(r.uren_week) || 0,
+            assignedHours: parseInt(r.assigned_hours) || 0,
+            activeProjects: parseInt(r.project_count) || 0,
+            firstProjectId: r.first_project_id,
+            firstClientId: r.first_klant_id,
+            skills: parsedSkills,
+            cv_url: r.cv_url
+        };
+    }) : (developers.length ? developers : _DEF_DEVS);
 }
 
 async function loadTimesheets() {
@@ -126,7 +156,7 @@ async function loadTimesheets() {
         id: r.id, developer_id: r.developer_id, developerName: r.developerName,
         clientName: r.clientName || '—', projectName: r.projectName || '—',
         hoursWorked: parseFloat(r.hoursWorked)||0, bedrag: parseFloat(r.bedrag)||0, status: r.status,
-        date: r.date ? r.date.slice(0,10) : '', description: r.description || ''
+        date: formatDateString(r.date), description: r.description || ''
     })) : (timesheets.length ? timesheets : _DEF_TS);
 }
 
@@ -137,8 +167,8 @@ async function loadInvoices() {
         clientName: r.klant_naam || r.clientName,
         amount: parseFloat(r.totaalbedrag || r.amount) || 0,
         status: r.betalingsstatus || r.status,
-        dateSent: (r.factuurdatum || r.dateSent || '').slice(0,10),
-        paymentDeadline: (r.vervaldatum || r.paymentDeadline || '').slice(0,10)
+        dateSent: formatDateString(r.factuurdatum || r.dateSent),
+        paymentDeadline: formatDateString(r.vervaldatum || r.paymentDeadline)
     })) : (invoices.length ? invoices : _DEF_INV);
 }
 
@@ -165,19 +195,42 @@ async function saveInvoices()   { await loadInvoices();   renderInvoicesTable();
 
 // --- Utility Functions ---
 function getInitials(name) {
+    if (!name || typeof name !== 'string') return '?';
     return name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
 }
 
 function getStatusClass(status) {
-    status = status.toLowerCase();
-    if (status === 'approved' || status === 'paid' || status === 'betaald') return 'status-approved';
-    if (status === 'pending' || status === 'open') return 'status-pending';
-    if (status === 'rejected' || status === 'overdue' || status === 'te_laat') return 'status-rejected';
+    if (!status || typeof status !== 'string') return '';
+    const s = status.toLowerCase();
+    if (s === 'approved' || s === 'paid' || s === 'betaald') return 'status-approved';
+    if (s === 'pending' || s === 'open') return 'status-pending';
+    if (s === 'rejected' || s === 'overdue' || s === 'te_laat') return 'status-rejected';
     return '';
 }
 
 function formatCurrency(amount) {
-    return '$' + amount.toLocaleString();
+    return '€ ' + amount.toLocaleString('nl-NL');
+}
+
+function formatDateString(d) {
+    if (!d) return '—';
+    try {
+        if (d instanceof Date) {
+            return d.toISOString().slice(0, 10);
+        }
+        if (typeof d === 'string') {
+            return d.slice(0, 10);
+        }
+        if (typeof d.toISOString === 'function') {
+            return d.toISOString().slice(0, 10);
+        }
+        if (typeof d === 'number') {
+            return new Date(d).toISOString().slice(0, 10);
+        }
+        return String(d).slice(0, 10);
+    } catch {
+        return '—';
+    }
 }
 
 // --- DOM Elements ---
@@ -243,6 +296,33 @@ document.addEventListener('DOMContentLoaded', async () => {
     updateInvoiceStats();
     updateTimesheetSummary();
     initCharts();
+
+    // ── HTML Structure Guard ────────────────────────────────────────────────────
+    // Detects if any .screen-content is nested inside another .screen-content,
+    // which causes ALL pages to appear black. Runs once on startup.
+    (function validateScreenStructure() {
+        const allScreens = document.querySelectorAll('.screen-content');
+        const broken = [];
+        allScreens.forEach(el => {
+            // Walk up ancestors and check for another .screen-content
+            let parent = el.parentElement;
+            while (parent && parent.id !== 'main-content' && parent !== document.body) {
+                if (parent.classList.contains('screen-content')) {
+                    broken.push(`"#${el.id}" is nested inside "#${parent.id}"`);
+                    break;
+                }
+                parent = parent.parentElement;
+            }
+        });
+        if (broken.length > 0) {
+            console.error(
+                '%c[REEMO] ⚠️ HTML STRUCTURE ERROR: Nested screen-content detected!\n' +
+                'This causes ALL pages to appear black. Fix the missing </div> tags:\n' +
+                broken.join('\n'),
+                'color:#f43f5e;font-weight:bold;font-size:13px;background:#1a0010;padding:8px;border-radius:4px'
+            );
+        }
+    })();
 });
 
 // --- Authentication ---
@@ -273,26 +353,41 @@ function handleLogin(e, role) {
     loginScreen.classList.add('hidden');
     appContainer.classList.remove('hidden');
 
+    const email = document.getElementById('login-email')?.value?.trim() || '';
     const appTitle = document.getElementById('app-title');
+    const logoBox = document.querySelector('.logo-box-small');
 
     if (role === 'developer') {
+        activeDeveloper = developers.find(d => d.email?.toLowerCase() === email.toLowerCase()) || developers.find(d => d.id === 11) || developers[0] || null;
+        
         navAdminItems.classList.add('hidden');
         navDevItems.classList.remove('hidden');
-        userProfileAvatar.textContent = 'A';
+        
+        const initials = activeDeveloper?.naam ? activeDeveloper.naam.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() : 'D';
+        userProfileAvatar.textContent = initials;
         userProfileAvatar.className = 'w-8 h-8 rounded-full bg-emerald-900 text-emerald-400 font-bold flex items-center justify-center shrink-0';
-        userProfileName.innerHTML = `<p class="text-sm font-medium truncate">Alex Rivera</p><p class="text-[10px] text-emerald-500 truncate">Developer</p>`;
+        userProfileName.innerHTML = `<p class="text-sm font-medium truncate">${activeDeveloper?.naam || 'Developer'}</p><p class="text-[10px] text-emerald-500 truncate">${activeDeveloper?.role || activeDeveloper?.rol || 'Developer'}</p>`;
+        
         if (appTitle) appTitle.textContent = 'Reemo Developer';
+        // Green logo + green nav for developer portal
+        if (logoBox) logoBox.classList.add('dev-mode');
+        document.body.classList.add('dev-portal');
         navigateTo('dev-dashboard');
     } else {
+        activeDeveloper = null;
         navDevItems.classList.add('hidden');
         navAdminItems.classList.remove('hidden');
         userProfileAvatar.textContent = 'T';
         userProfileAvatar.className = 'avatar-small';
         userProfileName.innerHTML = `<p class="text-sm font-medium truncate">Test</p><p class="text-[10px] text-white-40 truncate">Admin</p>`;
         if (appTitle) appTitle.textContent = 'Reemo Admin';
+        // Blue logo + blue nav for admin portal
+        if (logoBox) logoBox.classList.remove('dev-mode');
+        document.body.classList.remove('dev-portal');
         navigateTo('dashboard');
     }
 }
+
 
 function handleLogout() {
     appContainer.classList.add('hidden');
@@ -353,46 +448,45 @@ function navigateTo(targetScreenId) {
     }
 
     if (targetScreenId === 'dev-timesheets') {
-        const devId = developers[0]?.id;
+        const devId = activeDeveloper?.id || developers[0]?.id;
         
-        // Helper to fill the dropdown
-        function fillProjectDropdown(devProjects) {
+        // Helper to fill the dropdown using CONTRACT data (so we send contract_id to the API)
+        function fillContractDropdown(contracts) {
             const sel = document.getElementById('dev-ts-project');
-            // Prefer dev-specific projects; fall back to all available projects
-            const displayProjects = (devProjects && devProjects.length > 0) ? devProjects : projects;
-            if (sel) {
-                if (!displayProjects || displayProjects.length === 0) {
-                    sel.innerHTML = '<option value="">— Geen projecten beschikbaar —</option>';
-                } else {
-                    sel.innerHTML = displayProjects.map(p =>
-                        `<option value="${p.project_id}">${p.klant_naam || 'Onbekende Klant'} — ${p.projectnaam}</option>`
-                    ).join('');
-                }
+            if (!sel) return;
+            if (!contracts || contracts.length === 0) {
+                sel.innerHTML = '<option value="">— Geen actieve contracten —</option>';
+                return;
             }
-            
-            // Show/hide warning banner
-            const warn = document.getElementById('dev-ts-prereq-warn');
-            if (warn) {
-                if (projects.length === 0 && developers.length === 0) {
-                    warn.textContent = `⚠ Neem contact op met de admin om projecten aan te maken.`;
-                    warn.style.display = 'block';
-                } else {
-                    warn.style.display = 'none';
-                }
-            }
+            sel.innerHTML = contracts.map(c =>
+                `<option value="${c.project_id}">${c.klant_naam || 'Onbekende Klant'} — ${c.projectnaam}</option>`
+            ).join('');
         }
         
-        // Fill immediately with the projects array (no API needed)
-        fillProjectDropdown(null);
+        // Show/hide warning banner
+        const warn = document.getElementById('dev-ts-prereq-warn');
+        if (warn) warn.style.display = 'none';
         
-        // Then try to also load dev-specific project assignments
+        // Load contracts from the dashboard endpoint (which has contract_id)
         if (devId) {
-            apiFetchSafe(`/api/developer-projects/${devId}`).then(devProjects => {
-                if (devProjects && devProjects.length > 0) {
-                    fillProjectDropdown(devProjects);
+            apiFetchSafe(`/api/developers/${devId}/dashboard`).then(res => {
+                const contracts = res?.contracts || [];
+                fillContractDropdown(contracts);
+                if (contracts.length === 0 && warn) {
+                    warn.textContent = '⚠ Neem contact op met de admin om contracten aan te maken.';
+                    warn.style.display = 'block';
                 }
             });
         }
+
+        // Auto-fill today's date
+        const dateEl = document.getElementById('dev-ts-date');
+        if (dateEl && !dateEl.value) {
+            dateEl.value = new Date().toISOString().split('T')[0];
+        }
+        // Clear hours to avoid stale values
+        const hoursEl = document.getElementById('dev-ts-hours');
+        if (hoursEl) hoursEl.value = '';
         renderDevTimesheets();
         updateDevTsStats();
         if (typeof lucide !== 'undefined') lucide.createIcons();
@@ -409,10 +503,20 @@ function navigateTo(targetScreenId) {
             if (typeof lucide !== 'undefined') lucide.createIcons();
         });
     }
+    if (targetScreenId === 'invoices') {
+        loadInvoices().then(() => {
+            renderInvoicesTable();
+            updateInvoiceStats();
+            if (typeof loadFactuurAanbeveling === 'function') loadFactuurAanbeveling();
+        });
+    }
+    if (targetScreenId === 'dev-profile') {
+        loadDevProfile();
+    }
 }
 
 async function loadDevDashboard() {
-    const devId = developers[0]?.id;
+    const devId = activeDeveloper?.id || developers[0]?.id;
     if (!devId) return;
 
     const container = document.getElementById('screen-dev-dashboard');
@@ -421,154 +525,1195 @@ async function loadDevDashboard() {
     try {
         const res = await apiFetch(`/api/developers/${devId}/dashboard`);
         renderDevDashboard(res);
+        if (res.contracts) {
+            populateDevContractsDropdown(res.contracts);
+        }
     } catch (e) {
         console.error('Failed to load dev dashboard:', e);
     }
 }
 
 function renderDevDashboard(data) {
-    // Update Welcome Banner
-    const welcomeText = document.querySelector('#screen-dev-dashboard .page-header-left p');
-    if (welcomeText) {
-        welcomeText.innerHTML = `Welcome back, <strong style="color:var(--white)">${data.devName}</strong>. Here is your current status.`;
-    }
+    // Update Welcome Name
+    const welcomeName = document.getElementById('dev-welcome-name');
+    if (welcomeName) welcomeName.textContent = data.devName;
+
+    // Update capacity stat card
+    const capStat = document.getElementById('dev-capacity-stat');
+    if (capStat) capStat.innerHTML = `${data.devCapacity}<span class="dev-stat-unit">h</span>`;
+
+    // Update status badge
+    updateDevStatusBadge(data.devBeschikbaarheid || 'available');
+
+    // Store devId and capacity in globals for use by modals
+    window._devDashboardData = data;
 
     // Update Stats
     const statsCards = document.querySelectorAll('#screen-dev-dashboard .dev-stat-card');
     if (statsCards.length >= 3) {
         // Hours This Week
         const hoursCard = statsCards[0];
-        const capacity = data.assignment?.weekcapaciteit || 40;
-        const hoursPct = Math.min((data.stats.hoursThisWeek / capacity) * 100, 100);
-        hoursCard.querySelector('.dev-stat-value').innerHTML = `${data.stats.hoursThisWeek}<span class="dev-stat-unit">h</span>`;
-        hoursCard.querySelector('.capacity-bar-fill').style.width = `${hoursPct}%`;
+        const capacity = data.devCapacity || 40;
+        const urenLabel = document.getElementById('dev-dash-uren');
+        const resterendLabel = document.getElementById('dev-dash-resterend');
+        if (urenLabel) {
+            urenLabel.innerHTML = `${data.stats.hoursThisWeek}<span class="dev-stat-unit">h</span>`;
+        }
+        if (resterendLabel) {
+            const resterend = Math.max(0, capacity - data.stats.hoursThisWeek);
+            resterendLabel.textContent = `${resterend} of ${capacity} hours remaining this week`;
+        }
+        
+        // Utilization This Month
+        const realCard = statsCards[1];
+        const realLabel = document.getElementById('dev-dash-realisatie');
+        if (realLabel) {
+            realLabel.innerHTML = `${data.stats.realisatiePct}<span class="dev-stat-unit">%</span>`;
+        }
         
         // Active Projects
-        statsCards[1].querySelector('.dev-stat-value').textContent = data.stats.activeProjects;
-        
-        // Pending Invoices (Placeholder)
-        statsCards[2].querySelector('.dev-stat-value').textContent = data.stats.pendingInvoices;
+        const projCard = statsCards[2];
+        const projLabel = document.getElementById('dev-dash-projecten');
+        if (projLabel) {
+            projLabel.textContent = data.stats.activeProjects;
+        }
+        projCard.style.cursor = 'pointer';
+        projCard.title = 'Click to see assigned projects';
+        projCard.onclick = () => document.getElementById('dev-profile-tab')?.click();
+        projCard.style.transition = 'border-color 0.2s, box-shadow 0.2s';
+        projCard.onmouseover = () => { projCard.style.borderColor = '#fbbf24'; projCard.style.boxShadow = '0 0 0 1px #fbbf2430'; };
+        projCard.onmouseout  = () => { projCard.style.borderColor = ''; projCard.style.boxShadow = ''; };
     }
 
-    // Update Current Assignment
-    const assignmentCard = document.querySelector('.dev-assignment-card');
-    if (assignmentCard) {
-        if (data.assignment) {
-            assignmentCard.querySelector('h3').textContent = data.assignment.projectnaam;
-            assignmentCard.querySelector('div[style*="color:var(--white-40)"]').textContent = data.assignment.klant_naam;
-            assignmentCard.querySelector('p').textContent = `Current role: ${data.assignment.rol_op_project || 'Developer'}`;
-            
-            const periodDivs = assignmentCard.querySelectorAll('.dev-inner-box div[style*="color:var(--white)"]');
-            if (periodDivs.length >= 2) {
-                const start = new Date(data.assignment.start_datum).toLocaleDateString('nl-NL', { month: 'short', year: 'numeric' });
-                periodDivs[0].textContent = `${start} – Present`;
-                periodDivs[1].textContent = `${data.assignment.weekcapaciteit || 40} Hours`;
-            }
+    // Update Assignments / Contracts
+    const container = document.getElementById('dev-contracts-container');
+    if (container) {
+        if (data.contracts && data.contracts.length > 0) {
+            container.innerHTML = data.contracts.map(c => {
+                const start = new Date(c.start_datum).toLocaleDateString('en-US', { month: 'short' }).toLowerCase();
+                const end = c.eind_datum ? new Date(c.eind_datum).toLocaleDateString('en-US', { month: 'short' }).toLowerCase() : 'present';
+                return `
+                    <div class="dev-assignment-card" style="margin-bottom:0">
+                        <div style="display:flex;justify-content:space-between;align-items:center">
+                            <div style="display:flex;align-items:center;gap:1rem;flex:1">
+                                <div style="width:2.25rem;height:2.25rem;border-radius:0.5rem;background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.2);display:flex;align-items:center;justify-content:center;color:#60a5fa;flex-shrink:0">
+                                    <i data-lucide="briefcase" style="width:14px;height:14px"></i>
+                                </div>
+                                <div>
+                                    <h3 style="font-size:0.9375rem;font-weight:700;color:var(--white);margin:0 0 0.15rem 0">
+                                        ${c.projectnaam} <span style="font-weight:400;color:var(--white-40);font-size:0.8125rem">&bull; ${c.klant_naam}</span>
+                                    </h3>
+                                    <div style="font-size:0.75rem;color:var(--white-50)">
+                                        ${c.rol_op_project || 'Developer'} &bull; &euro;${parseFloat(c.uurtarief).toFixed(0)}/u &bull; ${c.uren_per_week} hrs/wk &bull; ${start}&ndash;${end}
+                                    </div>
+                                </div>
+                            </div>
+                            <div style="text-align:right">
+                                <span style="background:rgba(16,185,129,0.1);color:#22C55E;font-size:0.625rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;padding:0.25rem 0.5rem;border-radius:0.375rem;border:1px solid rgba(16,185,129,0.2);white-space:nowrap;display:inline-block">ACTIVE</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
         } else {
-            assignmentCard.innerHTML = `
-                <div style="padding:2rem;text-align:center;color:var(--white-30)">
-                    <i data-lucide="briefcase" style="width:32px;height:32px;margin-bottom:1rem;opacity:0.2"></i>
-                    <div style="font-weight:700;color:var(--white-60)">Geen actieve opdracht</div>
-                    <div style="font-size:0.8125rem">Neem contact op met de admin voor een nieuwe toewijzing.</div>
+            container.innerHTML = `
+                <div class="dev-assignment-card" style="padding:2rem;text-align:center;color:var(--white-30)">
+                    <i data-lucide="briefcase" style="width:32px;height:32px;margin-bottom:1rem;opacity:0.2;margin:0 auto 1rem"></i>
+                    <div style="font-weight:700;color:var(--white-60)">No active contracts</div>
+                    <div style="font-size:0.8125rem">Contact the admin to set up a contract.</div>
+                </div>
+            `;
+        }
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+    }
+    
+    // Render the capacity allocation card
+    renderDevCapacityCard(data);
+}
+
+function renderDevCapacityCard(data) {
+    const container = document.getElementById('dev-capacity-allocation-container');
+    if (!container) return;
+
+    const totalCapacity = parseInt(data.devCapacity) || 40;
+    const activeContracts = data.contracts || [];
+    const allocatedHours = activeContracts.reduce((sum, c) => sum + parseInt(c.uren_per_week || 0), 0);
+    const availableHours = Math.max(0, totalCapacity - allocatedHours);
+    const isOverAllocated = allocatedHours > totalCapacity;
+
+    const colors = [
+        { bg: '#3b82f6', glow: '#3b82f640', light: 'rgba(59,130,246,0.12)' },
+        { bg: '#10b981', glow: '#10b98140', light: 'rgba(16,185,129,0.12)' },
+        { bg: '#f59e0b', glow: '#f59e0b40', light: 'rgba(245,158,11,0.12)' },
+        { bg: '#ec4899', glow: '#ec489940', light: 'rgba(236,72,153,0.12)' },
+        { bg: '#8b5cf6', glow: '#8b5cf640', light: 'rgba(139,92,246,0.12)' },
+    ];
+
+    // Build capacity rows and progress bars
+    let allocationRowsHtml = '';
+
+    if (activeContracts.length === 0) {
+        allocationRowsHtml = `<div style="color:var(--white-30);font-size:0.875rem;padding:1rem 0;text-align:center">No active allocations.</div>`;
+    } else {
+        activeContracts.forEach((c, idx) => {
+            const col = colors[idx % colors.length];
+            const hrs = parseInt(c.uren_per_week || 0);
+            const pct = Math.min((hrs / totalCapacity) * 100, 100);
+
+            allocationRowsHtml += `
+                <div style="padding:0.75rem 1rem;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.05);border-radius:0.75rem;transition:transform 0.15s" onmouseover="this.style.transform='translateX(2px)'" onmouseout="this.style.transform='translateX(0)'">
+                    <div style="display:flex;align-items:center;gap:0.75rem;margin-bottom:0.35rem">
+                        <div style="width:2.25rem;height:2.25rem;border-radius:0.5rem;background:${col.bg}20;border:1px solid ${col.bg}40;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+                            <span style="font-size:0.75rem;font-weight:800;color:${col.bg}">${hrs}h</span>
+                        </div>
+                        <div style="flex:1;min-width:0">
+                            <div style="font-weight:700;color:var(--white);font-size:0.8125rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${c.projectnaam}</div>
+                            <div style="font-size:0.6875rem;color:var(--white-40);margin-top:0.05rem">${c.klant_naam} &bull; ${c.rol_op_project || 'Developer'}</div>
+                        </div>
+                        <div style="text-align:right;flex-shrink:0">
+                            <div style="font-size:0.75rem;font-weight:800;color:${col.bg}">${Math.round((hrs / totalCapacity) * 100)}%</div>
+                            <div style="font-size:0.6875rem;color:var(--white-40);margin-top:0.05rem">&euro;${parseFloat(c.uurtarief || 0).toFixed(0)}/u</div>
+                        </div>
+                    </div>
+                    <!-- Small progress bar visualizing project occupancy -->
+                    <div style="width:100%;height:0.25rem;background:rgba(255,255,255,0.03);border-radius:0.125rem;overflow:hidden">
+                        <div style="width:${Math.round(pct)}%;height:100%;background:${col.bg};border-radius:0.125rem"></div>
+                    </div>
+                </div>
+            `;
+        });
+
+        // Available block
+        if (availableHours > 0) {
+            const availPct = (availableHours / totalCapacity) * 100;
+            allocationRowsHtml += `
+                <div style="padding:0.75rem 1rem;background:rgba(255,255,255,0.01);border:1px dashed rgba(255,255,255,0.08);border-radius:0.75rem">
+                    <div style="display:flex;align-items:center;gap:0.75rem;margin-bottom:0.35rem">
+                        <div style="width:2.25rem;height:2.25rem;border-radius:0.5rem;background:rgba(255,255,255,0.03);border:1px dashed rgba(255,255,255,0.08);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+                            <span style="font-size:0.75rem;font-weight:800;color:var(--white-30)">${availableHours}h</span>
+                        </div>
+                        <div style="flex:1">
+                            <div style="font-weight:600;color:var(--white-40);font-size:0.8125rem">Available capacity</div>
+                            <div style="font-size:0.6875rem;color:var(--white-30);margin-top:0.05rem">Not yet allocated</div>
+                        </div>
+                        <div style="text-align:right;flex-shrink:0">
+                            <div style="font-size:0.75rem;font-weight:700;color:var(--white-30)">${Math.round(availPct)}%</div>
+                        </div>
+                    </div>
+                    <div style="width:100%;height:0.25rem;background:rgba(255,255,255,0.02);border-radius:0.125rem;overflow:hidden">
+                        <div style="width:${Math.round(availPct)}%;height:100%;background:rgba(255,255,255,0.1);border-radius:0.125rem"></div>
+                    </div>
                 </div>
             `;
         }
     }
 
-    // Update Recent Timesheets (We'll add a section for this)
-    // For now, let's inject it or update the deadlines if that's what was intended
+    const headerActionHtml = window._isEditingCapacity
+        ? `
+        <div style="display:flex;align-items:center;gap:0.4rem">
+            <span style="font-size:0.8125rem;font-weight:700;color:var(--white)">${allocatedHours} /</span>
+            <input type="number" id="inline-capacity-input" value="${totalCapacity}" min="1" max="80" style="width:3.2rem;background:#111;border:1px solid var(--white-20);border-radius:0.375rem;color:var(--white);padding:0.15rem 0.3rem;text-align:center;font-size:0.8125rem;font-weight:700">
+            <span style="font-size:0.8125rem;color:var(--white-40);margin-right:0.25rem">h</span>
+            <button onclick="saveInlineCapacity()" style="padding:0.25rem 0.5rem;background:#22c55e;border:none;border-radius:0.375rem;color:#000;font-size:0.75rem;font-weight:700;cursor:pointer;transition:background 0.15s" onmouseover="this.style.background='#4ade80'" onmouseout="this.style.background='#22c55e'">Save</button>
+            <button onclick="cancelInlineCapacity()" style="padding:0.25rem 0.5rem;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:0.375rem;color:var(--white-60);font-size:0.75rem;font-weight:600;cursor:pointer" onmouseover="this.style.color='var(--white)'" onmouseout="this.style.color='var(--white-60)'">Cancel</button>
+        </div>
+        `
+        : `
+        <div style="display:flex;align-items:center;gap:0.625rem">
+            <span style="font-size:0.8125rem;font-weight:700;color:${isOverAllocated ? '#ef4444' : allocatedHours === totalCapacity ? '#22c55e' : '#3b82f6'}">${allocatedHours}/${totalCapacity}h</span>
+            <button onclick="openEditCapacityModal()" style="display:flex;align-items:center;gap:0.35rem;padding:0.35rem 0.75rem;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:0.5rem;cursor:pointer;transition:all 0.2s;font-size:0.75rem;font-weight:600;color:var(--white-60)" onmouseover="this.style.background='rgba(255,255,255,0.1)';this.style.color='var(--white)'" onmouseout="this.style.background='rgba(255,255,255,0.05)';this.style.color='var(--white-60)'">
+                <i data-lucide="pencil" style="width:11px;height:11px"></i> Edit
+            </button>
+        </div>
+        `;
+
+    container.innerHTML = `
+      <div class="dev-assignment-card" style="margin-bottom:0;background:#0a0a0a;border:1px solid #1e1e1e">
+          <!-- Header -->
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem">
+              <div style="display:flex;align-items:center;gap:0.5rem">
+                  <div style="width:2rem;height:2rem;border-radius:0.5rem;background:rgba(59,130,246,0.1);display:flex;align-items:center;justify-content:center">
+                      <i data-lucide="bar-chart-2" style="width:14px;height:14px;color:#60a5fa"></i>
+                  </div>
+                  <div>
+                      <h3 style="font-size:0.9375rem;font-weight:800;color:var(--white);margin:0">Capacity Overview</h3>
+                      <div style="font-size:0.7rem;color:var(--white-40);margin-top:0.1rem">${totalCapacity} hours per week total</div>
+                  </div>
+              </div>
+              ${headerActionHtml}
+          </div>
+
+          <!-- Total Occupancy Progress Bar & Over-allocated Alert -->
+          <div style="margin-bottom:1.25rem">
+              <div style="display:flex;justify-content:space-between;font-size:0.75rem;color:var(--white-40);margin-bottom:0.35rem">
+                  <span>Total Occupancy</span>
+                  <span style="font-weight:700;color:${isOverAllocated ? '#ef4444' : allocatedHours === totalCapacity ? '#22c55e' : '#3b82f6'}">${Math.round((allocatedHours / totalCapacity) * 100)}%</span>
+              </div>
+              <div style="width:100%;height:0.5rem;background:rgba(255,255,255,0.05);border-radius:0.25rem;overflow:hidden">
+                  <div style="width:${Math.min((allocatedHours / totalCapacity) * 100, 100)}%;height:100%;background:${isOverAllocated ? '#ef4444' : '#22c55e'};border-radius:0.25rem"></div>
+              </div>
+              ${isOverAllocated ? `
+              <div style="display:flex;align-items:center;gap:0.4rem;padding:0.4rem 0.6rem;border-left:3px solid #ef4444;color:#ef4444;font-size:0.75rem;font-weight:600;margin-top:0.5rem">
+                  <i data-lucide="alert-triangle" style="width:12px;height:12px"></i>
+                  Overbooked &mdash; ${allocatedHours - totalCapacity} hours over capacity
+              </div>` : ''}
+          </div>
+
+          <!-- Allocation rows -->
+          <div style="display:flex;flex-direction:column;gap:0.625rem">
+              ${allocationRowsHtml}
+          </div>
+      </div>
+    `;
+
+    if (typeof lucide !== 'undefined') lucide.createIcons();
 }
+
+// ── Availability helpers ──────────────────────────────────────────────────
+const _beschikbaarheidConfig = {
+    // English/User-spec values
+    'available':        { color: '#22C55E', bg: '#14532D', border: '#22C55E50', label: 'Available' },
+    'on_assignment':    { color: '#3B82F6', bg: '#1D3A5F', border: '#3B82F650', label: 'On Assignment' },
+    'unavailable':      { color: '#EF4444', bg: '#450A0A', border: '#EF444450', label: 'Unavailable' },
+    
+    // Dutch fallbacks (for compatibility with existing database rows)
+    'beschikbaar':      { color: '#22C55E', bg: '#14532D', border: '#22C55E50', label: 'Available' },
+    'gedeeltelijk':     { color: '#3B82F6', bg: '#1D3A5F', border: '#3B82F650', label: 'On Assignment' },
+    'niet beschikbaar': { color: '#EF4444', bg: '#450A0A', border: '#EF444450', label: 'Unavailable' },
+    'verlof':           { color: '#EF4444', bg: '#450A0A', border: '#EF444450', label: 'Unavailable' },
+};
+
+function updateDevStatusBadge(status) {
+    const cfg = _beschikbaarheidConfig[status] || _beschikbaarheidConfig['available'] || _beschikbaarheidConfig['beschikbaar'];
+    const btn = document.getElementById('dev-status-btn');
+    const dot = document.getElementById('dev-status-dot');
+    const label = document.getElementById('dev-status-label');
+    if (btn) {
+        btn.style.color = cfg.color;
+        btn.style.background = cfg.bg;
+        btn.style.borderColor = cfg.border;
+    }
+    if (dot) { dot.style.background = cfg.color; dot.style.boxShadow = `0 0 6px ${cfg.color}`; }
+    if (label) label.textContent = cfg.label;
+
+    // Sync profile badge/dot if they exist
+    const pBtn = document.getElementById('profile-status-btn');
+    const pDot = document.getElementById('profile-status-dot');
+    const pLabel = document.getElementById('profile-status-label');
+    if (pBtn) {
+        pBtn.style.color = cfg.color;
+        pBtn.style.background = cfg.bg;
+        pBtn.style.borderColor = cfg.border;
+    }
+    if (pDot) { pDot.style.background = cfg.color; pDot.style.boxShadow = `0 0 8px ${cfg.color}`; }
+    if (pLabel) pLabel.textContent = cfg.label;
+
+    // Sync profile hero avatar dot if it exists
+    const avDot = document.getElementById('profile-avatar-status-dot');
+    if (avDot) {
+        avDot.style.background = cfg.color;
+        avDot.style.boxShadow = `0 0 8px ${cfg.color}`;
+    }
+}
+
+function toggleDevStatusDropdown(e) {
+    e.stopPropagation();
+    const dd = document.getElementById('dev-status-dropdown');
+    if (!dd) return;
+    const isOpen = dd.style.display !== 'none';
+    dd.style.display = isOpen ? 'none' : 'block';
+    if (!isOpen) {
+        const close = () => { dd.style.display = 'none'; document.removeEventListener('click', close); };
+        setTimeout(() => document.addEventListener('click', close), 10);
+    }
+}
+
+async function setDevBeschikbaarheid(status) {
+    const dd = document.getElementById('dev-status-dropdown');
+    if (dd) dd.style.display = 'none';
+    const pdd = document.getElementById('profile-status-dropdown');
+    if (pdd) pdd.style.display = 'none';
+
+    const devId = activeDeveloper?.id || window._devDashboardData && window._devDashboardData.devId;
+    if (!devId) { showToast('⚠ Developer ID not found'); return; }
+
+    try {
+        await apiFetch(`/api/developers/${devId}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ beschikbaarheid: status })
+        });
+        updateDevStatusBadge(status);
+        if (window._devDashboardData) window._devDashboardData.devBeschikbaarheid = status;
+        // Also refresh the dev in the developers array for admin view
+        const devIdx = developers.findIndex(d => d.id == devId || d.developer_id == devId);
+        if (devIdx !== -1) developers[devIdx].beschikbaarheid = status;
+        showToast(`✓ Status updated: ${_beschikbaarheidConfig[status]?.label || status}`);
+    } catch (e) {
+        showToast(`Could not update status. Try again.`, 'error');
+    }
+}
+
+// ── Edit Capacity Modal ──────────────────────────────────────────────────────
+function openEditCapacityModal() {
+    window._isEditingCapacity = true;
+    if (window._devDashboardData) {
+        renderDevCapacityCard(window._devDashboardData);
+        setTimeout(() => document.getElementById('inline-capacity-input')?.focus(), 50);
+    }
+}
+
+async function saveInlineCapacity() {
+    const devId = activeDeveloper?.id || window._devDashboardData?.devId;
+    if (!devId) return;
+
+    const input = document.getElementById('inline-capacity-input');
+    if (!input) return;
+    const nieuweCapaciteit = parseInt(input.value);
+
+    if (!nieuweCapaciteit || nieuweCapaciteit < 1 || nieuweCapaciteit > 80) {
+        showToast('Enter a value between 1 and 80 hours', 'error');
+        return;
+    }
+
+    try {
+        const res = await fetch(`/api/developers/${devId}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ weekcapaciteit: nieuweCapaciteit })
+        });
+
+        if (!res.ok) {
+            showToast('Could not save capacity. Try again.', 'error');
+            return;
+        }
+
+        showToast('Capacity updated', 'success');
+        window._isEditingCapacity = false;
+        loadDevDashboard(); // Reload so percentages recalculate
+    } catch (err) {
+        showToast('Could not save capacity. Try again.', 'error');
+        console.error('Save capacity error:', err);
+    }
+}
+
+function cancelInlineCapacity() {
+    window._isEditingCapacity = false;
+    if (window._devDashboardData) {
+        renderDevCapacityCard(window._devDashboardData);
+    }
+}
+
+
+// ── Dev Projects Slide-over Panel ───────────────────────────────────────────
+function openDevProjectsPanel(data) {
+    // Remove existing panel if any
+    document.getElementById('dev-projects-panel')?.remove();
+
+    const contracts = data.contracts || [];
+    const totalCap  = data.devCapacity || 40;
+    const colors = [
+        { bg: '#3b82f6', light: 'rgba(59,130,246,0.12)',  border: '#3b82f620' },
+        { bg: '#10b981', light: 'rgba(16,185,129,0.12)',  border: '#10b98120' },
+        { bg: '#f59e0b', light: 'rgba(245,158,11,0.12)',  border: '#f59e0b20' },
+        { bg: '#ec4899', light: 'rgba(236,72,153,0.12)',  border: '#ec489920' },
+        { bg: '#8b5cf6', light: 'rgba(139,92,246,0.12)',  border: '#8b5cf620' },
+    ];
+
+    const contractsHtml = contracts.length === 0
+        ? `<div style="text-align:center;padding:3rem 1rem;color:var(--white-30)">
+               <i data-lucide="briefcase" style="width:40px;height:40px;margin:0 auto 1rem;display:block;opacity:0.2"></i>
+               <div style="font-weight:700;color:var(--white-40)">Geen actieve contracten</div>
+               <div style="font-size:0.8125rem;margin-top:0.375rem">Er zijn nog geen projecten toegewezen.</div>
+           </div>`
+        : contracts.map((c, i) => {
+            const col = colors[i % colors.length];
+            const hrs = parseInt(c.uren_per_week || 0);
+            const pct = Math.round(Math.min((hrs / totalCap) * 100, 100));
+            const start = c.start_datum ? new Date(c.start_datum).toLocaleDateString('nl-NL', { day: 'numeric', month: 'short', year: 'numeric' }) : '—';
+            const end   = c.eind_datum  ? new Date(c.eind_datum ).toLocaleDateString('nl-NL', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Doorlopend';
+            const weekly = (hrs * parseFloat(c.uurtarief || 0)).toFixed(0);
+            return `
+            <div style="background:${col.light};border:1px solid ${col.border};border-radius:1rem;padding:1.25rem;position:relative;overflow:hidden">
+                <!-- Accent line -->
+                <div style="position:absolute;left:0;top:0;bottom:0;width:3px;background:${col.bg};border-radius:1rem 0 0 1rem"></div>
+                <div style="padding-left:0.75rem">
+                    <!-- Top row: project + badge -->
+                    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:0.875rem">
+                        <div>
+                            <div style="font-size:0.625rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:${col.bg};margin-bottom:0.25rem">Actief Contract</div>
+                            <div style="font-size:1rem;font-weight:800;color:var(--white);margin-bottom:0.15rem">${c.projectnaam}</div>
+                            <div style="font-size:0.8125rem;color:var(--white-40)">${c.klant_naam}</div>
+                        </div>
+                        <div style="text-align:right;flex-shrink:0">
+                            <div style="font-size:1.25rem;font-weight:800;color:${col.bg}">${hrs}u</div>
+                            <div style="font-size:0.7rem;color:var(--white-40)">per week</div>
+                        </div>
+                    </div>
+
+                    <!-- Capacity mini-bar -->
+                    <div style="margin-bottom:0.875rem">
+                        <div style="display:flex;justify-content:space-between;font-size:0.7rem;color:var(--white-40);margin-bottom:0.3rem">
+                            <span>Capaciteitsaandeel</span><span style="color:${col.bg};font-weight:700">${pct}%</span>
+                        </div>
+                        <div style="width:100%;height:6px;background:rgba(255,255,255,0.07);border-radius:3px;overflow:hidden">
+                            <div style="height:100%;width:${pct}%;background:${col.bg};border-radius:3px;box-shadow:0 0 8px ${col.bg}60"></div>
+                        </div>
+                    </div>
+
+                    <!-- Detail grid -->
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.625rem">
+                        <div style="background:rgba(0,0,0,0.2);border-radius:0.625rem;padding:0.625rem 0.75rem">
+                            <div style="font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--white-30);margin-bottom:0.2rem">Rol</div>
+                            <div style="font-size:0.8125rem;font-weight:700;color:var(--white)">${c.rol_op_project || 'Developer'}</div>
+                        </div>
+                        <div style="background:rgba(0,0,0,0.2);border-radius:0.625rem;padding:0.625rem 0.75rem">
+                            <div style="font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--white-30);margin-bottom:0.2rem">Uurtarief</div>
+                            <div style="font-size:0.8125rem;font-weight:700;color:#34d399">&euro;${parseFloat(c.uurtarief || 0).toFixed(2)}/u</div>
+                        </div>
+                        <div style="background:rgba(0,0,0,0.2);border-radius:0.625rem;padding:0.625rem 0.75rem">
+                            <div style="font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--white-30);margin-bottom:0.2rem">Start</div>
+                            <div style="font-size:0.8125rem;font-weight:700;color:var(--white)">${start}</div>
+                        </div>
+                        <div style="background:rgba(0,0,0,0.2);border-radius:0.625rem;padding:0.625rem 0.75rem">
+                            <div style="font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--white-30);margin-bottom:0.2rem">Einde</div>
+                            <div style="font-size:0.8125rem;font-weight:700;color:${c.eind_datum ? 'var(--white)' : '#34d399'}">${end}</div>
+                        </div>
+                    </div>
+
+                    <!-- Weekly earnings -->
+                    <div style="margin-top:0.75rem;display:flex;align-items:center;justify-content:space-between;padding:0.625rem 0.75rem;background:rgba(0,0,0,0.2);border-radius:0.625rem">
+                        <span style="font-size:0.75rem;color:var(--white-40)">Verwachte weekomzet</span>
+                        <span style="font-size:0.875rem;font-weight:800;color:#fbbf24">&euro;${parseInt(weekly).toLocaleString('nl-NL')}</span>
+                    </div>
+                </div>
+            </div>`;
+        }).join('');
+
+    const panel = document.createElement('div');
+    panel.id = 'dev-projects-panel';
+    panel.style.cssText = 'position:fixed;inset:0;z-index:9999;display:flex;justify-content:flex-end';
+    panel.innerHTML = `
+        <!-- Backdrop -->
+        <div onclick="closeDevProjectsPanel()" style="position:absolute;inset:0;background:rgba(0,0,0,0.5);backdrop-filter:blur(4px)"></div>
+        <!-- Drawer -->
+        <div style="position:relative;width:420px;max-width:95vw;height:100%;background:#0d0d0d;border-left:1px solid #1e1e1e;display:flex;flex-direction:column;box-shadow:-20px 0 60px rgba(0,0,0,0.5);animation:slideInRight 0.25s ease">
+            <!-- Header -->
+            <div style="padding:1.5rem;border-bottom:1px solid #1a1a1a;flex-shrink:0">
+                <div style="display:flex;align-items:center;justify-content:space-between">
+                    <div style="display:flex;align-items:center;gap:0.75rem">
+                        <div style="width:2.25rem;height:2.25rem;border-radius:0.625rem;background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.2);display:flex;align-items:center;justify-content:center">
+                            <i data-lucide="briefcase" style="width:16px;height:16px;color:#34d399"></i>
+                        </div>
+                        <div>
+                            <h3 style="font-size:1rem;font-weight:800;color:var(--white);margin:0">Mijn Projecten</h3>
+                            <div style="font-size:0.75rem;color:var(--white-40);margin-top:0.1rem">${contracts.length} actief${contracts.length !== 1 ? '' : ''} contract${contracts.length !== 1 ? 'en' : ''}</div>
+                        </div>
+                    </div>
+                    <button onclick="closeDevProjectsPanel()" style="width:2rem;height:2rem;border-radius:0.5rem;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--white-60);font-size:1.1rem;transition:all 0.15s" onmouseover="this.style.background='rgba(255,255,255,0.1)'" onmouseout="this.style.background='rgba(255,255,255,0.05)'">&times;</button>
+                </div>
+                <!-- Totaal bar -->
+                <div style="margin-top:1rem">
+                    <div style="display:flex;justify-content:space-between;font-size:0.75rem;color:var(--white-40);margin-bottom:0.375rem">
+                        <span>Totale allocatie</span>
+                        <span style="font-weight:700;color:${ contracts.reduce((s,c)=>s+parseInt(c.uren_per_week||0),0) > totalCap ? '#f43f5e' : 'var(--white)'}">${contracts.reduce((s,c)=>s+parseInt(c.uren_per_week||0),0)}/${totalCap}u/wk</span>
+                    </div>
+                    <div style="width:100%;height:8px;display:flex;gap:2px;border-radius:4px;overflow:hidden">
+                        ${contracts.map((c,i) => { const col=colors[i%colors.length]; const pct=Math.min((parseInt(c.uren_per_week||0)/totalCap)*100,100); return `<div style="flex:${pct};background:${col.bg};box-shadow:0 0 8px ${col.bg}50" title="${c.projectnaam}: ${c.uren_per_week}u"></div>`; }).join('')}
+                        ${contracts.reduce((s,c)=>s+parseInt(c.uren_per_week||0),0) < totalCap ? `<div style="flex:${((totalCap - contracts.reduce((s,c)=>s+parseInt(c.uren_per_week||0),0))/totalCap)*100};background:rgba(255,255,255,0.07);border:1px dashed rgba(255,255,255,0.15)"></div>` : ''}
+                    </div>
+                </div>
+            </div>
+            <!-- Contract list (scrollable) -->
+            <div style="flex:1;overflow-y:auto;padding:1.25rem;display:flex;flex-direction:column;gap:1rem">
+                ${contractsHtml}
+            </div>
+        </div>
+    `;
+
+    // Add slide-in keyframe if not already added
+    if (!document.getElementById('panel-keyframes')) {
+        const style = document.createElement('style');
+        style.id = 'panel-keyframes';
+        style.textContent = '@keyframes slideInRight { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }';
+        document.head.appendChild(style);
+    }
+
+    document.body.appendChild(panel);
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+}
+
+function closeDevProjectsPanel() {
+    const panel = document.getElementById('dev-projects-panel');
+    if (panel) panel.remove();
+}
+
+function populateDevContractsDropdown(contracts) {
+    const select = document.getElementById('dev-ts-project');
+    if (!select) return;
+    if (!contracts || contracts.length === 0) {
+        select.innerHTML = '<option value="">Geen actieve contracten</option>';
+        return;
+    }
+    select.innerHTML = contracts.map(c => 
+        `<option value="${c.project_id}">${c.klant_naam} — ${c.projectnaam} (${c.rol_op_project || 'Developer'}, &euro;${parseFloat(c.uurtarief).toFixed(0)}/u)</option>`
+    ).join('');
+}
+
+
+// ── Developer Profile loading and rendering ──────────────────────────────────
+async function loadDevProfile() {
+    // Use the active/logged-in developer or fall back to the first developer
+    const devId = activeDeveloper?.id || developers[0]?.id;
+    if (!devId) return;
+    const container = document.getElementById('dev-profile-dynamic-content');
+    if (!container) return;
+    container.innerHTML = `
+        <div style="padding:3rem;text-align:center;color:var(--white-40)">
+            <div class="spinner" style="width:32px;height:32px;border:3px solid rgba(255,255,255,0.1);border-top-color:#3b82f6;border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto 1rem"></div>
+            Laden...
+        </div>`;
+
+    try {
+        const res = await apiFetch(`/api/developers/${devId}`);
+        const { developer, projecten, uren, cv } = res;
+        renderDevProfilePage(developer, projecten, uren, cv);
+    } catch (e) {
+        container.innerHTML = `<div style="padding:2rem;color:#f43f5e">Fout bij laden van profiel: ${e.message}</div>`;
+    }
+}
+
+function renderDevProfilePage(dev, projecten, uren, cv) {
+    const container = document.getElementById('dev-profile-dynamic-content');
+    if (!container) return;
+
+    const initials = getInitials(dev.naam || '?');
+    const role = dev.rol || 'Developer';
+    const rate = parseFloat(dev.uurtarief) || 0;
+    const capacity = dev.weekcapaciteit || 40;
+    const activeProjectsCount = projecten.length;
+    const beschikbaarheid = dev.beschikbaarheid || 'beschikbaar';
+
+    const activeContracts = projecten || [];
+    const allocatedHours = activeContracts.reduce((sum, p) => sum + parseInt(p.uren_per_week || 0), 0);
+    const isOverAllocated = allocatedHours > capacity;
+
+    const avatarColor = dev.naam?.match(/^[AEIOU]/i) ? '#f472b6' : '#60a5fa';
+
+    // Skills
+    let parsedSkills = [];
+    try { parsedSkills = dev.skills ? (typeof dev.skills === 'string' ? JSON.parse(dev.skills) : dev.skills) : []; } catch(e){}
+    const skillsHtml = parsedSkills.length
+        ? parsedSkills.map(s => `
+            <span class="profile-skill-chip">
+                ${s}
+                <button onclick="removeDevSkill('${dev.id || dev.developer_id}', '${s.replace(/'/g, "\\'")}')">
+                    <i data-lucide="x" style="width:10px;height:10px"></i>
+                </button>
+            </span>`).join('')
+        : `<span style="font-size:0.75rem;color:var(--white-30);font-style:italic">Nog geen skills toegevoegd.</span>`;
+
+    // Status config
+    const statusCfg = _beschikbaarheidConfig[beschikbaarheid] || _beschikbaarheidConfig['beschikbaar'];
+    const devId = dev.id || dev.developer_id;
+
+    // Status dropdown options
+    const statusOptions = Object.entries(_beschikbaarheidConfig).map(([key, cfg]) => `
+        <button class="profile-status-option" onclick="setDevBeschikbaarheid('${key}');updateProfileStatusBadge('${key}')">
+            <span class="profile-status-option-dot" style="background:${cfg.color}"></span>
+            ${cfg.label}
+        </button>`).join('');
+
+    // CV section
+    let hasCv = cv || dev.cv_url;
+    let cvFilename = cv ? (cv.original_filename || 'CV.pdf') : (dev.cv_url ? dev.cv_url.split('_').slice(1).join('_') || 'CV.pdf' : 'CV.pdf');
+    let cvDateText = cv ? `Geüpload op ${new Date(cv.aangemaakt_op || cv.date || Date.now()).toLocaleDateString('nl-NL')}` : (dev.cv_url ? 'Geüpload' : '');
+
+    let cvSectionHtml = '';
+    if (hasCv) {
+        cvSectionHtml = `
+            <div class="profile-cv-row">
+                <div style="display:flex;align-items:center;gap:0.875rem;min-width:0;flex:1">
+                    <div class="profile-cv-icon">
+                        <i data-lucide="file-text" style="width:1rem;height:1rem"></i>
+                    </div>
+                    <div style="min-width:0">
+                        <div style="font-weight:700;font-size:0.875rem;color:var(--white);white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${cvFilename}">${cvFilename}</div>
+                        ${cvDateText ? `<div style="font-size:0.6875rem;color:var(--white-40);margin-top:0.15rem">${cvDateText}</div>` : ''}
+                    </div>
+                </div>
+                <div style="display:flex;gap:0.5rem;flex-shrink:0">
+                    <button class="client-card-btn download" title="Download CV" onclick="downloadDeveloperCV('${devId}')">
+                        <i data-lucide="download" style="width:13px;height:13px"></i>
+                    </button>
+                    <button class="client-card-btn view" title="Converteer naar Reemo format" onclick="openCvConverterModal({developer_naam: '${(dev.naam || '').replace(/'/g, "\\'")}', cv_url: '${dev.cv_url || cv?.cv_url || ''}', developer_id: '${devId}'})" style="color:#a78bfa">
+                        <i data-lucide="sparkles" style="width:13px;height:13px"></i>
+                    </button>
+                </div>
+            </div>`;
+    } else {
+        cvSectionHtml = `
+            <div class="profile-cv-empty" onclick="navigateTo('dev-documents')">
+                <i data-lucide="upload-cloud" style="width:1.75rem;height:1.75rem;color:var(--white-20)"></i>
+                <div style="font-weight:700;font-size:0.875rem;color:var(--white-50)">Nog geen CV</div>
+                <div style="font-size:0.6875rem;color:var(--white-30)">Klik om naar Documents te gaan</div>
+            </div>`;
+    }
+
+    // Projects list
+    const projectListHtml = activeContracts.length
+        ? activeContracts.map(p => {
+            const uren = parseInt(p.uren_per_week || 40);
+            const pct = Math.round(Math.min((uren / capacity) * 100, 999));
+            const pctColor = pct > 100 ? '#f87171' : pct > 75 ? '#fbbf24' : '#34d399';
+            return `
+            <div class="profile-project-row">
+                <div>
+                    <div class="profile-project-name">${p.projectnaam}</div>
+                    <div class="profile-project-meta">${p.klant_naam || 'Onbekende Klant'} · ${p.rol_op_project || 'Developer'}</div>
+                </div>
+                <div>
+                    <div class="profile-project-hours">${uren}u/wk</div>
+                    <div class="profile-project-pct" style="color:${pctColor}">${pct}% van cap.</div>
+                </div>
+            </div>`;
+        }).join('')
+        : `<div style="font-size:0.875rem;color:var(--white-40);padding:0.5rem 0">Geen actieve projecten.</div>`;
+
+    container.innerHTML = `
+        <div class="profile-page-wrap">
+
+            <!-- Header -->
+            <div class="profile-header">
+                <div class="profile-header-left">
+                    <h2>Mijn Profiel</h2>
+                    <p>Beheer je beschikbaarheid, skills en CV.</p>
+                </div>
+            </div>
+
+            <!-- Hero card -->
+            <div class="profile-hero">
+                <div style="position:relative;flex-shrink:0">
+                    <div class="profile-hero-avatar" style="background:linear-gradient(135deg, ${avatarColor}20, ${avatarColor}05);color:${avatarColor};border:1px solid ${avatarColor}40;box-shadow: 0 8px 24px -4px ${avatarColor}15;position:relative">${initials}</div>
+                    <div style="position:absolute;bottom:2px;right:2px;width:1rem;height:1rem;border-radius:50%;background:#0c0c0c;display:flex;align-items:center;justify-content:center;border:1px solid rgba(255,255,255,0.05)">
+                        <div id="profile-avatar-status-dot" style="width:0.625rem;height:0.625rem;border-radius:50%;background:${statusCfg.color};box-shadow:0 0 8px ${statusCfg.color}"></div>
+                    </div>
+                </div>
+                <div class="profile-hero-info">
+                    <div class="profile-hero-name">${dev.naam}</div>
+                    <div class="profile-hero-role">${role}</div>
+                    <div class="profile-hero-badges">
+                        <span style="background:rgba(37,99,235,0.1);color:#60a5fa;border:1px solid rgba(37,99,235,0.2);padding:0.25rem 0.75rem;border-radius:9999px;font-size:0.6875rem;font-weight:700">${dev.type || 'ZZP'}</span>
+                        <span style="font-size:0.6875rem;color:var(--white-40);display:flex;align-items:center;gap:0.35rem">
+                            <i data-lucide="mail" style="width:11px;height:11px"></i> ${dev.email}
+                        </span>
+
+                        <!-- Beschikbaarheid toggle -->
+                        <div style="position:relative" id="profile-status-wrap">
+                            <button id="profile-status-btn" class="profile-status-btn"
+                                style="color:${statusCfg.color};border-color:${statusCfg.border};background:${statusCfg.bg}"
+                                onclick="toggleProfileStatusDropdown(event)">
+                                <span class="profile-status-dot" id="profile-status-dot" style="background:${statusCfg.color};box-shadow:0 0 5px ${statusCfg.color}"></span>
+                                <span id="profile-status-label">${statusCfg.label}</span>
+                                <i data-lucide="chevron-down" style="width:11px;height:11px;opacity:0.6"></i>
+                            </button>
+                            <div class="profile-status-dropdown" id="profile-status-dropdown">
+                                ${statusOptions}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="profile-hero-stats">
+                    <div class="profile-stat-cell">
+                        <div class="profile-stat-val" style="color:${isOverAllocated ? '#f87171' : 'var(--white)'}">${capacity}</div>
+                        <div class="profile-stat-label">Uren/Week</div>
+                    </div>
+                    <div class="profile-stat-cell">
+                        <div class="profile-stat-val">${activeProjectsCount}</div>
+                        <div class="profile-stat-label">Projecten</div>
+                    </div>
+                    <div class="profile-stat-cell">
+                        <div class="profile-stat-val">€${rate}</div>
+                        <div class="profile-stat-label">Tarief/Uur</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Over-allocation warning -->
+            ${isOverAllocated ? `
+            <div class="profile-overalloc-banner">
+                <i data-lucide="alert-triangle" style="width:14px;height:14px;flex-shrink:0"></i>
+                <span>Je bent overalloceerd: <strong>${allocatedHours}u</strong> ingepland op <strong>${capacity}u</strong> capaciteit (${allocatedHours - capacity}u te veel).</span>
+            </div>` : ''}
+
+            <!-- Content grid -->
+            <div class="profile-content-grid">
+
+                <!-- LEFT column -->
+                <div style="display:flex;flex-direction:column;gap:1.25rem">
+
+                    <!-- Personal info card -->
+                    <div class="profile-card">
+                        <div class="profile-card-header">
+                            <div class="profile-card-title">
+                                <i data-lucide="user" style="width:13px;height:13px;color:#60a5fa"></i>
+                                Persoonlijke Gegevens
+                            </div>
+                        </div>
+                        <div class="profile-card-body">
+                            <div class="profile-info-row">
+                                <div style="display:flex;align-items:center;gap:0.75rem">
+                                    <div style="width:1.75rem;height:1.75rem;border-radius:0.375rem;background:rgba(255,255,255,0.03);display:flex;align-items:center;justify-content:center;color:var(--white-40)">
+                                        <i data-lucide="user" style="width:14px;height:14px"></i>
+                                    </div>
+                                    <span class="profile-info-key" style="margin:0;padding:0;color:var(--white-40);text-transform:none;letter-spacing:normal">Volledige naam</span>
+                                </div>
+                                <span class="profile-info-val">${dev.naam}</span>
+                            </div>
+                            <div class="profile-info-row">
+                                <div style="display:flex;align-items:center;gap:0.75rem">
+                                    <div style="width:1.75rem;height:1.75rem;border-radius:0.375rem;background:rgba(255,255,255,0.03);display:flex;align-items:center;justify-content:center;color:var(--white-40)">
+                                        <i data-lucide="briefcase" style="width:14px;height:14px"></i>
+                                    </div>
+                                    <span class="profile-info-key" style="margin:0;padding:0;color:var(--white-40);text-transform:none;letter-spacing:normal">Rol</span>
+                                </div>
+                                <span class="profile-info-val">${role}</span>
+                            </div>
+                            <div class="profile-info-row">
+                                <div style="display:flex;align-items:center;gap:0.75rem">
+                                    <div style="width:1.75rem;height:1.75rem;border-radius:0.375rem;background:rgba(255,255,255,0.03);display:flex;align-items:center;justify-content:center;color:var(--white-40)">
+                                        <i data-lucide="credit-card" style="width:14px;height:14px"></i>
+                                    </div>
+                                    <span class="profile-info-key" style="margin:0;padding:0;color:var(--white-40);text-transform:none;letter-spacing:normal">Uurtarief</span>
+                                </div>
+                                <span class="profile-info-val">€ ${rate.toLocaleString('nl-NL')}/u</span>
+                            </div>
+                            <div class="profile-info-row">
+                                <div style="display:flex;align-items:center;gap:0.75rem">
+                                    <div style="width:1.75rem;height:1.75rem;border-radius:0.375rem;background:rgba(255,255,255,0.03);display:flex;align-items:center;justify-content:center;color:var(--white-40)">
+                                        <i data-lucide="clock" style="width:14px;height:14px"></i>
+                                    </div>
+                                    <span class="profile-info-key" style="margin:0;padding:0;color:var(--white-40);text-transform:none;letter-spacing:normal">Weekcapaciteit</span>
+                                </div>
+                                <span class="profile-info-val">${capacity} uur</span>
+                            </div>
+                            <div class="profile-info-row">
+                                <div style="display:flex;align-items:center;gap:0.75rem">
+                                    <div style="width:1.75rem;height:1.75rem;border-radius:0.375rem;background:rgba(255,255,255,0.03);display:flex;align-items:center;justify-content:center;color:var(--white-40)">
+                                        <i data-lucide="mail" style="width:14px;height:14px"></i>
+                                    </div>
+                                    <span class="profile-info-key" style="margin:0;padding:0;color:var(--white-40);text-transform:none;letter-spacing:normal">E-mailadres</span>
+                                </div>
+                                <span class="profile-info-val">${dev.email}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Skills card -->
+                    <div class="profile-card">
+                        <div class="profile-card-header">
+                            <div class="profile-card-title">
+                                <i data-lucide="zap" style="width:13px;height:13px;color:#818cf8"></i>
+                                Vaardigheden
+                            </div>
+                        </div>
+                        <div class="profile-card-body">
+                            <div style="display:flex;flex-wrap:wrap;gap:0.5rem" id="dev-skills-container">
+                                ${skillsHtml}
+                            </div>
+                            <div class="profile-skill-add">
+                                <input type="text" id="new-dev-skill" class="profile-skill-input" placeholder="Bijv. TypeScript, Docker..."
+                                    onkeypress="if(event.key==='Enter') addDevSkill('${devId}')">
+                                <button class="btn-blue" style="height:2.25rem;padding:0 1rem;font-size:0.8125rem;white-space:nowrap"
+                                    onclick="addDevSkill('${devId}')">
+                                    + Toevoegen
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- CV card -->
+                    <div class="profile-card">
+                        <div class="profile-card-header">
+                            <div class="profile-card-title">
+                                <i data-lucide="file-text" style="width:13px;height:13px;color:#34d399"></i>
+                                CV Beheer
+                            </div>
+                            <button class="btn-outline" style="height:1.75rem;padding:0 0.75rem;font-size:0.6875rem" onclick="navigateTo('dev-documents')">
+                                Naar Documents →
+                            </button>
+                        </div>
+                        <div class="profile-card-body">
+                            ${cvSectionHtml}
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- RIGHT column -->
+                <div style="display:flex;flex-direction:column;gap:1.25rem">
+
+                    <!-- Actieve Projecten -->
+                    <div class="profile-card" style="${isOverAllocated ? 'border-color:rgba(239,68,68,0.3)' : ''}">
+                        <div class="profile-card-header">
+                            <div class="profile-card-title">
+                                <i data-lucide="briefcase" style="width:13px;height:13px;color:#60a5fa"></i>
+                                Actieve Projecten
+                            </div>
+                            ${isOverAllocated ? `<span style="font-size:0.625rem;font-weight:700;color:#f87171;text-transform:uppercase;letter-spacing:0.05em">${allocatedHours}u / ${capacity}u</span>` : `<span style="font-size:0.6875rem;color:var(--white-30)">${allocatedHours}u / ${capacity}u</span>`}
+                        </div>
+                        <div class="profile-card-body">
+                            ${projectListHtml}
+                        </div>
+                    </div>
+
+                    <!-- Capaciteitsoverzicht -->
+                    <div class="profile-card">
+                        <div class="profile-card-header">
+                            <div class="profile-card-title">
+                                <i data-lucide="bar-chart-2" style="width:13px;height:13px;color:#fbbf24"></i>
+                                Capaciteitsoverzicht
+                            </div>
+                        </div>
+                        <div class="profile-card-body">
+                            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.625rem">
+                                <span style="font-size:0.75rem;color:var(--white-50)">Ingepland</span>
+                                <span style="font-size:0.875rem;font-weight:700;color:${isOverAllocated ? '#f87171' : 'var(--white)'}">${allocatedHours}u / ${capacity}u</span>
+                            </div>
+                            <div style="height:6px;background:rgba(255,255,255,0.06);border-radius:9999px;overflow:hidden;margin-bottom:1rem">
+                                <div style="height:100%;width:${Math.min((allocatedHours/capacity)*100,100)}%;background:${isOverAllocated ? 'linear-gradient(90deg,#f87171,#ef4444)' : 'linear-gradient(90deg,#10b981,#34d399)'};border-radius:9999px;transition:width 0.5s ease"></div>
+                            </div>
+                            ${activeContracts.map(p => {
+                                const h = parseInt(p.uren_per_week || 0);
+                                const pct = Math.min((h/capacity)*100,100);
+                                return `
+                                <div style="margin-bottom:0.75rem">
+                                    <div style="display:flex;justify-content:space-between;margin-bottom:0.3rem">
+                                        <span style="font-size:0.6875rem;color:var(--white-60);font-weight:600">${p.projectnaam}</span>
+                                        <span style="font-size:0.6875rem;color:var(--white-40)">${h}u</span>
+                                    </div>
+                                    <div style="height:4px;background:rgba(255,255,255,0.05);border-radius:9999px;overflow:hidden">
+                                        <div style="height:100%;width:${pct}%;background:#3b82f6;border-radius:9999px"></div>
+                                    </div>
+                                </div>`;
+                            }).join('')}
+                            <div style="margin-top:0.75rem;padding-top:0.75rem;border-top:1px solid #161616;display:flex;justify-content:space-between;align-items:center">
+                                <span style="font-size:0.6875rem;color:var(--white-30)">Resterend</span>
+                                <span style="font-size:0.875rem;font-weight:700;color:${capacity - allocatedHours < 0 ? '#f87171' : '#34d399'}">${capacity - allocatedHours}u/wk</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Support -->
+                    <div class="profile-card" style="cursor:pointer;transition:border-color 0.2s"
+                         onmouseover="this.style.borderColor='rgba(99,102,241,0.3)'"
+                         onmouseout="this.style.borderColor='#1a1a1a'"
+                         onclick="showToast('Neem contact op met admin@reemo.io voor ondersteuning.')">
+                        <div class="profile-card-body" style="display:flex;align-items:center;gap:1rem">
+                            <div style="width:2.5rem;height:2.5rem;border-radius:0.75rem;background:rgba(99,102,241,0.08);border:1px solid rgba(99,102,241,0.2);display:flex;align-items:center;justify-content:center;color:#818cf8;flex-shrink:0">
+                                <i data-lucide="headphones" style="width:16px;height:16px"></i>
+                            </div>
+                            <div>
+                                <div style="font-weight:700;font-size:0.875rem;color:var(--white)">Hulp nodig?</div>
+                                <div style="font-size:0.6875rem;color:var(--white-40);margin-top:0.15rem">Contacteer de administratie</div>
+                            </div>
+                            <i data-lucide="chevron-right" style="width:14px;height:14px;color:var(--white-20);margin-left:auto"></i>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    `;
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+}
+
+// Profile page availability toggle (mirrors dashboard dropdown)
+function toggleProfileStatusDropdown(e) {
+    e.stopPropagation();
+    const dd = document.getElementById('profile-status-dropdown');
+    if (!dd) return;
+    const isOpen = dd.style.display === 'block';
+    dd.style.display = isOpen ? 'none' : 'block';
+    if (!isOpen) {
+        const close = () => { dd.style.display = 'none'; document.removeEventListener('click', close); };
+        setTimeout(() => document.addEventListener('click', close), 10);
+    }
+}
+
+function updateProfileStatusBadge(status) {
+    const cfg = _beschikbaarheidConfig[status] || _beschikbaarheidConfig['beschikbaar'];
+    const btn = document.getElementById('profile-status-btn');
+    const dot = document.getElementById('profile-status-dot');
+    const label = document.getElementById('profile-status-label');
+    if (btn) {
+        btn.style.color = cfg.color;
+        btn.style.borderColor = cfg.border;
+        btn.style.background = cfg.bg;
+    }
+    if (dot) { dot.style.background = cfg.color; dot.style.boxShadow = `0 0 5px ${cfg.color}`; }
+    if (label) label.textContent = cfg.label;
+    // Also sync the dashboard badge if visible
+    updateDevStatusBadge(status);
+}
+
 
 // --- Renderers ---
 
-function renderDashboardStats() {
+async function renderDashboardStats() {
     const statsContainer = document.getElementById('dashboard-stats');
     if (!statsContainer) return;
+
+    // Fetch new dashboard data
+    const [cashflowRes, perKlantRes] = await Promise.all([
+        apiFetchSafe('/api/dashboard/cashflow'),
+        apiFetchSafe('/api/dashboard/per-klant')
+    ]);
+    const cashflowRaw = cashflowRes || {};
+    // Nieuwe API geeft mtd + totaal terug, met legacy flat fields als fallback
+    const cashflow = cashflowRaw.mtd || {
+        verwacht:     cashflowRaw.verwacht     || 0,
+        geleverd:     cashflowRaw.geleverd     || 0,
+        gefactureerd: cashflowRaw.gefactureerd || 0,
+        ontvangen:    cashflowRaw.ontvangen    || 0,
+        maand:        new Date().toLocaleDateString('nl-NL', { month: 'long', year: 'numeric' })
+    };
+    const cashflowTotaal = cashflowRaw.totaal || { ooit_gefactureerd: 0, ooit_ontvangen: 0, openstaand: 0 };
+    const realisatie_percentage = cashflowRaw.realisatie_percentage || 0;
+    const perKlant = perKlantRes || [];
+
+    // Dashboard KPI Cards
+    const activeClients = clients.length || 0;
     
-    const totalHours = timesheets.reduce((s,t) => s + (parseFloat(t.hoursWorked)||0), 0);
-    const openInvoices = invoices.filter(i => (i.status||'').toLowerCase() === 'open').length;
-    
+    // Calculate bezetting (total assignedHours / total weekcapaciteit * 100)
+    let totalCap = 0, totalAssigned = 0;
+    developers.forEach(d => {
+        totalCap += (d.weekcapaciteit || 40);
+        totalAssigned += (d.assignedHours || 0);
+    });
+    const bezettingPct = totalCap > 0 ? ((totalAssigned / totalCap) * 100).toFixed(1) : 0;
+
     const stats = [
-        {
-            label: 'Active Clients',
-            value: clients.length || 0,
-            icon: 'users',
-            accent: '#3b82f6',
-            bg: 'rgba(37,99,235,0.08)',
-            border: 'rgba(37,99,235,0.18)',
-            glow: 'rgba(59,130,246,0.15)',
-            trend: '+2 this month',
-            trendUp: true,
-        },
-        {
-            label: 'Developers',
-            value: developers.length || 0,
-            icon: 'code-2',
-            accent: '#10b981',
-            bg: 'rgba(16,185,129,0.08)',
-            border: 'rgba(16,185,129,0.18)',
-            glow: 'rgba(16,185,129,0.15)',
-            trend: 'Active roster',
-            trendUp: true,
-        },
-        {
-            label: 'Hours Registered',
-            value: totalHours + 'h',
-            icon: 'clock',
-            accent: '#f59e0b',
-            bg: 'rgba(245,158,11,0.08)',
-            border: 'rgba(245,158,11,0.18)',
-            glow: 'rgba(245,158,11,0.15)',
-            trend: 'This period',
-            trendUp: true,
-        },
-        {
-            label: 'Open Invoices',
-            value: openInvoices,
-            icon: 'file-text',
-            accent: openInvoices > 0 ? '#f43f5e' : '#10b981',
-            bg: openInvoices > 0 ? 'rgba(244,63,94,0.08)' : 'rgba(16,185,129,0.08)',
-            border: openInvoices > 0 ? 'rgba(244,63,94,0.18)' : 'rgba(16,185,129,0.18)',
-            glow: openInvoices > 0 ? 'rgba(244,63,94,0.12)' : 'rgba(16,185,129,0.12)',
-            trend: openInvoices > 0 ? 'Requires action' : 'All settled',
-            trendUp: openInvoices === 0,
-        },
+        { label: 'Actieve Klanten', value: activeClients, icon: 'users', accent: '#3b82f6', bg: 'rgba(37,99,235,0.08)', border: 'rgba(37,99,235,0.18)', glow: 'rgba(59,130,246,0.15)', trend: '+2 vs. vorige maand', trendUp: true },
+        { label: 'Bezetting', value: bezettingPct + '%', icon: 'briefcase', accent: '#10b981', bg: 'rgba(16,185,129,0.08)', border: 'rgba(16,185,129,0.18)', glow: 'rgba(16,185,129,0.15)', trend: `${totalAssigned} / ${totalCap}u`, trendUp: true },
+        { label: 'Omzet MTD', value: '€' + (cashflow.geleverd / 1000).toFixed(1) + 'k', icon: 'trending-up', accent: '#f59e0b', bg: 'rgba(245,158,11,0.08)', border: 'rgba(245,158,11,0.18)', glow: 'rgba(245,158,11,0.15)', trend: '+8.4% vs. vorige maand', trendUp: true },
+        { label: 'Realisatie', value: realisatie_percentage + '%', icon: 'pie-chart', accent: '#6366f1', bg: 'rgba(99,102,241,0.08)', border: 'rgba(99,102,241,0.18)', glow: 'rgba(99,102,241,0.15)', trend: 'geleverd / verwacht', trendUp: realisatie_percentage >= 80, isRealisatie: true }
     ];
-    
+
     statsContainer.innerHTML = stats.map((s, i) => `
-        <div style="
-            position:relative;overflow:hidden;padding:1.25rem 1.375rem;
-            background:#0d0d0d;border:1px solid ${s.border};
-            border-radius:0.875rem;cursor:default;
-            transition:transform 0.2s, box-shadow 0.2s;
-            box-shadow:0 0 0 1px rgba(255,255,255,0.03), 0 4px 24px ${s.glow};
-            animation:fadeIn 0.4s ease-out ${i * 0.08}s both
-        " onmouseenter="this.style.transform='translateY(-2px)';this.style.boxShadow='0 0 0 1px rgba(255,255,255,0.06),0 8px 32px ${s.glow}'"
-           onmouseleave="this.style.transform='';this.style.boxShadow='0 0 0 1px rgba(255,255,255,0.03),0 4px 24px ${s.glow}'">
-            <!-- Background glow blob -->
+        <div style="position:relative;overflow:hidden;padding:1.25rem 1.375rem;background:${s.isRealisatie ? 'linear-gradient(135deg, rgba(37,99,235,0.1), rgba(99,102,241,0.2))' : '#0d0d0d'};border:1px solid ${s.border};border-radius:0.875rem;cursor:default;transition:transform 0.2s, box-shadow 0.2s;box-shadow:0 0 0 1px rgba(255,255,255,0.03), 0 4px 24px ${s.glow};animation:fadeIn 0.4s ease-out ${i * 0.08}s both"
+             onmouseenter="this.style.transform='translateY(-2px)';this.style.boxShadow='0 0 0 1px rgba(255,255,255,0.06),0 8px 32px ${s.glow}'"
+             onmouseleave="this.style.transform='';this.style.boxShadow='0 0 0 1px rgba(255,255,255,0.03),0 4px 24px ${s.glow}'">
             <div style="position:absolute;top:-30px;right:-20px;width:100px;height:100px;border-radius:50%;background:radial-gradient(circle,${s.glow} 0%,transparent 70%);pointer-events:none"></div>
-            
             <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:1rem">
                 <div style="width:2.5rem;height:2.5rem;border-radius:0.75rem;background:${s.bg};border:1px solid ${s.border};display:flex;align-items:center;justify-content:center;flex-shrink:0">
                     <i data-lucide="${s.icon}" style="width:16px;height:16px;color:${s.accent}"></i>
                 </div>
-                <span style="font-size:0.5625rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:#34d399;background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.2);border-radius:0.375rem;padding:0.2rem 0.5rem;white-space:nowrap">LIVE</span>
             </div>
-            
             <div style="margin-bottom:0.375rem">
                 <div style="font-size:1.875rem;font-weight:900;color:var(--white);letter-spacing:-0.02em;line-height:1">${s.value}</div>
             </div>
             <div style="font-size:0.75rem;font-weight:600;color:var(--white-50);margin-bottom:0.625rem">${s.label}</div>
-            
             <div style="display:flex;align-items:center;gap:0.3rem">
                 <i data-lucide="${s.trendUp ? 'trending-up' : 'alert-circle'}" style="width:11px;height:11px;color:${s.trendUp ? '#34d399' : '#f59e0b'}"></i>
                 <span style="font-size:0.625rem;color:${s.trendUp ? '#34d399' : '#f59e0b'};font-weight:600">${s.trend}</span>
             </div>
-            
-            <!-- Bottom accent line -->
-            <div style="position:absolute;bottom:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,${s.accent},transparent);opacity:0.5"></div>
         </div>
     `).join('');
+
+    // Cashflow Funnel Render
+    const funnelContainer = document.getElementById('dashboard-cashflow-funnel');
+    if (funnelContainer) {
+        const fmtEuro = v => '€' + Number(v||0).toLocaleString('nl-NL', { maximumFractionDigits: 0 });
+        const maandLabel = cashflow.maand || new Date().toLocaleDateString('nl-NL', { month: 'long', year: 'numeric' });
+
+        const verwacht     = cashflow.verwacht     || 0;
+        const geleverd     = cashflow.geleverd     || 0;
+        const gefactureerd = cashflow.gefactureerd || 0;
+        const ontvangen    = cashflow.ontvangen    || 0;
+        const maxVal       = Math.max(verwacht, 1);
+
+        const steps = [
+            { label: 'Verwacht',     value: verwacht,     color: '#94a3b8', bg: 'rgba(148,163,184,0.07)', border: 'rgba(148,163,184,0.2)', sub: 'Op basis van contracten' },
+            { label: 'Geleverd',     value: geleverd,     color: '#60a5fa', bg: 'rgba(96,165,250,0.07)',  border: 'rgba(96,165,250,0.2)',  sub: 'Goedgekeurde uren' },
+            { label: 'Gefactureerd', value: gefactureerd, color: '#a78bfa', bg: 'rgba(167,139,250,0.07)', border: 'rgba(167,139,250,0.2)', sub: 'Facturen verstuurd' },
+            { label: 'Ontvangen',    value: ontvangen,    color: '#34d399', bg: 'rgba(52,211,153,0.07)',  border: 'rgba(52,211,153,0.2)',  sub: 'Ontvangen op bank' },
+        ];
+
+        const arrow = '<div style="display:flex;align-items:center;flex-shrink:0;padding:0 0.25rem"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.18)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></div>';
+
+        const cardsHtml = steps.map((s, i) => {
+            const pct     = Math.round(Math.min((s.value / maxVal) * 100, 100));
+            const loss    = i === 0 ? 0 : Math.max(0, steps[i-1].value - s.value);
+            const hasLoss = loss > 0;
+            const statusTxt = i === 0
+                ? `<span style="color:rgba(255,255,255,0.25)">Startpunt</span>`
+                : (hasLoss
+                    ? `<span style="color:#f59e0b">&#8722;&thinsp;${fmtEuro(loss)}</span>`
+                    : `<span style="color:#34d399">&#10003;&nbsp;Geen verlies</span>`);
+
+            return `<div style="flex:1;min-width:0;background:${s.bg};border:1px solid ${s.border};border-radius:0.875rem;padding:1.125rem 1rem;display:flex;flex-direction:column">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.625rem">
+                    <span style="font-size:0.5625rem;font-weight:800;text-transform:uppercase;letter-spacing:0.1em;color:${s.color}">${s.label}</span>
+                    <span style="font-size:0.5rem;font-weight:600;color:rgba(255,255,255,0.2);background:rgba(255,255,255,0.05);padding:1px 6px;border-radius:99px">${i+1}/4</span>
+                </div>
+                <div style="font-size:1.375rem;font-weight:800;color:#fff;letter-spacing:-0.02em;line-height:1">${fmtEuro(s.value)}</div>
+                <div style="font-size:0.6875rem;color:rgba(255,255,255,0.4);margin-top:0.3rem">${s.sub}</div>
+                <div style="font-size:0.6875rem;font-weight:600;margin-top:0.25rem">${statusTxt}</div>
+                <div style="margin-top:auto;padding-top:0.75rem">
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.3rem">
+                        <span style="font-size:0.5625rem;color:rgba(255,255,255,0.3)">van verwacht</span>
+                        <span style="font-size:0.6875rem;font-weight:800;color:${s.color}">${pct}%</span>
+                    </div>
+                    <div style="height:3px;background:rgba(255,255,255,0.07);border-radius:3px;overflow:hidden">
+                        <div style="height:100%;width:${pct}%;background:${s.color};border-radius:3px"></div>
+                    </div>
+                </div>
+            </div>`;
+        });
+
+        const chevron = `<div style="display:flex;align-items:center;flex-shrink:0;padding:0 0.25rem"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.18)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></div>`;
+
+        funnelContainer.innerHTML = `
+            <div style="display:flex;align-items:stretch;gap:0.75rem;width:100%">
+                ${cardsHtml[0]}${chevron}${cardsHtml[1]}${chevron}${cardsHtml[2]}${chevron}${cardsHtml[3]}
+            </div>
+            <div style="margin-top:0.75rem;padding-top:0.625rem;border-top:1px solid rgba(255,255,255,0.05);display:flex;align-items:center;gap:0.375rem">
+                <i data-lucide="calendar" style="width:10px;height:10px;color:rgba(255,255,255,0.25)"></i>
+                <span style="font-size:0.5625rem;font-weight:600;color:rgba(255,255,255,0.3);text-transform:uppercase;letter-spacing:0.08em">MTD &mdash; ${maandLabel}</span>
+            </div>
+        `;
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+    }
+
+
+    // Per-klant Table Render
+    const perKlantBody = document.getElementById('dashboard-per-klant-body');
+    if (perKlantBody) {
+        const fmtEuro = v => '€' + Number(v||0).toLocaleString('nl-NL', { maximumFractionDigits: 0 });
+        perKlantBody.innerHTML = perKlant.map(k => {
+            const pct = k.realisatie_percentage || 0;
+            let barColor = '#34d399';
+            if (pct < 80) barColor = '#f59e0b';
+            else if (pct < 95) barColor = '#60a5fa';
+
+            return `
+            <tr>
+                <td style="padding:0.75rem 1.25rem;font-size:0.875rem;font-weight:700;color:var(--white);border-bottom:1px solid #1a1a1a">${k.klant}</td>
+                <td style="padding:0.75rem 1.25rem;font-size:0.8125rem;color:var(--white);text-align:right;border-bottom:1px solid #1a1a1a">${fmtEuro(k.verwacht)}</td>
+                <td style="padding:0.75rem 1.25rem;font-size:0.8125rem;color:#60a5fa;font-weight:600;text-align:right;border-bottom:1px solid #1a1a1a">${fmtEuro(k.geleverd)}</td>
+                <td style="padding:0.75rem 1.25rem;font-size:0.8125rem;color:var(--white);text-align:right;border-bottom:1px solid #1a1a1a">${fmtEuro(k.gefactureerd)}</td>
+                <td style="padding:0.75rem 1.25rem;text-align:right;border-bottom:1px solid #1a1a1a">
+                    <div style="display:flex;align-items:center;justify-content:flex-end;gap:0.5rem">
+                        <span style="font-size:0.8125rem;font-weight:700;color:var(--white)">${pct}%</span>
+                        <div style="width:40px;height:4px;background:var(--white-10);border-radius:2px;overflow:hidden">
+                            <div style="height:100%;width:${Math.min(pct, 100)}%;background:${barColor}"></div>
+                        </div>
+                    </div>
+                </td>
+            </tr>`;
+        }).join('');
+    }
+
+    // Aging Analysis Render
+    const agingBody = document.getElementById('dashboard-aging-body');
+    if (agingBody) {
+        let notDue = 0, d1_30 = 0, d30_plus = 0;
+        let mostCriticalClient = null, mostCriticalAmount = 0;
+
+        const now = new Date();
+        invoices.forEach(inv => {
+            if ((inv.status || '').toLowerCase() === 'open' || (inv.status || '').toLowerCase() === 'overdue' || (inv.status || '').toLowerCase() === 'te_laat') {
+                const dueDate = new Date(inv.dueDate || inv.vervaldatum || new Date(inv.date || inv.factuurdatum).getTime() + 14 * 86400000);
+                const diffTime = now - dueDate;
+                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                const amount = parseFloat(inv.amount || inv.totaalbedrag) || 0;
+                
+                if (diffDays <= 0) notDue += amount;
+                else if (diffDays <= 30) d1_30 += amount;
+                else {
+                    d30_plus += amount;
+                    if (amount > mostCriticalAmount) {
+                        mostCriticalAmount = amount;
+                        mostCriticalClient = (inv.klant_naam || inv.clientName || 'Onbekend');
+                    }
+                }
+            }
+        });
+
+        const totalOpen = notDue + d1_30 + d30_plus;
+        const fmtEuro = v => '€' + (v/1000).toFixed(1) + 'k';
+        const calcPct = v => totalOpen > 0 ? (v / totalOpen) * 100 : 0;
+
+        agingBody.innerHTML = `
+            <div style="display:flex;flex-direction:column;gap:0.875rem">
+                <div>
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.25rem">
+                        <div style="display:flex;align-items:center;gap:0.35rem">
+                            <div style="width:6px;height:6px;border-radius:50%;background:#3b82f6"></div>
+                            <span style="font-size:0.75rem;color:var(--white)">Niet vervallen</span>
+                        </div>
+                        <span style="font-size:0.8125rem;font-weight:700;color:var(--white)">${fmtEuro(notDue)}</span>
+                    </div>
+                    <div style="width:100%;height:4px;background:var(--white-10);border-radius:2px;overflow:hidden">
+                        <div style="height:100%;width:${calcPct(notDue)}%;background:#3b82f6"></div>
+                    </div>
+                </div>
+                <div>
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.25rem">
+                        <div style="display:flex;align-items:center;gap:0.35rem">
+                            <div style="width:6px;height:6px;border-radius:50%;background:#f59e0b"></div>
+                            <span style="font-size:0.75rem;color:var(--white)">1 - 30 dagen over tijd</span>
+                        </div>
+                        <span style="font-size:0.8125rem;font-weight:700;color:var(--white)">${fmtEuro(d1_30)}</span>
+                    </div>
+                    <div style="width:100%;height:4px;background:var(--white-10);border-radius:2px;overflow:hidden">
+                        <div style="height:100%;width:${calcPct(d1_30)}%;background:#f59e0b"></div>
+                    </div>
+                </div>
+                <div>
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.25rem">
+                        <div style="display:flex;align-items:center;gap:0.35rem">
+                            <div style="width:6px;height:6px;border-radius:50%;background:#f43f5e"></div>
+                            <span style="font-size:0.75rem;color:var(--white)">30+ dagen over tijd</span>
+                        </div>
+                        <span style="font-size:0.8125rem;font-weight:700;color:var(--white)">${fmtEuro(d30_plus)}</span>
+                    </div>
+                    <div style="width:100%;height:4px;background:var(--white-10);border-radius:2px;overflow:hidden">
+                        <div style="height:100%;width:${calcPct(d30_plus)}%;background:#f43f5e"></div>
+                    </div>
+                </div>
+            </div>
+            ${d30_plus > 0 ? `
+            <div style="margin-top:1.25rem;background:rgba(244,63,94,0.08);border:1px solid rgba(244,63,94,0.2);padding:0.75rem;border-radius:0.5rem;display:flex;align-items:center;gap:0.5rem">
+                <i data-lucide="alert-circle" style="width:16px;height:16px;color:#f43f5e;flex-shrink:0"></i>
+                <span style="font-size:0.75rem;color:var(--white-80)">${mostCriticalClient} heeft ${fmtEuro(mostCriticalAmount)} &gt; 30 dagen open staan.</span>
+            </div>` : ''}
+        `;
+
+    }
+
+    // Update Bezetting Circular Progress Ring
+    const circle = document.getElementById('bezetting-progress-circle');
+    const pctText = document.getElementById('bezetting-circle-pct');
+    const hoursText = document.getElementById('bezetting-circle-hours');
+    const headcountText = document.getElementById('bezetting-headcount');
+
+    if (circle) {
+        const radius = parseFloat(circle.getAttribute('r')) || 40;
+        const circumference = 2 * Math.PI * radius;
+        const pct = Math.min(100, Math.max(0, parseFloat(bezettingPct) || 0));
+        const offset = circumference - (pct / 100) * circumference;
+        circle.style.strokeDasharray = circumference;
+        circle.style.strokeDashoffset = offset;
+    }
+    if (pctText) pctText.textContent = Math.round(parseFloat(bezettingPct) || 0) + '%';
+    if (hoursText) hoursText.textContent = `${totalAssigned} / ${totalCap}u`;
+    if (headcountText) {
+        const assignedDevs = developers.filter(d => (d.assignedHours || 0) > 0).length;
+        headcountText.textContent = `${assignedDevs} / ${developers.length}`;
+    }
+
     if (typeof lucide !== 'undefined') lucide.createIcons();
 }
 
@@ -601,13 +1746,36 @@ var _editingClientId = null;  // tracks which client is being edited
 // ── Render client cards ────────────────────────────────────────────────────────
 let activeClientSectorFilter = '';
 
+function filterClientsGrid(searchText, statusFilter) {
+    renderClientsGrid();
+}
+
 function renderClientsGrid() {
     const grid = document.getElementById('clients-grid');
     if (!grid) return;
 
+    const searchInput = document.getElementById('client-search');
+    const statusSelect = document.getElementById('client-status-filter');
+    const searchText = searchInput ? searchInput.value.trim().toLowerCase() : '';
+    const statusFilter = statusSelect ? statusSelect.value.trim().toLowerCase() : '';
+
     let displayClients = clients;
     if (activeClientSectorFilter) {
-        displayClients = clients.filter(c => (c.sector || '').toLowerCase() === activeClientSectorFilter.toLowerCase());
+        displayClients = displayClients.filter(c => (c.sector || '').toLowerCase() === activeClientSectorFilter.toLowerCase());
+    }
+
+    if (searchText) {
+        displayClients = displayClients.filter(c => 
+            (c.naam || c.name || '').toLowerCase().includes(searchText) ||
+            (c.contactpersoon || c.contactPerson || '').toLowerCase().includes(searchText) ||
+            (c.email || '').toLowerCase().includes(searchText)
+        );
+    }
+
+    if (statusFilter) {
+        displayClients = displayClients.filter(c => 
+            (c.invoiceStatus || '').toLowerCase() === statusFilter
+        );
     }
 
     // Populate sector dropdown if it exists
@@ -640,9 +1808,20 @@ function renderClientsGrid() {
         const contact  = c.contactpersoon || c.contactPerson || '—';
         const id       = c.klant_id  || c.id;
         return `
-        <div class="client-card" style="animation:fadeIn 0.25s ease-out ${i*0.06}s both" onclick="openClientDetails('${id}')">
+        <div class="client-card" id="client-card-${id}" style="animation:fadeIn 0.25s ease-out ${i*0.06}s both" onclick="openClientDetails('${id}')">
             <div class="client-card-actions">
                 <span class="status-badge status-approved" style="font-size:0.5rem">${sector}</span>
+                <button onclick="event.stopPropagation(); openContractenModal('${id}', '${(c.naam||c.name||'').replace(/'/g,"\\'")}')" 
+                         title="Bekijk contracten" class="btn-contract">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:block">
+                    <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                    <path d="M14 3v4a1 1 0 0 0 1 1h4"/>
+                    <path d="M17 21h-10a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2h7l5 5v11a2 2 0 0 1 -2 2z"/>
+                    <line x1="9" y1="9" x2="10" y2="9"/>
+                    <line x1="9" y1="13" x2="15" y2="13"/>
+                    <line x1="9" y1="17" x2="15" y2="17"/>
+                  </svg>
+                </button>
                 <button class="client-card-btn" title="Bewerken" onclick="event.stopPropagation();openEditClientModal('${id}')">
                     <i data-lucide="pencil" style="width:12px;height:12px"></i>
                 </button>
@@ -651,7 +1830,17 @@ function renderClientsGrid() {
                 </button>
             </div>
             <div class="client-card-header">
-                <div class="client-logo"><span class="logo-initials">${initials}</span></div>
+                <div class="client-logo-container" style="position:relative;">
+                    <div class="client-avatar" onclick="event.stopPropagation(); uploadClientLogo('${id}')" title="Upload logo">
+                      ${c.logo_url
+                        ? `<img src="${c.logo_url}" alt="${c.naam || c.name}" style="width:100%; height:100%; object-fit:cover;" />`
+                        : `<span>${initials}</span>`
+                      }
+                      <div class="avatar-overlay">
+                        <i class="ti ti-camera"></i>
+                      </div>
+                    </div>
+                </div>
                 <div style="min-width:0;flex:1">
                     <div class="client-card-name">${c.naam || c.name}</div>
                     <div class="client-card-meta">${sector} • ${contact}</div>
@@ -660,11 +1849,19 @@ function renderClientsGrid() {
             <div class="client-stat-grid">
                 <div class="client-stat-box">
                     <div class="client-stat-label"><i data-lucide="mail" style="width:10px;height:10px;color:#60a5fa"></i> E-mail</div>
-                    <div class="client-stat-value" style="font-size:0.6875rem;font-weight:600">${c.email || '—'}</div>
+                    <div class="client-stat-value" style="font-size:0.6875rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${c.email || '—'}">${c.email || '—'}</div>
                 </div>
                 <div class="client-stat-box">
                     <div class="client-stat-label"><i data-lucide="phone" style="width:10px;height:10px;color:#34d399"></i> Telefoon</div>
                     <div class="client-stat-value" style="font-size:0.6875rem;font-weight:600">${c.telefoonnummer || '—'}</div>
+                </div>
+                <div class="client-stat-box">
+                    <div class="client-stat-label"><i data-lucide="folder" style="width:10px;height:10px;color:#fbbf24"></i> Projecten</div>
+                    <div class="client-stat-value" style="font-size:0.75rem;font-weight:700;color:var(--white)">${c.project_count || 0} actief</div>
+                </div>
+                <div class="client-stat-box">
+                    <div class="client-stat-label"><i data-lucide="users" style="width:10px;height:10px;color:#a78bfa"></i> Developers</div>
+                    <div class="client-stat-value" style="font-size:0.75rem;font-weight:700;color:var(--white)">${c.developer_count || 0} actief</div>
                 </div>
             </div>
         </div>`;
@@ -797,7 +1994,20 @@ async function openClientDetails(id) {
 }
 
 function _renderClientHero(k, devs, uren, facturen) {
-    document.getElementById('detail-client-logo').textContent = getInitials(k.naam);
+    const initials = getInitials(k.naam);
+    const logoEl = document.getElementById('detail-client-logo');
+    if (logoEl) {
+        logoEl.innerHTML = `
+            ${k.logo_url
+                ? `<img src="${k.logo_url}" alt="${k.naam}" style="width:100%; height:100%; object-fit:cover;" />`
+                : `<span>${initials}</span>`
+            }
+            <div class="avatar-overlay">
+                <i class="ti ti-camera"></i>
+            </div>
+        `;
+        logoEl.className = `client-detail-logo client-avatar ${k.logo_url ? 'has-image' : ''}`;
+    }
     document.getElementById('detail-client-name').textContent = k.naam;
     document.getElementById('detail-client-industry').textContent =
         `${k.sector || '—'} • Contactpersoon: ${k.contactpersoon || '—'}`;
@@ -875,7 +2085,7 @@ function _renderClientDetailContent(k, projecten, devs, uren, facturen) {
       : projecten.map(p => `<div style="display:flex;justify-content:space-between;align-items:center;padding:0.6rem 0;border-bottom:1px solid rgba(255,255,255,0.05)">
           <div>
             <div style="font-weight:700;font-size:0.8125rem;color:var(--white)">${p.projectnaam}</div>
-            <div style="font-size:0.6875rem;color:var(--white-40)">${p.type||'—'} • ${(p.startdatum||'').slice(0,10)||'—'} → ${(p.einddatum||'').slice(0,10)||'—'}</div>
+            <div style="font-size:0.6875rem;color:var(--white-40)">${p.type||'—'} • ${p.developer_count || 0} dev(s) • ${formatDateString(p.startdatum)} → ${formatDateString(p.einddatum)}</div>
           </div>
           <span style="font-size:0.5625rem;font-weight:700;text-transform:uppercase;padding:0.2rem 0.5rem;border-radius:0.375rem;background:rgba(16,185,129,0.08);color:${stC(p.status)};border:1px solid rgba(16,185,129,0.2)">${p.status||'Actief'}</span>
         </div>`).join('');
@@ -916,8 +2126,8 @@ function _renderClientDetailContent(k, projecten, devs, uren, facturen) {
       ? '<div style="color:var(--white-30);font-size:0.8125rem;padding:1rem 0">Nog geen facturen gevonden.</div>'
       : facturen.map(f => `<div style="display:flex;justify-content:space-between;align-items:center;padding:0.6rem 0;border-bottom:1px solid rgba(255,255,255,0.05)">
           <div>
-            <div style="font-weight:700;font-size:0.8125rem;color:var(--white)">${(f.factuurdatum||'').slice(0,10)||'—'}</div>
-            <div style="font-size:0.6875rem;color:var(--white-40)">Vervalt: ${(f.vervaldatum||'').slice(0,10)||'—'}</div>
+            <div style="font-weight:700;font-size:0.8125rem;color:var(--white)">${formatDateString(f.factuurdatum)}</div>
+            <div style="font-size:0.6875rem;color:var(--white-40)">Vervalt: ${formatDateString(f.vervaldatum)}</div>
           </div>
           <div style="display:flex;align-items:center;gap:0.625rem">
             <div style="font-weight:700;font-family:monospace;color:var(--white)">€${parseFloat(f.totaalbedrag||0).toLocaleString('nl-NL')}</div>
@@ -1087,7 +2297,8 @@ function renderDeveloperDetailView(dev, projecten, uren, cv) {
     if (!d) return;
 
     const uurtarief = parseFloat(dev.uurtarief) || 0;
-    const isMale = !['Aisha','Elena','Nadia','Sarah'].includes(dev.naam.split(' ')[0]);
+    const name = dev.naam || dev.name || 'Developer';
+    const isMale = !['Aisha','Elena','Nadia','Sarah'].includes(name.split(' ')[0]);
     const genderColor = isMale ? '#60a5fa' : '#f472b6'; // Blue or Pink theme based on initial setup
 
     // Calculate totals from uren
@@ -1099,37 +2310,169 @@ function renderDeveloperDetailView(dev, projecten, uren, cv) {
       <div style="display:flex;align-items:center;justify-content:space-between;padding:1rem 0;border-bottom:1px solid rgba(255,255,255,0.05)">
           <div>
               <div style="font-weight:700;color:var(--white);font-size:0.875rem">${u.projectnaam}</div>
-              <div style="font-size:0.75rem;color:var(--white-40);margin-top:0.25rem">${u.klant_naam} • ${u.beschrijving}</div>
+              <div style="font-size:0.75rem;color:var(--white-40);margin-top:0.25rem">${u.klant_naam || 'Onbekende Klant'}${u.omschrijving ? ` • ${u.omschrijving}` : ''}</div>
           </div>
           <div style="text-align:right">
               <div style="font-family:monospace;color:var(--white);font-weight:700">${parseFloat(u.aantal_uren)}h</div>
-              <div style="font-size:0.75rem;color:var(--white-40);margin-top:0.25rem">${u.datum.slice(0,10)}</div>
+              <div style="font-size:0.75rem;color:var(--white-40);margin-top:0.25rem">${formatDateString(u.datum)}</div>
           </div>
       </div>
     `).join('') || '<div style="color:var(--white-40);font-size:0.875rem;padding:1rem 0">Geen urenregistraties gevonden.</div>';
 
+    // Calculate allocations & capacity breakdown
+    const activeContracts = projecten || [];
+    const totalCapacity = parseInt(dev.weekcapaciteit) || 40;
+    const allocatedHours = activeContracts.reduce((sum, c) => sum + parseInt(c.uren_per_week || 0), 0);
+    const availableHours = Math.max(0, totalCapacity - allocatedHours);
+    const isOverAllocated = allocatedHours > totalCapacity;
+    const colPalette = [
+        { bg: '#3b82f6', glow: '#3b82f640', light: 'rgba(59,130,246,0.10)', border: '#3b82f620' },
+        { bg: '#10b981', glow: '#10b98140', light: 'rgba(16,185,129,0.10)', border: '#10b98120' },
+        { bg: '#f59e0b', glow: '#f59e0b40', light: 'rgba(245,158,11,0.10)', border: '#f59e0b20' },
+        { bg: '#ec4899', glow: '#ec489940', light: 'rgba(236,72,153,0.10)', border: '#ec489920' },
+        { bg: '#8b5cf6', glow: '#8b5cf640', light: 'rgba(139,92,246,0.10)', border: '#8b5cf620' },
+    ];
+
+    // Segmented bar
+    let barHtml = activeContracts.length === 0
+        ? `<div style="width:100%;height:100%;background:rgba(255,255,255,0.04);border-radius:0.5rem;display:flex;align-items:center;justify-content:center"><span style="font-size:0.75rem;color:var(--white-30)">Geen allocaties</span></div>`
+        : activeContracts.map((c, i) => {
+            const col = colPalette[i % colPalette.length];
+            const hrs = parseInt(c.uren_per_week || 0);
+            const pct = Math.min((hrs / totalCapacity) * 100, 100);
+            return `<div style="width:${pct}%;height:100%;background:${col.bg};display:flex;align-items:center;justify-content:center;gap:0.3rem;padding:0 0.5rem;overflow:hidden;box-shadow:inset 0 0 10px rgba(0,0,0,0.2)" title="${c.projectnaam}: ${hrs}u/wk"><span style="font-size:0.6875rem;font-weight:800;color:rgba(255,255,255,0.95);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${c.projectnaam}</span><span style="font-size:0.625rem;color:rgba(255,255,255,0.7);white-space:nowrap">${Math.round(pct)}%</span></div>`;
+          }).join('') + (availableHours > 0 ? `<div style="width:${(availableHours/totalCapacity)*100}%;background:rgba(255,255,255,0.05);border-left:1px dashed rgba(255,255,255,0.12);height:100%;display:flex;align-items:center;justify-content:center"><span style="font-size:0.625rem;color:var(--white-20)">Vrij ${availableHours}u</span></div>` : '');
+
+    // Contract cards
+    let contractCardsHtml = activeContracts.length === 0
+        ? `<div style="grid-column:1/-1;padding:2rem;text-align:center;color:var(--white-30);font-size:0.875rem">Geen actieve contracten.</div>`
+        : activeContracts.map((c, i) => {
+            const col = colPalette[i % colPalette.length];
+            const hrs = parseInt(c.uren_per_week || 0);
+            const pct = Math.round(Math.min((hrs / totalCapacity) * 100, 100));
+            const start = c.startdatum ? new Date(c.startdatum).toLocaleDateString('nl-NL', { day: 'numeric', month: 'short', year: 'numeric' }) : '—';
+            const end   = c.einddatum  ? new Date(c.einddatum ).toLocaleDateString('nl-NL', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Doorlopend';
+            const weekly = (hrs * parseFloat(c.uurtarief || 0)).toFixed(0);
+            return `
+            <div style="position:relative;background:${col.light};border:1px solid ${col.border};border-radius:1rem;padding:1.25rem;overflow:hidden;transition:transform 0.15s" onmouseover="this.style.transform='translateY(-1px)'" onmouseout="this.style.transform='translateY(0)'">
+                <div style="position:absolute;left:0;top:0;bottom:0;width:3px;background:${col.bg};border-radius:1rem 0 0 1rem"></div>
+                <div style="padding-left:0.875rem">
+                    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:1rem">
+                        <div>
+                            <div style="font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:${col.bg};margin-bottom:0.25rem">Contract</div>
+                            <div style="font-size:1rem;font-weight:800;color:var(--white);margin-bottom:0.15rem">${c.projectnaam}</div>
+                            <div style="font-size:0.8125rem;color:var(--white-40)">${c.klant_naam}</div>
+                        </div>
+                        <div style="text-align:right">
+                            <div style="font-size:1.5rem;font-weight:800;color:${col.bg}">${hrs}u</div>
+                            <div style="font-size:0.7rem;color:var(--white-40)">per week &bull; ${pct}%</div>
+                        </div>
+                    </div>
+                    <div style="width:100%;height:5px;background:rgba(255,255,255,0.07);border-radius:3px;overflow:hidden;margin-bottom:1rem">
+                        <div style="height:100%;width:${pct}%;background:${col.bg};border-radius:3px;box-shadow:0 0 6px ${col.bg}60"></div>
+                    </div>
+                    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0.625rem">
+                        <div style="background:rgba(0,0,0,0.15);border-radius:0.625rem;padding:0.625rem">
+                            <div style="font-size:0.6rem;font-weight:700;text-transform:uppercase;color:var(--white-30);margin-bottom:0.2rem">Rol</div>
+                            <div style="font-size:0.75rem;font-weight:700;color:var(--white)">${c.rol_op_project || 'Developer'}</div>
+                        </div>
+                        <div style="background:rgba(0,0,0,0.15);border-radius:0.625rem;padding:0.625rem">
+                            <div style="font-size:0.6rem;font-weight:700;text-transform:uppercase;color:var(--white-30);margin-bottom:0.2rem">Tarief</div>
+                            <div style="font-size:0.75rem;font-weight:700;color:#34d399">&euro;${parseFloat(c.uurtarief||0).toFixed(0)}/u</div>
+                        </div>
+                        <div style="background:rgba(0,0,0,0.15);border-radius:0.625rem;padding:0.625rem">
+                            <div style="font-size:0.6rem;font-weight:700;text-transform:uppercase;color:var(--white-30);margin-bottom:0.2rem">Week €</div>
+                            <div style="font-size:0.75rem;font-weight:700;color:#fbbf24">&euro;${parseInt(weekly).toLocaleString('nl-NL')}</div>
+                        </div>
+                    </div>
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.625rem;margin-top:0.625rem">
+                        <div style="background:rgba(0,0,0,0.15);border-radius:0.625rem;padding:0.625rem">
+                            <div style="font-size:0.6rem;font-weight:700;text-transform:uppercase;color:var(--white-30);margin-bottom:0.2rem">Start</div>
+                            <div style="font-size:0.75rem;font-weight:700;color:var(--white)">${start}</div>
+                        </div>
+                        <div style="background:rgba(0,0,0,0.15);border-radius:0.625rem;padding:0.625rem">
+                            <div style="font-size:0.6rem;font-weight:700;text-transform:uppercase;color:var(--white-30);margin-bottom:0.2rem">Einde</div>
+                            <div style="font-size:0.75rem;font-weight:700;color:${c.einddatum ? 'var(--white)' : '#34d399'}">${end}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>`;
+          }).join('')
+        + (availableHours > 0 ? `
+            <div style="background:rgba(255,255,255,0.02);border:1px dashed rgba(255,255,255,0.1);border-radius:1rem;padding:1.25rem;display:flex;align-items:center;justify-content:space-between;grid-column:1/-1">
+                <div style="display:flex;align-items:center;gap:0.75rem">
+                    <div style="width:2.5rem;height:2.5rem;border-radius:0.625rem;background:rgba(255,255,255,0.04);border:1px dashed rgba(255,255,255,0.1);display:flex;align-items:center;justify-content:center">
+                        <span style="font-size:0.8125rem;font-weight:800;color:var(--white-30)">${availableHours}u</span>
+                    </div>
+                    <div><div style="font-weight:600;color:var(--white-40)">Beschikbare capaciteit</div><div style="font-size:0.75rem;color:var(--white-30)">Nog niet gealloceerd</div></div>
+                </div>
+                <div style="font-size:0.75rem;font-weight:700;color:var(--white-30)">${Math.round((availableHours/totalCapacity)*100)}%</div>
+            </div>` : '');
+
+    const allocationsHtml = `
+      <div style="background:#111;border:1px solid #1e1e1e;border-radius:1rem;padding:1.5rem;margin-bottom:2rem">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem">
+              <div style="display:flex;align-items:center;gap:0.625rem">
+                  <div style="width:2rem;height:2rem;border-radius:0.5rem;background:rgba(59,130,246,0.1);display:flex;align-items:center;justify-content:center">
+                      <i data-lucide="bar-chart-2" style="width:14px;height:14px;color:#60a5fa"></i>
+                  </div>
+                  <div>
+                      <h3 style="font-size:0.9375rem;font-weight:800;color:var(--white);margin:0">Contracten & Capaciteit</h3>
+                      <div style="font-size:0.7rem;color:var(--white-40);margin-top:0.1rem">${activeContracts.length} actief contract${activeContracts.length !== 1 ? 'en' : ''} &bull; ${totalCapacity}u/wk totaal</div>
+                  </div>
+              </div>
+              <span style="font-size:0.875rem;font-weight:700;color:${isOverAllocated ? '#f43f5e' : allocatedHours === totalCapacity ? '#10b981' : '#fbbf24'}">${allocatedHours}/${totalCapacity}u</span>
+          </div>
+          ${isOverAllocated ? `<div style="display:flex;align-items:center;gap:0.5rem;padding:0.75rem 1rem;background:rgba(244,63,94,0.1);border:1px solid rgba(244,63,94,0.2);border-radius:0.75rem;margin-bottom:1rem;color:#f43f5e;font-size:0.8125rem;font-weight:600"><i data-lucide="alert-triangle" style="width:14px;height:14px"></i> Overgealloceerd! ${allocatedHours - totalCapacity}u boven capaciteit.</div>` : ''}
+          <div style="width:100%;height:2rem;display:flex;border-radius:0.5rem;overflow:hidden;margin-bottom:1.5rem;border:1px solid rgba(255,255,255,0.05)">${barHtml}</div>
+          <div style="display:grid;grid-template-columns:repeat(auto-fill, minmax(300px, 1fr));gap:1rem">${contractCardsHtml}</div>
+      </div>
+    `;
+
     let cvHtml = '';
     if (cv) {
         let skills = [];
-        try { skills = JSON.parse(cv.skills || '[]'); } catch(e){}
+        if (typeof cv.skills === 'string') {
+            try {
+                skills = JSON.parse(cv.skills);
+            } catch(e) {
+                skills = cv.skills.split(',').map(s => s.trim()).filter(Boolean);
+            }
+        } else if (Array.isArray(cv.skills)) {
+            skills = cv.skills;
+        }
         cvHtml = `
             <div style="background:#111;border:1px solid #1e1e1e;border-radius:1rem;padding:1.5rem;margin-bottom:2rem">
                 <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem">
-                    <h3 style="font-size:1rem;font-weight:700;display:flex;align-items:center;gap:0.5rem">
+                    <h3 style="font-size:1rem;font-weight:700;display:flex;align-items:center;gap:0.5rem;color:var(--white)">
                         <i data-lucide="file-text" style="width:16px;height:16px;color:#34d399"></i> CV Informatie
                     </h3>
-                    <a href="/api/cv/file/${encodeURIComponent(cv.savedFilename)}" target="_blank" class="btn-outline" style="font-size:0.75rem;padding:0.4rem 0.8rem;text-decoration:none">
+                    <a href="/api/cv/file/${encodeURIComponent(cv.savedFilename || cv.cv_url || '')}" target="_blank" class="btn-outline" style="font-size:0.75rem;padding:0.4rem 0.8rem;text-decoration:none">
                         <i data-lucide="download" style="width:12px;height:12px"></i> CV Downloaden
                     </a>
                 </div>
+                ${skills.length > 0 ? `
                 <div style="display:flex;flex-wrap:wrap;gap:0.5rem;margin-bottom:1.5rem">
                     ${skills.map(s => `<span style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);padding:0.25rem 0.6rem;border-radius:1rem;font-size:0.6875rem;color:var(--white-60)">${s}</span>`).join('')}
-                </div>
-                ${cv.experience ? `
+                </div>` : ''}
+                ${cv.experience || cv.summary ? `
                 <div style="margin-bottom:1rem">
                     <div style="font-size:0.6875rem;font-weight:700;text-transform:uppercase;color:var(--white-40);margin-bottom:0.5rem">Samenvatting / Ervaring</div>
-                    <div style="font-size:0.875rem;color:var(--white-60);line-height:1.6">${cv.experience.substring(0, 400)}${cv.experience.length > 400 ? '...' : ''}</div>
+                    <div style="font-size:0.875rem;color:var(--white-60);line-height:1.6">${(cv.experience || cv.summary).substring(0, 400)}${(cv.experience || cv.summary).length > 400 ? '...' : ''}</div>
                 </div>` : ''}
+            </div>
+        `;
+    } else if (dev.cv_url) {
+        cvHtml = `
+            <div style="background:#111;border:1px solid #1e1e1e;border-radius:1rem;padding:1.5rem;margin-bottom:2rem">
+                <div style="display:flex;align-items:center;justify-content:space-between">
+                    <h3 style="font-size:1rem;font-weight:700;display:flex;align-items:center;gap:0.5rem;color:var(--white)">
+                        <i data-lucide="file-text" style="width:16px;height:16px;color:#34d399"></i> CV Informatie
+                    </h3>
+                    <a href="/api/storage/file/${encodeURIComponent(dev.cv_url)}" target="_blank" class="btn-outline" style="font-size:0.75rem;padding:0.4rem 0.8rem;text-decoration:none">
+                        <i data-lucide="download" style="width:12px;height:12px"></i> CV Downloaden
+                    </a>
+                </div>
             </div>
         `;
     }
@@ -1148,10 +2491,10 @@ function renderDeveloperDetailView(dev, projecten, uren, cv) {
                   <h2 style="font-size:1.25rem;font-weight:800;margin-bottom:0.25rem;color:var(--white)">${dev.naam}</h2>
                   <div style="color:var(--white-40);font-size:0.875rem;margin-bottom:1.5rem">${dev.rol || 'Developer'}</div>
                   
-                  <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;text-align:left;margin-top:2rem;padding-top:1.5rem;border-top:1px solid rgba(255,255,255,0.05)">
+                  <div style="display:grid;grid-template-columns:1fr;gap:1.25rem;text-align:left;margin-top:2rem;padding-top:1.5rem;border-top:1px solid rgba(255,255,255,0.05)">
                       <div>
                           <div style="font-size:0.625rem;text-transform:uppercase;font-weight:700;color:var(--white-40);letter-spacing:0.1em;margin-bottom:0.25rem">Email</div>
-                          <div style="font-size:0.8125rem;font-weight:600;color:var(--white);word-break:break-all">${dev.email}</div>
+                          <div style="font-size:0.75rem;font-weight:600;color:var(--white);word-break:break-word">${dev.email || '—'}</div>
                       </div>
                       <div>
                           <div style="font-size:0.625rem;text-transform:uppercase;font-weight:700;color:var(--white-40);letter-spacing:0.1em;margin-bottom:0.25rem">Uurtarief</div>
@@ -1193,7 +2536,8 @@ function renderDeveloperDetailView(dev, projecten, uren, cv) {
                       <div style="font-size:1.75rem;font-weight:800;color:var(--white)">${dev.weekcapaciteit || 40}u <span style="font-size:1rem;color:var(--white-40)">/wk</span></div>
                   </div>
               </div>
-              </div>
+              
+              ${allocationsHtml}
               ${cvHtml}
 
               <!-- Recent Timesheets -->
@@ -1230,6 +2574,7 @@ async function submitAssignProject() {
     const devId = document.getElementById('assign-dev-id').value;
     const projectId = document.getElementById('assign-project-id').value;
     const role = document.getElementById('assign-project-role').value;
+    const hours = parseInt(document.getElementById('assign-project-hours').value) || 40;
     const start = document.getElementById('assign-project-start').value;
     const end = document.getElementById('assign-project-end').value;
 
@@ -1245,6 +2590,7 @@ async function submitAssignProject() {
                 developer_id: devId,
                 project_id: projectId,
                 rol_op_project: role,
+                uren_per_week: hours,
                 startdatum: start,
                 einddatum: end || null
             })
@@ -1359,13 +2705,20 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
 
+function getStringColor(str) {
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) hash = str.charCodeAt(i) + ((hash << 5) - hash);
+    const h = Math.abs(hash) % 360;
+    return `hsl(${h}, 70%, 60%)`;
+}
+
 function renderDevelopersGrid() {
     const container = document.getElementById('developers-grid');
     if (!container) return;
 
     if (developers.length === 0) {
         container.innerHTML = `
-        <div style="grid-column:1/-1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:4rem 2rem;text-align:center">
+        <div style="grid-column:1/-1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:4rem 2rem;text-align:center;background:var(--surface);border:1px solid var(--white-5);border-radius:1rem;backdrop-filter:blur(8px)">
             <div style="width:3.5rem;height:3.5rem;border-radius:1rem;background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.15);display:flex;align-items:center;justify-content:center;margin-bottom:1rem">
                 <i data-lucide="user-plus" style="width:22px;height:22px;color:#34d399"></i>
             </div>
@@ -1383,76 +2736,95 @@ function renderDevelopersGrid() {
         const devName = dev.name || dev.naam || '?';
         const devRole = dev.role || dev.rol || '—';
         const devRate = dev.hourlyRate || parseFloat(dev.uurtarief) || 0;
-        const devHours = dev.hoursThisWeek || 0;
-        const devProjects = dev.activeProjects || 0;
-        const capacityPct = Math.min((devHours / 40) * 100, 100);
-        const capacityColor = devHours >= 40 ? '#f43f5e' : (devHours > 30 ? '#f59e0b' : '#3b82f6');
-        const isFemale = ['Sarah', 'Elena', 'Niobe', 'Trinity'].some(n => devName.includes(n));
-        const avatarClass = isFemale ? 'female' : 'male';
-        const isBooked = devProjects > 0;
         
+        // Capacity logic
+        const maxHours = dev.weekcapaciteit || 40;
+        const assignedHours = dev.assignedHours || 0;
+        const capacityPct = Math.min((assignedHours / maxHours) * 100, 100);
+        const capacityColor = assignedHours >= maxHours ? '#f43f5e' : (assignedHours >= maxHours * 0.8 ? '#f59e0b' : '#3b82f6');
+        
+        const devProjects = dev.activeProjects || 0;
+        const isBooked = assignedHours > 0;
+        
+        // Avatar Hash logic
+        const avatarColor = getStringColor(devName);
+        const avatarBg = `background-color: ${avatarColor}20; color: ${avatarColor}; border: 1px solid ${avatarColor}40;`;
+
+        // Skills logic (max 3 tags)
+        const allSkills = dev.skills || [];
+        const showSkills = allSkills.slice(0, 3);
+        const extraSkills = allSkills.length > 3 ? allSkills.length - 3 : 0;
+        const skillsHtml = showSkills.length > 0 
+            ? showSkills.map(s => `<span style="background:var(--white-5);border:1px solid var(--white-10);padding:0.15rem 0.4rem;border-radius:0.25rem;font-size:0.6rem;color:var(--white-60)">${s}</span>`).join('') + (extraSkills > 0 ? `<span style="font-size:0.6rem;color:var(--white-40)">+${extraSkills} meer</span>` : '')
+            : `<span style="font-size:0.6rem;color:var(--white-30)">Geen skills</span>`;
+
         return `
-        <div class="dev-card" style="animation: fadeIn 0.3s ease-out ${i * 0.1}s both;">
+        <div class="dev-card" style="animation: fadeIn 0.3s ease-out ${i * 0.1}s both; background: var(--surface); border: 1px solid var(--white-5); border-radius: 1rem; padding: 1.25rem; display: flex; flex-direction: column; gap: 1rem; backdrop-filter: blur(12px); box-shadow: 0 4px 20px rgba(0,0,0,0.2);">
+            
             <div style="display:flex;justify-content:space-between;align-items:flex-start">
                 <div style="display:flex;align-items:center;gap:0.75rem;min-width:0;flex:1">
-                    <div class="dev-avatar ${avatarClass}">${getInitials(devName)}</div>
+                    <div style="width:2.75rem;height:2.75rem;border-radius:0.75rem;display:flex;align-items:center;justify-content:center;font-size:1rem;font-weight:800;flex-shrink:0;${avatarBg}">${getInitials(devName)}</div>
                     <div style="min-width:0;flex:1">
-                        <div style="font-weight:700;font-size:0.9375rem;color:var(--white);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${devName}</div>
-                        <div style="font-size:0.6875rem;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;color:var(--white-40);margin-top:0.15rem">${devRole}</div>
+                        <div style="font-weight:700;font-size:1rem;color:var(--white);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${devName}</div>
+                        <div style="font-size:0.7rem;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;color:var(--white-40);margin-top:0.15rem">${devRole}</div>
                     </div>
                 </div>
-                <div style="display:flex;gap:0.25rem">
-                    <button class="client-card-btn" style="flex-shrink:0" title="Assign to Project" onclick="openAssignProjectModal('${dev.id}')">
+                <div style="display:flex;gap:0.35rem">
+                    <button class="btn-outline" style="padding:0.35rem;width:auto;height:auto;border-radius:0.375rem" title="Assign to Project" onclick="openAssignProjectModal('${dev.id}')">
                         <i data-lucide="link" style="width:13px;height:13px;color:#60a5fa"></i>
                     </button>
                     ${dev.cv_url ? `
-                    <button class="client-card-btn" style="flex-shrink:0" title="Bekijk CV" onclick="viewDeveloperCV('${dev.id}')">
+                    <button class="btn-outline" style="padding:0.35rem;width:auto;height:auto;border-radius:0.375rem" title="Bekijk CV" onclick="viewDeveloperCV('${dev.id}')">
                         <i data-lucide="file-text" style="width:13px;height:13px;color:#34d399"></i>
                     </button>` : ''}
                 </div>
             </div>
 
-            <div class="dev-inner-box">
-                <div class="dev-inner-label">
-                    <i data-lucide="${isBooked ? 'briefcase' : 'check-circle'}" style="width:10px;height:10px;color:${isBooked ? '#3b82f6' : '#10b981'}"></i>
-                    Currently ${isBooked ? 'Booked' : 'Available'}
-                </div>
-                ${isBooked ? `
-                    <div style="font-weight:700;font-size:0.875rem;color:var(--white);margin-top:0.35rem">Checkout Redesign</div>
-                    <div style="font-size:0.75rem;color:var(--white-50);margin-top:0.2rem">Acme Corp</div>
-                    <div style="font-size:0.7rem;color:var(--white-30);margin-top:0.5rem;padding-top:0.5rem;border-top:1px solid #1e1e1e;font-family:monospace">2024-01-01 &mdash; 2024-06-30</div>
-                ` : `
-                    <div style="font-weight:700;font-size:0.875rem;color:#34d399;margin-top:0.35rem">Ready for Assignment</div>
-                    <div style="font-size:0.75rem;color:var(--white-50);margin-top:0.2rem">Available remotely</div>
-                    <div style="font-size:0.7rem;color:var(--white-30);margin-top:0.5rem;padding-top:0.5rem;border-top:1px solid #1e1e1e;font-family:monospace">Immediate Start</div>
-                `}
+            <div style="display:flex;gap:0.3rem;flex-wrap:wrap;align-items:center;min-height:1.25rem">
+                ${skillsHtml}
             </div>
 
-            <div class="dev-inner-grid">
-                <div class="dev-inner-box" style="cursor:pointer" onclick="event.stopPropagation(); if(${dev.firstClientId}){ openClientDetails('${dev.firstClientId}') } else { showToast('Nog niet gekoppeld aan een klant') }">
-                    <div class="dev-inner-label" style="display:flex;align-items:center;justify-content:space-between">
-                        <span><i data-lucide="layout-grid" style="width:10px;height:10px"></i> Projects</span>
-                        ${devProjects > 0 ? `<span style="background:#3b82f6;color:white;font-size:0.625rem;padding:0.1rem 0.4rem;border-radius:1rem">${devProjects}</span>` : ''}
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem">
+                <div style="background:var(--base);border:1px solid var(--white-5);border-radius:0.75rem;padding:0.75rem;cursor:pointer;transition:border-color 0.2s" onmouseover="this.style.borderColor='var(--white-20)'" onmouseout="this.style.borderColor='var(--white-5)'" onclick="event.stopPropagation(); if(${dev.firstClientId}){ openClientDetails('${dev.firstClientId}') } else { showToast('Nog niet gekoppeld aan een klant') }">
+                    <div style="display:flex;align-items:center;justify-content:space-between;font-size:0.625rem;font-weight:700;text-transform:uppercase;color:var(--white-40);margin-bottom:0.25rem">
+                        <span>Projecten</span>
+                        <i data-lucide="layout-grid" style="width:10px;height:10px"></i>
                     </div>
-                    <div style="font-weight:700;font-size:0.9rem;color:var(--white);margin-top:0.25rem">${devProjects > 0 ? 'View Projects' : 'No Projects'}</div>
+                    <div style="font-weight:700;font-size:1rem;color:var(--white)">${devProjects} <span style="font-size:0.6875rem;color:var(--white-40);font-weight:500">actief</span></div>
                 </div>
-                <div class="dev-inner-box">
-                    <div class="dev-inner-label"><i data-lucide="dollar-sign" style="width:10px;height:10px"></i> Rate</div>
-                    <div style="font-weight:700;font-size:1rem;color:var(--white)">€${devRate}/h</div>
-                </div>
-            </div>
-
-            <div>
-                <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:0.5rem">
-                    <span style="font-size:0.625rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--white-40)">Weekly Capacity</span>
-                    <span style="font-size:0.7rem;font-weight:700;color:${capacityColor}">${devHours} <span style="color:var(--white-30)">/ 40H</span></span>
-                </div>
-                <div class="capacity-bar-track">
-                    <div class="capacity-bar-fill" style="width:${capacityPct}%;background-color:${capacityColor};box-shadow:0 0 8px ${capacityColor}88"></div>
+                <div style="background:var(--base);border:1px solid var(--white-5);border-radius:0.75rem;padding:0.75rem">
+                    <div style="display:flex;align-items:center;justify-content:space-between;font-size:0.625rem;font-weight:700;text-transform:uppercase;color:var(--white-40);margin-bottom:0.25rem">
+                        <span>Tarief</span>
+                        <i data-lucide="dollar-sign" style="width:10px;height:10px"></i>
+                    </div>
+                    <div style="font-weight:700;font-size:1rem;color:var(--white)">€${devRate}<span style="font-size:0.6875rem;color:var(--white-40);font-weight:500">/u</span></div>
                 </div>
             </div>
 
-            <button class="dev-view-btn" onclick="openDeveloperDetails('${dev.id}')">View Profile</button>
+            <div style="margin-top:auto">
+                <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:0.4rem">
+                    <div style="display:flex;align-items:center;gap:0.35rem">
+                        ${(() => {
+                            const b = dev.beschikbaarheid || 'beschikbaar';
+                            const cfgMap = {
+                                'beschikbaar':      { color: '#34d399', label: 'Beschikbaar' },
+                                'gedeeltelijk':     { color: '#fbbf24', label: 'Gedeeltelijk' },
+                                'niet beschikbaar': { color: '#f43f5e', label: 'Niet beschikbaar' },
+                                'verlof':           { color: '#818cf8', label: 'Verlof' },
+                            };
+                            const cfg = cfgMap[b] || cfgMap['beschikbaar'];
+                            return `<div style="width:6px;height:6px;border-radius:50%;background:${cfg.color};box-shadow:0 0 5px ${cfg.color}"></div>
+                                    <span style="font-size:0.625rem;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:${cfg.color}">${cfg.label}</span>`;
+                        })()} 
+                    </div>
+                    <span style="font-size:0.7rem;font-weight:700;color:${capacityColor}">${assignedHours} <span style="color:var(--white-30)">/ ${maxHours}u</span></span>
+                </div>
+                <div style="width:100%;height:4px;background:var(--white-10);border-radius:2px;overflow:hidden">
+                    <div style="height:100%;width:${capacityPct}%;background-color:${capacityColor};box-shadow:0 0 8px ${capacityColor}88;border-radius:2px;transition:width 0.4s ease"></div>
+                </div>
+            </div>
+
+            <button class="btn-outline" style="width:100%;justify-content:center;margin-top:0.5rem" onclick="openDeveloperDetails('${dev.id}')">View Profile</button>
         </div>
         `;
     }).join('');
@@ -1469,10 +2841,10 @@ function renderTimesheetsTable(filterText = '', filterStatus = '') {
     const filtered = timesheets.filter(ts => {
         const status = timesheetStatuses[ts.id] || ts.status;
         const matchText = !filterText ||
-            ts.developerName.toLowerCase().includes(filterText.toLowerCase()) ||
-            ts.clientName.toLowerCase().includes(filterText.toLowerCase()) ||
-            ts.description.toLowerCase().includes(filterText.toLowerCase());
-        const matchStatus = !filterStatus || filterStatus === 'All Statuses' || status.toLowerCase() === filterStatus.toLowerCase();
+            (ts.developerName || '').toLowerCase().includes(filterText.toLowerCase()) ||
+            (ts.clientName || '').toLowerCase().includes(filterText.toLowerCase()) ||
+            (ts.description || '').toLowerCase().includes(filterText.toLowerCase());
+        const matchStatus = !filterStatus || filterStatus === 'All Statuses' || (status || '').toLowerCase() === filterStatus.toLowerCase();
         return matchText && matchStatus;
     });
 
@@ -1481,7 +2853,10 @@ function renderTimesheetsTable(filterText = '', filterStatus = '') {
         return;
     }
 
-    const isFemale = name => ['Sarah', 'Elena', 'Niobe', 'Trinity'].some(n => name.includes(n));
+    const isFemale = name => {
+        if (!name || typeof name !== 'string') return false;
+        return ['Sarah', 'Elena', 'Niobe', 'Trinity'].some(n => name.includes(n));
+    };
 
     tbody.innerHTML = filtered.map(ts => {
         const status = timesheetStatuses[ts.id] || ts.status;
@@ -1591,9 +2966,9 @@ async function approveAllTimesheets(btnElement) {
 }
 
 function updateTimesheetSummary() {
-    const pending  = timesheets.filter(ts => ts.status.toLowerCase() === 'pending').length;
-    const approved = timesheets.filter(ts => ts.status.toLowerCase() === 'approved').length;
-    const rejected = timesheets.filter(ts => ts.status.toLowerCase() === 'rejected').length;
+    const pending  = timesheets.filter(ts => (ts.status || '').toLowerCase() === 'pending').length;
+    const approved = timesheets.filter(ts => (ts.status || '').toLowerCase() === 'approved').length;
+    const rejected = timesheets.filter(ts => (ts.status || '').toLowerCase() === 'rejected').length;
     const totalHrs = timesheets.reduce((s, ts) => s + (parseFloat(ts.hoursWorked)||0), 0);
     const el = id => document.getElementById(id);
     if (el('ts-stat-pending'))  el('ts-stat-pending').textContent  = pending;
@@ -1668,7 +3043,10 @@ function renderCVDatabase(data) {
         return;
     }
 
-    const isFemale = name => ['Trinity','Niobe','Sarah','Elena'].some(n => name.includes(n));
+    const isFemale = name => {
+        if (!name || typeof name !== 'string') return false;
+        return ['Trinity','Niobe','Sarah','Elena'].some(n => name.includes(n));
+    };
 
     tbody.innerHTML = rows.map((cv, i) => {
         const isInactive = cv.status === 'candidate';
@@ -1699,14 +3077,21 @@ function renderCVDatabase(data) {
             <td style="padding:0.875rem 1.25rem">
                 <div style="display:flex;flex-wrap:wrap;gap:0.25rem">${skillsHtml || '<span style="color:var(--white-30);font-size:0.75rem">—</span>'}</div>
             </td>
-            <td style="padding:0.875rem 1.25rem;color:var(--white-30);font-family:monospace;font-size:0.8125rem">${cv.aangemaakt_op || cv.uploadDate || '—'}</td>
+            <td style="padding:0.875rem 1.25rem;color:var(--white-30);font-family:monospace;font-size:0.8125rem">${formatDateString(cv.aangemaakt_op || cv.uploadDate)}</td>
             <td style="padding:0.875rem 1.25rem">${statusHtml}</td>
             <td style="padding:0.875rem 1.25rem;text-align:right">
                 <div style="display:flex;justify-content:flex-end;gap:0.5rem;align-items:center">
                     ${isInactive ? `<button class="login-ws-btn active" style="font-size:0.625rem;padding:0.25rem 0.5rem;height:auto;flex:none" onclick="activateCVasDeveloper('${cv.developer_id || cv.id}')">ACTIEF</button>` : ''}
+                    <button class="ts-action-btn view" title="View CV">
+                        <i data-lucide="eye" style="width:13px;height:13px"></i>
+                    </button>
                     <button class="ts-action-btn view" title="Download CV" onclick="downloadCV('${cv.developer_id || cv.id}')">
                         <i data-lucide="download" style="width:13px;height:13px"></i>
                     </button>
+                    ${cv.cv_url ? `
+                    <button class="ts-action-btn view" title="Convert to Reemo format" onclick="openCvConverterModal({developer_naam: '${(cv.naam || cv.name || '').replace(/'/g, "\\'")}', cv_url: '${cv.cv_url || ''}', developer_id: '${cv.developer_id || cv.id}'})" style="color:#a78bfa">
+                        <i class="ti ti-sparkles" style="font-size:13px"></i>
+                    </button>` : ''}
                 </div>
             </td>
         </tr>`;
@@ -1735,7 +3120,7 @@ function uploadCVFile() {
         const file = e.target.files[0];
         if (!file) return;
         const name = file.name.replace(/\.[^/.]+$/, '').replace(/[-_]/g,' ');
-        cvs.push({ id: genId('cv'), name, skills: ['To be reviewed'], uploadDate: new Date().toISOString().slice(0,10), status: 'ORIGINAL' });
+        cvs.push({ id: genId('cv'), name, skills: ['To be reviewed'], uploadDate: new Date().toISOString().slice(0,10), status: 'ORIGINAL', cv_url: 'uploads/' + file.name });
         saveCVs();
         renderCVDatabase();
         updateCVStats();
@@ -1805,17 +3190,111 @@ function convertToReemo(id) {
 
 // ===== INVOICE STATS =====
 function updateInvoiceStats() {
-    const outstanding = invoices.filter(i => i.status.toLowerCase() === 'open').reduce((s,i) => s + i.amount, 0);
-    const overdue     = invoices.filter(i => i.status.toLowerCase() === 'overdue' || i.status.toLowerCase() === 'te_laat').reduce((s,i) => s + i.amount, 0);
-    const paid        = invoices.filter(i => i.status.toLowerCase() === 'paid' || i.status.toLowerCase() === 'betaald').reduce((s,i) => s + i.amount, 0);
-    const total       = invoices.reduce((s,i) => s + i.amount, 0);
-    const fmt = v => '€' + (v/1000).toFixed(1) + 'k';
+    const outstanding = invoices.filter(i => ['open','verzonden'].includes((i.status || '').toLowerCase())).reduce((s,i) => s + (i.amount||0), 0);
+    const overdue     = invoices.filter(i => {
+        const st = (i.status || '').toLowerCase();
+        if (st === 'overdue' || st === 'te_laat') return true;
+        if (st === 'open' || st === 'verzonden') {
+            const dd = new Date(i.paymentDeadline || i.vervaldatum);
+            return !isNaN(dd) && dd < new Date();
+        }
+        return false;
+    }).reduce((s,i) => s + (i.amount||0), 0);
+    const paid        = invoices.filter(i => ['paid','betaald'].includes((i.status || '').toLowerCase())).reduce((s,i) => s + (i.amount||0), 0);
+    const total       = invoices.reduce((s,i) => s + (i.amount||0), 0);
+    const fmt = v => {
+        if (v >= 1000000) return '\u20ac' + (v/1000000).toFixed(1) + 'm';
+        if (v >= 1000)    return '\u20ac' + (v/1000).toFixed(1) + 'k';
+        return '\u20ac' + v.toFixed(0);
+    };
     const el = id => document.getElementById(id);
     if (el('inv-stat-total'))       el('inv-stat-total').textContent       = fmt(total);
     if (el('inv-stat-outstanding')) el('inv-stat-outstanding').textContent = fmt(outstanding);
     if (el('inv-stat-overdue'))     el('inv-stat-overdue').textContent     = fmt(overdue);
     if (el('inv-stat-paid'))        el('inv-stat-paid').textContent        = fmt(paid);
 }
+
+// ===== MARKEER ALS BETAALD =====
+function openMarkeerBetaaldModal(invId, clientName, amount) {
+    // Verwijder een eventuele bestaande modal
+    const existing = document.getElementById('modal-markeer-betaald');
+    if (existing) existing.remove();
+
+    const vandaag = new Date().toISOString().split('T')[0];
+    const fmt = v => '\u20ac' + Number(v||0).toLocaleString('nl-NL', { maximumFractionDigits: 0 });
+
+    const modal = document.createElement('div');
+    modal.id = 'modal-markeer-betaald';
+    modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.85);backdrop-filter:blur(6px);z-index:9999;display:flex;align-items:center;justify-content:center';
+    modal.innerHTML = `
+        <div style="background:#0d0d0d;border:1px solid rgba(255,255,255,0.1);border-radius:1rem;padding:2rem;width:min(420px,92vw);box-shadow:0 24px 64px rgba(0,0,0,0.7)">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem">
+                <div>
+                    <div style="font-size:1rem;font-weight:800;color:var(--white,#fff)">Factuur #${invId} markeren als betaald</div>
+                    <div style="font-size:0.75rem;color:rgba(255,255,255,0.4);margin-top:0.2rem">Dit kan niet ongedaan worden gemaakt</div>
+                </div>
+                <button onclick="document.getElementById('modal-markeer-betaald').remove()" style="width:2rem;height:2rem;border-radius:50%;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:rgba(255,255,255,0.6);cursor:pointer;font-size:1rem;display:flex;align-items:center;justify-content:center">✕</button>
+            </div>
+
+            <div style="background:rgba(16,185,129,0.06);border:1px solid rgba(16,185,129,0.2);border-radius:0.75rem;padding:1rem 1.25rem;margin-bottom:1.5rem">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.5rem">
+                    <span style="font-size:0.75rem;font-weight:600;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:0.08em">Klant</span>
+                    <span style="font-size:0.875rem;font-weight:700;color:var(--white,#fff)">${clientName}</span>
+                </div>
+                <div style="display:flex;justify-content:space-between;align-items:center">
+                    <span style="font-size:0.75rem;font-weight:600;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:0.08em">Bedrag</span>
+                    <span style="font-size:1.25rem;font-weight:900;color:#34d399">${fmt(amount)}</span>
+                </div>
+            </div>
+
+            <div style="margin-bottom:1.5rem">
+                <label style="display:block;font-size:0.625rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:rgba(255,255,255,0.4);margin-bottom:0.5rem">Betalingsdatum</label>
+                <input id="markeer-betaald-datum" type="date" value="${vandaag}"
+                    style="width:100%;padding:0.625rem 0.875rem;background:#1a1a1a;border:1px solid rgba(255,255,255,0.12);border-radius:0.5rem;color:var(--white,#fff);font-size:0.875rem;font-family:inherit;box-sizing:border-box" />
+            </div>
+
+            <div style="display:flex;gap:0.75rem;justify-content:flex-end">
+                <button onclick="document.getElementById('modal-markeer-betaald').remove()"
+                    style="padding:0.625rem 1.25rem;background:transparent;border:1px solid rgba(255,255,255,0.12);border-radius:0.5rem;color:rgba(255,255,255,0.6);cursor:pointer;font-size:0.8125rem;font-weight:600">Annuleer</button>
+                <button onclick="confirmMarkeerBetaald('${invId}')"
+                    style="padding:0.625rem 1.25rem;background:linear-gradient(135deg,#059669,#10b981);border:none;border-radius:0.5rem;color:#fff;cursor:pointer;font-size:0.8125rem;font-weight:700;display:flex;align-items:center;gap:0.375rem">
+                    ✓ Bevestig betaling
+                </button>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(modal);
+    // Sluit op achtergrond-klik
+    modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+}
+
+async function confirmMarkeerBetaald(invId) {
+    const datumEl = document.getElementById('markeer-betaald-datum');
+    const datum = datumEl ? datumEl.value : new Date().toISOString().split('T')[0];
+    const modal = document.getElementById('modal-markeer-betaald');
+    if (modal) modal.remove();
+
+    try {
+        const resp = await fetch(`${API_BASE}/api/facturen/${invId}/markeer-betaald`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ betalingsdatum: datum })
+        });
+        const json = await resp.json();
+        if (!resp.ok || !json.ok) throw new Error(json.error || 'Onbekende fout');
+
+        showToast(`\u2713 Factuur #${invId} gemarkeerd als betaald`, 'success');
+
+        // Refresh invoices + stats + dashboard funnel
+        await loadInvoices();
+        renderInvoicesTable();
+        updateInvoiceStats();
+        renderDashboardStats();
+    } catch (e) {
+        showToast('Fout: ' + e.message, 'error');
+    }
+}
+
 
 // ===== ADD CLIENT — forwarded to unified modal (see renderClientsGrid section) =====
 // openAddClientModal() and submitClientForm() defined above near renderClientsGrid
@@ -1878,6 +3357,158 @@ async function submitCreateInvoice() {
     }
 }
 
+// ===== SLIMME FACTUUR GENERATIE =====
+async function loadFactuurAanbeveling() {
+    try {
+        const res = await fetch('/api/facturen/klaar-om-te-genereren');
+        const data = await res.json();
+        const maanden = data.maanden;
+
+        const btn = document.getElementById('btn-genereer-facturen');
+        const label = document.getElementById('btn-genereer-label');
+        const badge = document.getElementById('genereer-badge');
+        const dropdown = document.getElementById('maand-dropdown');
+
+        if (!btn) return;
+
+        if (!maanden || maanden.length === 0) {
+            // Geen uren klaar
+            if (label) label.textContent = 'Genereer facturen';
+            btn.disabled = true;
+            btn.title = 'Geen goedgekeurde uren gevonden die nog gefactureerd moeten worden';
+            if (badge) badge.style.display = 'none';
+            if (dropdown) dropdown.style.display = 'none';
+            return;
+        }
+
+        // Aanbeveling: de meest recente maand met openstaande uren
+        const aanbeveling = maanden[0];
+        const maandLabel = formatMaand(aanbeveling.maand); // bijv. "juni 2026"
+
+        if (label) label.textContent = `Genereer facturen ${maandLabel}`;
+        btn.disabled = false;
+        btn.title = '';
+        btn.dataset.maand = aanbeveling.maand;
+
+        // Badge met aantal uren
+        if (badge) {
+            badge.textContent = `${aanbeveling.aantalUren} uren klaar`;
+            badge.style.display = 'inline';
+        }
+
+        // Als er meerdere maanden zijn: toon dropdown
+        if (maanden.length > 1) {
+            toonMaandDropdown(maanden);
+        } else {
+            if (dropdown) dropdown.style.display = 'none';
+        }
+    } catch (err) {
+        console.error('Laden van factuur aanbeveling mislukt:', err);
+    }
+}
+
+function formatMaand(maandString) {
+    const [jaar, maand] = maandString.split('-');
+    const namen = ['januari','februari','maart','april','mei','juni',
+                   'juli','augustus','september','oktober','november','december'];
+    return `${namen[parseInt(maand) - 1]} ${jaar}`;
+}
+
+function toonMaandDropdown(maanden) {
+    const dropdown = document.getElementById('maand-dropdown');
+    if (!dropdown) return;
+
+    dropdown.innerHTML = maanden.map(m =>
+        `<option value="${m.maand}">${formatMaand(m.maand)} (${m.aantalUren} uren)</option>`
+    ).join('');
+    dropdown.style.display = 'block';
+
+    // Set the selected value to the recommendation (first one)
+    const btn = document.getElementById('btn-genereer-facturen');
+    if (btn && btn.dataset.maand) {
+        dropdown.value = btn.dataset.maand;
+    }
+
+    // Remove existing listener before adding a new one to avoid double binding
+    dropdown.removeEventListener('change', handleDropdownChange);
+    dropdown.addEventListener('change', handleDropdownChange);
+}
+
+function handleDropdownChange(e) {
+    if (!e.target.value) return;
+    const btn = document.getElementById('btn-genereer-facturen');
+    const label = document.getElementById('btn-genereer-label');
+    btn.dataset.maand = e.target.value;
+    if (label) label.textContent = `Genereer facturen ${formatMaand(e.target.value)}`;
+}
+
+async function genereerFacturen() {
+    const btn = document.getElementById('btn-genereer-facturen');
+    const label = document.getElementById('btn-genereer-label');
+    const maand = btn?.dataset.maand;
+
+    if (!maand) {
+        showToast('⚠ Geen maand geselecteerd', 'error');
+        return;
+    }
+
+    if (btn) btn.disabled = true;
+    if (label) label.textContent = 'Bezig met genereren...';
+
+    try {
+        const res = await fetch('/api/facturen/genereer-maand', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ maand })
+        });
+        const data = await res.json();
+
+        if (!res.ok || !data.ok) {
+            showToast(`⚠ Fout: ${data.error || 'Onbekende fout'}`, 'error');
+            if (btn) btn.disabled = false;
+            if (label) label.textContent = `Genereer facturen ${formatMaand(maand)}`;
+            return;
+        }
+
+        const resultaten = data.data?.resultaten || data.resultaten || [];
+        const aantalNieuw = resultaten.length || 0;
+
+        if (aantalNieuw === 0) {
+            showToast('⚠ Geen nieuwe facturen aangemaakt — zijn alle uren al gefactureerd?', 'warning');
+        } else {
+            showToast(`✓ ${aantalNieuw} factuur${aantalNieuw > 1 ? 'en' : ''} aangemaakt voor ${formatMaand(maand)}`, 'success');
+        }
+
+        // Refresh alles
+        await loadInvoices();
+        renderInvoicesTable();
+        updateInvoiceStats();
+        if (typeof renderDashboardStats === 'function') renderDashboardStats();
+        await loadFactuurAanbeveling(); // Knop update naar volgende openstaande maand
+    } catch (err) {
+        showToast(`⚠ Fout bij genereren: ${err.message}`, 'error');
+        if (btn) btn.disabled = false;
+        if (label) label.textContent = `Genereer facturen ${formatMaand(maand)}`;
+    }
+}
+
+// Helper: simple toast (re-use existing or create minimal)
+function showToast(msg, type = 'success') {
+    const colors = { success: '#10b981', error: '#ef4444', info: '#6366f1' };
+    const borderColor = colors[type] || colors.success;
+    const t = document.createElement('div');
+    t.textContent = msg;
+    t.style.cssText = `position:fixed;bottom:1.5rem;right:1.5rem;z-index:99999;padding:0.875rem 1.25rem;
+        background:#111;border:1px solid ${borderColor};border-radius:0.75rem;
+        color:var(--white,#fff);font-size:0.8125rem;font-weight:600;max-width:22rem;
+        box-shadow:0 8px 32px rgba(0,0,0,0.5);transition:opacity 0.3s ease-out;opacity:1;animation:fadeIn 0.2s ease`;
+    document.body.appendChild(t);
+    setTimeout(() => {
+        t.style.opacity = '0';
+        setTimeout(() => t.remove(), 300);
+    }, 3000);
+}
+
 // ===== EXPORT INVOICES =====
 function exportInvoices() {
     const lines = ['Invoice ID,Client,Amount,Status,Sent,Deadline'];
@@ -1899,33 +3530,36 @@ function renderInvoicesTable(data) {
     }
 
     tbody.innerHTML = rows.map(inv => {
-        const isOverdue = inv.status.toLowerCase() === 'overdue' || inv.status.toLowerCase() === 'te_laat';
+        const status = inv.status || 'open';
+        const isOverdue = status.toLowerCase() === 'overdue' || status.toLowerCase() === 'te_laat';
         const deadlineColor = isOverdue ? '#fb7185' : 'var(--white-40)';
+        const clientName = inv.clientName || 'Onbekende Klant';
+        const amount = inv.amount || 0;
         return `
         <tr class="ts-row">
             <td style="padding:0.875rem 1.25rem">
-                <span style="font-family:monospace;font-weight:700;font-size:0.8125rem;color:#60a5fa">#${inv.id.toUpperCase()}</span>
+                <span style="font-family:monospace;font-weight:700;font-size:0.8125rem;color:#60a5fa">#${(inv.id || '').toUpperCase()}</span>
             </td>
             <td style="padding:0.875rem 1.25rem">
                 <div style="display:flex;align-items:center;gap:0.625rem">
-                    <div style="width:1.75rem;height:1.75rem;border-radius:0.375rem;background:rgba(37,99,235,0.1);border:1px solid rgba(37,99,235,0.2);display:flex;align-items:center;justify-content:center;font-size:0.5625rem;font-weight:800;color:#60a5fa;flex-shrink:0">${getInitials(inv.clientName)}</div>
-                    <span style="font-weight:700;color:var(--white);font-size:0.875rem">${inv.clientName}</span>
+                    <div style="width:1.75rem;height:1.75rem;border-radius:0.375rem;background:rgba(37,99,235,0.1);border:1px solid rgba(37,99,235,0.2);display:flex;align-items:center;justify-content:center;font-size:0.5625rem;font-weight:800;color:#60a5fa;flex-shrink:0">${getInitials(clientName)}</div>
+                    <span style="font-weight:700;color:var(--white);font-size:0.875rem">${clientName}</span>
                 </div>
             </td>
             <td style="padding:0.875rem 1.25rem">
-                <span style="font-weight:800;font-size:1rem;color:var(--white)">${formatCurrency(inv.amount)}</span>
+                <span style="font-weight:800;font-size:1rem;color:var(--white)">${formatCurrency(amount)}</span>
             </td>
-            <td style="padding:0.875rem 1.25rem;color:var(--white-40);font-size:0.8125rem;font-family:monospace;white-space:nowrap">${inv.dateSent}</td>
+            <td style="padding:0.875rem 1.25rem;color:var(--white-40);font-size:0.8125rem;font-family:monospace;white-space:nowrap">${inv.dateSent || '—'}</td>
             <td style="padding:0.875rem 1.25rem;font-family:monospace;font-size:0.8125rem;white-space:nowrap;color:${deadlineColor};font-weight:${isOverdue ? '700' : '400'}">
-                ${isOverdue ? '<span style="display:inline-flex;align-items:center;gap:0.25rem">âš  ' : ''}${inv.paymentDeadline}${isOverdue ? '</span>' : ''}
+                ${isOverdue ? '<span style="display:inline-flex;align-items:center;gap:0.25rem">⚠ ' : ''}${inv.paymentDeadline || '—'}${isOverdue ? '</span>' : ''}
             </td>
             <td style="padding:0.875rem 1.25rem">
-                <select class="status-badge ${getStatusClass(inv.status)}" 
+                <select class="status-badge ${getStatusClass(status)}" 
                         style="appearance:none; cursor:pointer; font-family:inherit; font-size:inherit; font-weight:inherit; text-transform:uppercase; border:none; outline:none; text-align:center; padding-right:1rem;" 
                         onchange="updateInvoiceStatus('${inv.id}', this.value)">
-                    <option value="open" ${inv.status.toLowerCase() === 'open' ? 'selected' : ''}>OPEN</option>
-                    <option value="betaald" ${inv.status.toLowerCase() === 'betaald' || inv.status.toLowerCase() === 'paid' ? 'selected' : ''}>PAID</option>
-                    <option value="te_laat" ${inv.status.toLowerCase() === 'te_laat' || inv.status.toLowerCase() === 'overdue' ? 'selected' : ''}>OVERDUE</option>
+                    <option value="open" ${status.toLowerCase() === 'open' ? 'selected' : ''}>OPEN</option>
+                    <option value="betaald" ${status.toLowerCase() === 'betaald' || status.toLowerCase() === 'paid' ? 'selected' : ''}>PAID</option>
+                    <option value="te_laat" ${status.toLowerCase() === 'te_laat' || status.toLowerCase() === 'overdue' ? 'selected' : ''}>OVERDUE</option>
                 </select>
             </td>
             <td style="padding:0.875rem 1.25rem;text-align:right">
@@ -1933,12 +3567,17 @@ function renderInvoicesTable(data) {
                     <button class="ts-action-btn view" title="View Invoice">
                         <i data-lucide="eye" style="width:13px;height:13px"></i>
                     </button>
-                    <button class="ts-action-btn view" title="Download PDF" onclick="downloadInvoicePdf('${inv.id}','${inv.clientName}',${inv.amount})">
+                    <button class="ts-action-btn view" title="Download PDF" onclick="downloadInvoicePdf('${inv.id}','${clientName}',${amount})">
                         <i data-lucide="download" style="width:13px;height:13px"></i>
                     </button>
-                    ${inv.status.toLowerCase() === 'overdue' || inv.status.toLowerCase() === 'te_laat' || inv.status.toLowerCase() === 'open' ? `
+                    ${['open','verzonden'].includes(status.toLowerCase()) ? `
                     <button class="ts-action-btn remind" title="Send Reminder">
                         <i data-lucide="bell" style="width:13px;height:13px"></i>
+                    </button>
+                    <button title="Markeer als betaald" onclick="openMarkeerBetaaldModal('${inv.id}','${clientName}',${amount})"
+                        style="display:inline-flex;align-items:center;gap:0.25rem;padding:0.3125rem 0.625rem;border-radius:0.375rem;border:1px solid rgba(16,185,129,0.35);background:rgba(16,185,129,0.08);color:#34d399;cursor:pointer;font-size:0.6875rem;font-weight:700;white-space:nowrap;transition:background 0.15s"
+                        onmouseenter="this.style.background='rgba(16,185,129,0.18)'" onmouseleave="this.style.background='rgba(16,185,129,0.08)'">
+                        <i data-lucide="check-circle" style="width:11px;height:11px"></i> Betaald
                     </button>` : ''}
                 </div>
             </td>
@@ -1951,17 +3590,17 @@ function renderInvoicesTable(data) {
 function filterInvoicesTable(searchText, statusFilter) {
     const filtered = invoices.filter(inv => {
         const matchText = !searchText ||
-            inv.clientName.toLowerCase().includes(searchText.toLowerCase()) ||
-            inv.id.toLowerCase().includes(searchText.toLowerCase());
+            (inv.clientName || '').toLowerCase().includes(searchText.toLowerCase()) ||
+            (inv.id || '').toLowerCase().includes(searchText.toLowerCase());
         const matchStatus = !statusFilter || statusFilter === 'All Statuses' ||
-            inv.status.toLowerCase() === statusFilter.toLowerCase();
+            (inv.status || '').toLowerCase() === statusFilter.toLowerCase();
         return matchText && matchStatus;
     });
     renderInvoicesTable(filtered);
 }
 
 function downloadInvoicePdf(id, clientName, amount) {
-    const text = `INVOICE ${id.toUpperCase()}\n\nClient: ${clientName}\nAmount: $${amount.toLocaleString()}\nIssued by: Reemo B.V.\nDate: ${new Date().toLocaleDateString()}\n\nPayment due within 30 days of invoice date.\n\nThank you for your business.`;
+    const text = `INVOICE ${id.toUpperCase()}\n\nClient: ${clientName}\nAmount: € ${amount.toLocaleString('nl-NL')}\nIssued by: Reemo B.V.\nDate: ${new Date().toLocaleDateString('nl-NL')}\n\nPayment due within 30 days of invoice date.\n\nThank you for your business.`;
     const blob = new Blob([text], { type: 'text/plain' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -1991,78 +3630,58 @@ async function apiFetch(path) {
 }
 */
 // Multi-year monthly revenue mock data (fallback)
-const revenueData = {
-    2022: [32000, 29000, 35000, 38000, 41000, 39000, 44000, 47000, 43000, 50000, 52000, 58000],
-    2023: [42000, 38000, 45000, 51000, 49000, 55000, 59000, 62000, 57000, 65000, 68000, 74000],
-    2024: [55000, 51000, 61000, 58000, 64000, 70000, 67000, 73000, 69000, 78000, 82000, 90000],
-    2025: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-    2026: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-};
-const monthLabels = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+// ── Revenue chart state ────────────────────────────────────────────────────────
+// _kwartaalRows: { jaar, kwartaal, geleverd, verwacht }  from /api/revenue-per-kwartaal
+// _maandRows:   { jaar, maand, totaal_bedrag, totaal_uren } from /api/revenue-per-maand
+let _kwartaalRows     = [];
+let _maandRows        = [];
+let revenueChart      = null;
+let _activeRevenueYear    = new Date().getFullYear();
+let _activeRevenueKwartaal = null;   // null = show all Q1-Q4, 1-4 = drill into that quarter
 
-let revenueChart = null;
+// Maand names per quarter index
+const _MAAND_NL = ['Jan','Feb','Mrt','Apr','Mei','Jun','Jul','Aug','Sep','Okt','Nov','Dec'];
+const _Q_MAANDEN = { 1:[0,1,2], 2:[3,4,5], 3:[6,7,8], 4:[9,10,11] };
 
-// Build revenueData from v_revenue_per_maand rows if available.
-// Actual Supabase columns: { jaar: 2024, maand: 1, maand_naam: 'Januari', totaal_bedrag: '42425.00', totaal_uren: '493.00', ... }
-function buildRevenueDataFromDB(rows) {
-    const byYear = {};
-    rows.forEach(row => {
-        let yr, mon;
-        if (row.jaar !== undefined && row.maand !== undefined) {
-            // Native numeric columns from the view
-            yr  = parseInt(row.jaar);
-            mon = parseInt(row.maand) - 1; // DB: 1-based → JS 0-based
-        } else {
-            // Fallback: try to parse a date string
-            const dateStr = row.maand || row.month || row.periode || '';
-            const d = new Date(dateStr);
-            if (isNaN(d.getTime())) return;
-            yr  = d.getFullYear();
-            mon = d.getMonth();
-        }
-        const val = parseFloat(row.totaal_bedrag || row.omzet || row.revenue || row.bedrag || 0);
-        if (!byYear[yr]) byYear[yr] = new Array(12).fill(0);
-        byYear[yr][mon] = val;
-    });
-    return byYear;
+// ── Year strip ────────────────────────────────────────────────────────────────
+function _changeYear(val) {
+    _activeRevenueYear = parseInt(val);
+    updateRevenueChart();
 }
 
-function getChartSlice(year, period) {
-    const data = revenueData[year] || revenueData[2024];
-    if (period === 'q1') return { labels: monthLabels.slice(0,3),  data: data.slice(0,3)  };
-    if (period === 'q2') return { labels: monthLabels.slice(3,6),  data: data.slice(3,6)  };
-    if (period === 'q3') return { labels: monthLabels.slice(6,9),  data: data.slice(6,9)  };
-    if (period === 'q4') return { labels: monthLabels.slice(9,12), data: data.slice(9,12) };
-    if (period === '6' ) return { labels: monthLabels.slice(6,12), data: data.slice(6,12) };
-    return { labels: monthLabels, data };
+function _changeQuarter(val) {
+    _activeRevenueKwartaal = val === 'null' ? null : parseInt(val);
+    updateRevenueChart();
 }
 
-function renderYearStrip() {
-    const strip = document.getElementById('revenue-year-strip');
-    if (!strip) return;
-    const selectedYear = parseInt(document.getElementById('chart-year')?.value || 2024);
-    strip.innerHTML = Object.keys(revenueData).map(yr => {
-        const total = revenueData[yr].reduce((a,b) => a+b, 0);
-        const isActive = parseInt(yr) === selectedYear;
-        return `<div style="padding:0.35rem 0.75rem;border-radius:0.5rem;border:1px solid ${isActive ? 'rgba(37,99,235,0.4)' : '#1e1e1e'};background:${isActive ? 'rgba(37,99,235,0.1)' : 'transparent'};cursor:pointer;transition:all 0.2s" onclick="document.getElementById('chart-year').value='${yr}';updateRevenueChart()">
-            <div style="font-size:0.5rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:${isActive ? '#60a5fa' : 'var(--white-30)'}">FY${yr}</div>
-            <div style="font-size:0.8125rem;font-weight:800;color:${isActive ? 'var(--white)' : 'var(--white-50)'}">${'€' + (total/1000).toFixed(0) + 'k'}</div>
-        </div>`;
-    }).join('');
+function populateYearSelect() {
+    const select = document.getElementById('chart-year-select');
+    if (!select) return;
+    const kwJaren  = _kwartaalRows.map(r => r.jaar);
+    const maandJaren = _maandRows.map(r => r.jaar);
+    const years = [...new Set([...kwJaren, ...maandJaren])].sort((a,b) => b - a);
+    if (years.length === 0) years.push(new Date().getFullYear());
+    
+    select.innerHTML = years.map(yr => 
+        `<option value="${yr}" ${yr === _activeRevenueYear ? 'selected' : ''}>FY${yr}</option>`
+    ).join('');
 }
 
-function _drawRevenueChart(labels, data) {
+
+// ── Draw / update chart ───────────────────────────────────────────────────────
+function _drawRevenueChart(labels, geleverdData, verwachtData) {
     const ctx = document.getElementById('revenueChart');
     if (!ctx) return;
     const revCtx = ctx.getContext('2d');
-    const grad = revCtx.createLinearGradient(0, 0, 0, 260);
-    grad.addColorStop(0, 'rgba(37,99,235,0.28)');
-    grad.addColorStop(1, 'rgba(37,99,235,0)');
+    const gradG  = revCtx.createLinearGradient(0, 0, 0, 250);
+    gradG.addColorStop(0, 'rgba(37,99,235,0.22)');
+    gradG.addColorStop(1, 'rgba(37,99,235,0.01)');
 
     if (revenueChart) {
-        revenueChart.data.labels = labels;
-        revenueChart.data.datasets[0].data = data;
-        revenueChart.update();
+        revenueChart.data.labels           = labels;
+        revenueChart.data.datasets[0].data = geleverdData;
+        revenueChart.data.datasets[1].data = verwachtData;
+        revenueChart.update('active');
         return;
     }
 
@@ -2070,36 +3689,67 @@ function _drawRevenueChart(labels, data) {
         type: 'line',
         data: {
             labels,
-            datasets: [{
-                label: 'Revenue',
-                data,
-                borderColor: '#3b82f6',
-                borderWidth: 2.5,
-                backgroundColor: grad,
-                fill: true,
-                tension: 0.45,
-                pointRadius: 3,
-                pointBackgroundColor: '#3b82f6',
-                pointBorderColor: '#0a0a0a',
-                pointBorderWidth: 2,
-                pointHoverRadius: 7,
-            }]
+            datasets: [
+                {
+                    label: 'Geleverd (werkelijk)',
+                    data: geleverdData,
+                    borderColor: '#3b82f6',
+                    borderWidth: 2.5,
+                    backgroundColor: gradG,
+                    fill: true,
+                    tension: 0.4,
+                    pointRadius: 5,
+                    pointBackgroundColor: '#3b82f6',
+                    pointBorderColor: '#050505',
+                    pointBorderWidth: 2,
+                    pointHoverRadius: 8,
+                    order: 2
+                },
+                {
+                    label: 'Verwacht (contract)',
+                    data: verwachtData,
+                    borderColor: '#f59e0b',
+                    borderWidth: 2,
+                    borderDash: [6, 4],
+                    backgroundColor: 'transparent',
+                    fill: false,
+                    tension: 0.4,
+                    pointRadius: 4,
+                    pointBackgroundColor: '#f59e0b',
+                    pointBorderColor: '#050505',
+                    pointBorderWidth: 2,
+                    pointHoverRadius: 7,
+                    order: 1
+                }
+            ]
         },
         options: {
             responsive: true,
             maintainAspectRatio: false,
+            interaction: { mode: 'index', intersect: false },
+            animation: { duration: 350, easing: 'easeInOutQuart' },
+            onClick: (evt, elements) => {
+                if (elements && elements.length > 0) {
+                    const idx = elements[0].index;
+                    if (_activeRevenueKwartaal === null) {
+                        _activeRevenueKwartaal = idx + 1;
+                    } else {
+                        _activeRevenueKwartaal = null;
+                    }
+                    updateRevenueChart();
+                }
+            },
             plugins: {
-                legend: { display: false },
+                legend: { display: false },   // we have our own HTML legend
                 tooltip: {
-                    backgroundColor: '#111',
+                    backgroundColor: '#111827',
                     titleColor: '#fff',
-                    bodyColor: '#94a3b8',
+                    bodyColor: 'rgba(255,255,255,0.65)',
                     borderColor: 'rgba(255,255,255,0.08)',
                     borderWidth: 1,
-                    padding: 12,
-                    displayColors: false,
+                    padding: 14,
                     callbacks: {
-                        label: c => '€' + c.parsed.y.toLocaleString()
+                        label: c => ` ${c.dataset.label}: €${Number(c.parsed.y).toLocaleString('nl-NL', {maximumFractionDigits:0})}`
                     }
                 }
             },
@@ -2107,7 +3757,7 @@ function _drawRevenueChart(labels, data) {
                 x: {
                     grid: { display: false },
                     border: { display: false },
-                    ticks: { color: 'rgba(255,255,255,0.35)', font: { size: 11 } }
+                    ticks: { color: 'rgba(255,255,255,0.4)', font: { size: 11, weight: '700' } }
                 },
                 y: {
                     grid: { color: 'rgba(255,255,255,0.04)', borderDash: [3,3] },
@@ -2115,7 +3765,7 @@ function _drawRevenueChart(labels, data) {
                     ticks: {
                         color: 'rgba(255,255,255,0.3)',
                         font: { size: 11 },
-                        callback: v => '€' + (v/1000).toFixed(0) + 'k'
+                        callback: v => '€' + (v >= 1000000 ? (v/1000000).toFixed(1)+'M' : (v/1000).toFixed(0)+'k')
                     }
                 }
             }
@@ -2123,13 +3773,79 @@ function _drawRevenueChart(labels, data) {
     });
 }
 
+// ── Main update: decides quarterly vs monthly view ────────────────────────────
 function updateRevenueChart() {
-    const year   = parseInt(document.getElementById('chart-year')?.value || 2024);
-    const period = document.getElementById('chart-period')?.value || 'all';
-    const { labels, data } = getChartSlice(year, period);
-    renderYearStrip();
-    _drawRevenueChart(labels, data);
+    const yr = _activeRevenueYear;
+    const kw = _activeRevenueKwartaal;
+
+    // Sync dropdowns if they exist
+    const yrSelect = document.getElementById('chart-year-select');
+    if (yrSelect && yrSelect.value !== String(yr)) {
+        yrSelect.value = String(yr);
+    }
+    const qwSelect = document.getElementById('chart-quarter-select');
+    if (qwSelect && qwSelect.value !== (kw === null ? 'null' : String(kw))) {
+        qwSelect.value = kw === null ? 'null' : String(kw);
+    }
+
+    // Update dynamic title
+    const titleEl = document.getElementById('revenue-chart-title');
+    if (titleEl) {
+        titleEl.textContent = kw === null ? `Jaaromzet ${yr}` : `Kwartaalomzet Q${kw} ${yr}`;
+    }
+
+    // Update subtitle
+    const sub = document.getElementById('chart-subtitle');
+    if (sub) {
+        if (kw === null) {
+            sub.textContent = `Alle kwartalen ${yr} — klik een kwartaal om in te zoomen`;
+        } else {
+            const maandNamen = _Q_MAANDEN[kw].map(i => _MAAND_NL[i]);
+            sub.textContent  = `Q${kw} ${yr} (${maandNamen.join(' / ')}) — klik nogmaals om terug te gaan`;
+        }
+    }
+
+    if (kw === null) {
+        // ── Quarterly overview ───────────────────────────────────────────────
+        const labels = ['Q1', 'Q2', 'Q3', 'Q4'];
+
+        // Build geleverd: prefer kwartaal rows, fallback to aggregated maand data
+        const kwRows = _kwartaalRows.filter(r => r.jaar === yr);
+        const geleverdData = [1,2,3,4].map(q => {
+            const r = kwRows.find(x => x.kwartaal === q);
+            if (r && r.geleverd > 0) return r.geleverd;
+            // Fallback: aggregate monthly data into this quarter
+            const maanden = _Q_MAANDEN[q];
+            return _maandRows
+                .filter(m => m.jaar === yr && maanden.includes(m.maand - 1))
+                .reduce((s, m) => s + (m.totaal_bedrag || 0), 0);
+        });
+
+        const verwachtData = [1,2,3,4].map(q => {
+            const r = kwRows.find(x => x.kwartaal === q);
+            return r ? (r.verwacht || 0) : 0;
+        });
+
+        _drawRevenueChart(labels, geleverdData, verwachtData);
+    } else {
+        // ── Monthly drill-down into selected quarter ──────────────────────────
+        const maandIdxs = _Q_MAANDEN[kw];   // e.g. [0,1,2] for Q1
+        const labels    = maandIdxs.map(i => _MAAND_NL[i]);
+        const geleverdData = maandIdxs.map(i => {
+            const row = _maandRows.find(r => r.jaar === yr && (r.maand - 1) === i);
+            return row ? parseFloat(row.totaal_bedrag || 0) : 0;
+        });
+        // Expected per month = quarterly expected / 3
+        const qRow = _kwartaalRows.find(r => r.jaar === yr && r.kwartaal === kw);
+        const verwachtPerMaand = qRow ? Math.round((qRow.verwacht || 0) / 3) : 0;
+        const verwachtData = maandIdxs.map(() => verwachtPerMaand);
+        _drawRevenueChart(labels, geleverdData, verwachtData);
+    }
 }
+
+// Legacy alias
+const buildRevenueDataFromDB = () => {};
+
 
 // Draw the Hours-per-Client chart with the given labels & data arrays
 let hoursChart = null;
@@ -2188,48 +3904,60 @@ function _drawHoursChart(labels, data) {
 }
 
 async function initCharts() {
+    if (typeof Chart === 'undefined') return;
     Chart.defaults.color = 'rgba(255,255,255,0.4)';
     Chart.defaults.font.family = "'Inter', sans-serif";
 
-    // ── Revenue Overview: try live DB first ───────────────────────────────────
-    const revenueRows = await apiFetchSafe('/api/revenue-per-maand');
-    if (revenueRows && revenueRows.length > 0) {
-        const dbData = buildRevenueDataFromDB(revenueRows);
-        if (Object.keys(dbData).length > 0) {
-            // Merge live data into revenueData so year strip also updates
-            Object.assign(revenueData, dbData);
-            console.log('[Charts] Revenue data loaded from Supabase ✓');
-        }
+    // ── Load quarterly + monthly data in parallel ──────────────────────────────
+    const [kwartaalRows, maandRows] = await Promise.all([
+        apiFetchSafe('/api/revenue-per-kwartaal'),
+        apiFetchSafe('/api/revenue-per-maand')
+    ]);
+
+    // Store quarterly rows
+    if (kwartaalRows && kwartaalRows.length > 0) {
+        _kwartaalRows = kwartaalRows;
+        console.log('[Charts] Kwartaal revenue loaded ✓', kwartaalRows.length, 'rows');
+    } else {
+        const yr = new Date().getFullYear();
+        _kwartaalRows = [1,2,3,4].map(q => ({ jaar: yr, kwartaal: q, geleverd: 0, verwacht: 0 }));
+        console.warn('[Charts] No quarterly data, using empty fallback');
     }
-    
-    // Build year selector from ALL available years (fallback + DB), select current year
-    const yearSelect = document.getElementById('chart-year');
-    if (yearSelect) {
-        const currentYear = new Date().getFullYear();
-        const allYears = Object.keys(revenueData).map(Number).sort((a,b) => b - a);
-        yearSelect.innerHTML = allYears.map(y =>
-            `<option value="${y}" ${y === currentYear ? 'selected' : ''}>${y}</option>`
-        ).join('');
+
+    // Store monthly rows (for drill-down)
+    if (maandRows && maandRows.length > 0) {
+        _maandRows = maandRows.map(r => ({
+            jaar: parseInt(r.jaar),
+            maand: parseInt(r.maand),
+            totaal_bedrag: parseFloat(r.totaal_bedrag || 0)
+        }));
+        console.log('[Charts] Maand data loaded ✓', _maandRows.length, 'rows');
     }
+
+    // Auto-select most recent year overall
+    const allYears = [...new Set([
+        ..._kwartaalRows.map(r => r.jaar),
+        ..._maandRows.map(r => r.jaar)
+    ])];
+    _activeRevenueYear = allYears.length > 0
+        ? Math.max(...allYears)
+        : new Date().getFullYear();
+    _activeRevenueKwartaal = null;
+
+    // Populate dropdown and draw chart
+    populateYearSelect();
     updateRevenueChart();
 
-    // ── Hours per Client: try live DB first ───────────────────────────────────
-    const hoursRows = await apiFetch('/api/uren-per-klant');
+    // ── Hours per Client ───────────────────────────────────────────────────────
+    const hoursRows = await apiFetchSafe('/api/uren-per-klant');
     if (hoursRows && hoursRows.length > 0) {
-        // Detect column names flexibly
-        const first = hoursRows[0];
+        const first    = hoursRows[0];
         const nameKey  = Object.keys(first).find(k => /klant|client|naam|name/i.test(k)) || Object.keys(first)[0];
         const hoursKey = Object.keys(first).find(k => /uren|hours|uur/i.test(k))  || Object.keys(first)[1];
-        const labels = hoursRows.map(r => r[nameKey]);
-        const data   = hoursRows.map(r => parseFloat(r[hoursKey]) || 0);
-        _drawHoursChart(labels, data);
-        console.log('[Charts] Hours-per-client data loaded from Supabase ✓');
+        _drawHoursChart(hoursRows.map(r => r[nameKey]), hoursRows.map(r => parseFloat(r[hoursKey]) || 0));
+        console.log('[Charts] Hours-per-client loaded ✓');
     } else {
-        // Fallback mock
-        _drawHoursChart(
-            ['Acme Corp', 'Initech', 'Soylent Corp', 'Globex', 'Umbrella Corp'],
-            [640, 800, 480, 320, 160]
-        );
+        _drawHoursChart(['Geen data'], [0]);
     }
 }
 
@@ -2247,7 +3975,7 @@ function closeModal(id) {
 document.addEventListener('click', e => {
     [
         'modal-onboard','modal-adv-filter','modal-add-client','modal-create-invoice',
-        'modal-client-form','modal-project-form','modal-factuur-form'
+        'modal-client-form','modal-project-form','modal-factuur-form','modal-client-contracts'
     ].forEach(id => {
         const m = document.getElementById(id);
         if (m && e.target === m) closeModal(id);
@@ -2270,6 +3998,8 @@ async function submitOnboard() {
     const email = document.getElementById('ob-email')?.value.trim();
     const rol   = document.getElementById('ob-role')?.value;
     const rate  = parseInt(document.getElementById('ob-rate')?.value) || 70;
+    const skillsInput = document.getElementById('ob-skills')?.value || '';
+    const skillsArray = skillsInput.split(',').map(s => s.trim()).filter(s => s);
 
     if (!first || !last || !email) {
         showToast('⚠ Vul Naam en E-mail in.');
@@ -2282,7 +4012,9 @@ async function submitOnboard() {
             body: JSON.stringify({
                 naam: `${first} ${last}`,
                 email, rol, type: 'ZZP',
-                uurtarief: rate, weekcapaciteit: 40
+                uurtarief: rate, weekcapaciteit: 40,
+                status: 'active',
+                skills: JSON.stringify(skillsArray)
             })
         });
         closeModal('modal-onboard');
@@ -2344,9 +4076,10 @@ function setDevFilter(filter, btn) {
 
 function filterDevelopers(searchText, statusFilter) {
     let filtered = developers.filter(d => {
+        const name = d.name || d.naam || '';
         const matchText = !searchText ||
-            d.name.toLowerCase().includes(searchText.toLowerCase()) ||
-            (d.role||'').toLowerCase().includes(searchText.toLowerCase());
+            name.toLowerCase().includes(searchText.toLowerCase()) ||
+            (d.role || d.rol || '').toLowerCase().includes(searchText.toLowerCase());
         const isBooked = (d.hoursThisWeek || 0) >= 38;
         const matchStatus = !statusFilter || statusFilter === 'all' ||
             (statusFilter === 'booked' ? isBooked : !isBooked);
@@ -2370,20 +4103,7 @@ function renderDevelopersByData(data) {
 // Alias used by older call-sites
 const renderDeveloperCards = renderDevelopersGrid;
 
-// ===== TOAST NOTIFICATION =====
-function showToast(msg) {
-    const t = document.createElement('div');
-    t.textContent = msg;
-    Object.assign(t.style, {
-        position:'fixed', bottom:'1.5rem', right:'1.5rem', zIndex:'9999',
-        background:'#111', border:'1px solid rgba(16,185,129,0.3)',
-        color:'#34d399', padding:'0.75rem 1.25rem', borderRadius:'0.75rem',
-        fontSize:'0.875rem', fontWeight:'700', boxShadow:'0 8px 32px rgba(0,0,0,0.4)',
-        transition:'opacity 0.5s', opacity:'1'
-    });
-    document.body.appendChild(t);
-    setTimeout(() => { t.style.opacity = '0'; setTimeout(() => t.remove(), 500); }, 3000);
-}
+// ===== TOAST NOTIFICATION REDIRECTED TO UNIFIED HELPER =====
 
 // ===== DEVELOPER TIMESHEETS =====
 
@@ -2400,9 +4120,9 @@ function renderDevTimesheets(data) {
     if (searchText || statusFilter) {
         rows = rows.filter(e => {
             const matchText = !searchText ||
-                e.projectName.toLowerCase().includes(searchText) ||
+                (e.projectName || '').toLowerCase().includes(searchText) ||
                 (e.description || '').toLowerCase().includes(searchText);
-            const matchStatus = !statusFilter || e.status === statusFilter;
+            const matchStatus = !statusFilter || (e.status || '') === statusFilter;
             return matchText && matchStatus;
         });
     }
@@ -2413,20 +4133,23 @@ function renderDevTimesheets(data) {
     }
 
     tbody.innerHTML = rows.map(entry => {
-        const isPending  = entry.status.toLowerCase() === 'pending';
-        const isApproved = entry.status.toLowerCase() === 'approved';
+        const isPending  = (entry.status || '').toLowerCase() === 'pending';
+        const isApproved = (entry.status || '').toLowerCase() === 'approved';
         const statusStyle = isPending
             ? 'background:rgba(245,158,11,0.1);color:#fbbf24;border:1px solid rgba(245,158,11,0.2)'
             : isApproved
             ? 'background:rgba(16,185,129,0.1);color:#34d399;border:1px solid rgba(16,185,129,0.2)'
             : 'background:rgba(244,63,94,0.1);color:#fb7185;border:1px solid rgba(244,63,94,0.2)';
         
-        const isOvertime = entry.description.includes('[OVERTIME]');
+        const desc = entry.description || '';
+        const isOvertime = desc.includes('[OVERTIME]');
         const typeStr = isOvertime ? 'Overtime' : 'Regular';
         const typeColor = isOvertime ? '#fbbf24' : 'var(--white-50)';
+        const dateStr = entry.date || '—';
 
         return `
-        <tr class="ts-row" title="${entry.description}">
+        <tr class="ts-row" title="${desc.replace('[OVERTIME] ', '')}">
+            <td style="padding:0.875rem 1.25rem;color:var(--white-50);font-size:0.8125rem">${dateStr}</td>
             <td style="padding:0.875rem 1.25rem;font-weight:600;color:#60a5fa;font-size:0.875rem">${entry.projectName}</td>
             <td style="padding:0.875rem 1.25rem;color:var(--white-80);font-size:0.8125rem">${entry.hoursWorked}h</td>
             <td style="padding:0.875rem 1.25rem;color:${typeColor};font-size:0.8125rem">${typeStr}</td>
@@ -2442,12 +4165,37 @@ function renderDevTimesheets(data) {
 }
 
 function updateDevTsStats() {
-    const currentDevId = developers[0]?.id;
+    const currentDevId = activeDeveloper?.id || developers[0]?.id;
     const devTs = timesheets.filter(t => t.developer_id === currentDevId);
     
-    const thisWeek = devTs.reduce((s, e) => s + (parseFloat(e.hoursWorked)||0), 0);
-    const approved = devTs.filter(e => e.status.toLowerCase() === 'approved').reduce((s, e) => s + (parseFloat(e.hoursWorked)||0), 0);
-    const pending  = devTs.filter(e => e.status.toLowerCase() === 'pending').reduce((s, e) => s + (parseFloat(e.hoursWorked)||0), 0);
+    // --- This Week: only uren from Mon-Sun of the current week ---
+    const now = new Date();
+    const dayOfWeek = now.getDay() === 0 ? 6 : now.getDay() - 1; // Mon=0 ... Sun=6
+    const monday = new Date(now);
+    monday.setDate(now.getDate() - dayOfWeek);
+    monday.setHours(0, 0, 0, 0);
+    const sunday = new Date(monday);
+    sunday.setDate(monday.getDate() + 6);
+    sunday.setHours(23, 59, 59, 999);
+
+    const thisWeek = devTs
+        .filter(e => {
+            if (!e.date) return false;
+            // e.date comes from formatDateString which gives DD-MM-YYYY
+            const parts = e.date.split('-');
+            let d;
+            if (parts.length === 3 && parts[2].length === 4) {
+                // DD-MM-YYYY format
+                d = new Date(`${parts[2]}-${parts[1]}-${parts[0]}`);
+            } else {
+                d = new Date(e.date);
+            }
+            return d >= monday && d <= sunday;
+        })
+        .reduce((s, e) => s + (parseFloat(e.hoursWorked)||0), 0);
+
+    const approved = devTs.filter(e => (e.status || '').toLowerCase() === 'approved').reduce((s, e) => s + (parseFloat(e.hoursWorked)||0), 0);
+    const pending  = devTs.filter(e => (e.status || '').toLowerCase() === 'pending').reduce((s, e) => s + (parseFloat(e.hoursWorked)||0), 0);
     
     if (document.getElementById('dev-ts-week'))     document.getElementById('dev-ts-week').textContent     = thisWeek + 'h';
     if (document.getElementById('dev-ts-approved')) document.getElementById('dev-ts-approved').textContent = approved + 'h';
@@ -2456,10 +4204,16 @@ function updateDevTsStats() {
     const currentMonth = new Date().getMonth();
     const currentYear = new Date().getFullYear();
     const earnings = devTs
-        .filter(e => e.status.toLowerCase() === 'approved')
+        .filter(e => (e.status || '').toLowerCase() === 'approved')
         .filter(e => {
             if (!e.date) return false;
-            const d = new Date(e.date);
+            const parts = e.date.split('-');
+            let d;
+            if (parts.length === 3 && parts[2].length === 4) {
+                d = new Date(`${parts[2]}-${parts[1]}-${parts[0]}`);
+            } else {
+                d = new Date(e.date);
+            }
             return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
         })
         .reduce((s, e) => s + (parseFloat(e.bedrag)||0), 0);
@@ -2508,10 +4262,10 @@ async function refreshDevTimesheetsSilent() {
             
             for (const newTs of newDevTs) {
                 const oldTs = oldDevTs.find(t => t.id === newTs.id);
-                if (oldTs && oldTs.status.toLowerCase() !== newTs.status.toLowerCase()) {
+                if (oldTs && (oldTs.status || '').toLowerCase() !== (newTs.status || '').toLowerCase()) {
                     statusChanged = true;
-                    if (newTs.status.toLowerCase() === 'approved') approvedCount++;
-                    if (newTs.status.toLowerCase() === 'rejected') rejectedCount++;
+                    if ((newTs.status || '').toLowerCase() === 'approved') approvedCount++;
+                    if ((newTs.status || '').toLowerCase() === 'rejected') rejectedCount++;
                 }
             }
             
@@ -2541,20 +4295,32 @@ async function deleteDevTimesheet(id) {
 }
 
 async function submitDevTimesheet() {
-    // Guard: need at least 1 developer
-    if (developers.length === 0) {
+    const developer_id = activeDeveloper?.id || developers[0]?.id;
+    if (!developer_id) {
         showToast('⚠ Geen developer gevonden. Log opnieuw in.');
         return;
     }
 
-    const date       = document.getElementById('dev-ts-date')?.value;
-    const project_id = document.getElementById('dev-ts-project')?.value;
-    const hours      = parseFloat(document.getElementById('dev-ts-hours')?.value);
-    const type       = document.getElementById('dev-ts-type')?.value || 'Regular';
-    let desc         = document.getElementById('dev-ts-desc')?.value?.trim() || '';
+    const date        = document.getElementById('dev-ts-date')?.value;
+    const project_id  = document.getElementById('dev-ts-project')?.value;
+    const hours       = parseFloat(document.getElementById('dev-ts-hours')?.value);
+    const type        = document.getElementById('dev-ts-type')?.value || 'Regular';
+    let desc          = document.getElementById('dev-ts-desc')?.value?.trim() || '';
 
-    if (!date || !project_id || !hours || hours < 0.5) {
-        showToast('⚠ Vul Datum, Project en Uren in.');
+    if (!developer_id) {
+        showToast('⚠ Fout: geen developer ingelogd');
+        return;
+    }
+    if (!project_id || project_id === '' || project_id === 'undefined') {
+        showToast('⚠ Selecteer een geldig project.');
+        return;
+    }
+    if (!date) {
+        showToast('⚠ Kies een datum.');
+        return;
+    }
+    if (!hours || hours <= 0 || hours > 8) {
+        showToast('⚠ Voer een geldig aantal uren in (1-8).');
         return;
     }
 
@@ -2562,17 +4328,16 @@ async function submitDevTimesheet() {
         desc = `[OVERTIME] ${desc}`;
     }
 
-    // Use the first developer as the logged-in developer (placeholder until auth is added)
-    const developer_id = developers[0]?.id;
-    if (!developer_id) { showToast('⚠ Geen developer gevonden.'); return; }
-    
-    const uurtarief = developers[0]?.hourlyRate || 0;
-    const bedrag = hours * uurtarief;
-
     try {
         await apiFetch('/api/timesheets', {
             method: 'POST',
-            body: JSON.stringify({ developer_id, project_id, datum: date, aantal_uren: hours, bedrag, omschrijving: desc || null })
+            body: JSON.stringify({ 
+                developer_id: parseInt(developer_id), 
+                project_id: parseInt(project_id), 
+                datum: date, 
+                aantal_uren: hours, 
+                omschrijving: desc || ''
+            })
         });
 
         // Reset form
@@ -2630,16 +4395,19 @@ const typeColors = {
     'Other':    'rgba(255,255,255,0.06);color:var(--white-60);border:1px solid rgba(255,255,255,0.1)',
 };
 
-function renderDevDocuments() {
+function renderDevDocsList() {
     const tbody = document.getElementById('dev-docs-body');
     if (!tbody) return;
 
-    if (devDocuments.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="4" style="padding:2rem;text-align:center;color:var(--white-30);font-size:0.875rem">No documents yet</td></tr>`;
+    const filterVal = document.getElementById('dev-docs-filter')?.value || '';
+    const filteredDocs = filterVal ? devDocuments.filter(d => d.type === filterVal) : devDocuments;
+
+    if (filteredDocs.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="4" style="padding:2rem;text-align:center;color:var(--white-30);font-size:0.875rem">No documents found</td></tr>`;
         return;
     }
 
-    tbody.innerHTML = devDocuments.map(doc => {
+    tbody.innerHTML = filteredDocs.map(doc => {
         const typeBg = typeColors[doc.type] || typeColors['Other'];
         return `
         <tr class="ts-row">
@@ -2672,14 +4440,81 @@ function renderDevDocuments() {
     }).join('');
     if (typeof lucide !== 'undefined') lucide.createIcons();
     updateDocTotal();
+    renderDevCVPreview();
+}
+
+function renderDevDocuments() {
+    renderDevDocsList();
+}
+
+function renderDevCVPreview() {
+    const previewContainer = document.getElementById('dev-docs-cv-preview');
+    if (!previewContainer) return;
+
+    const cvDoc = devDocuments.find(d => d.type === 'CV');
+    if (!cvDoc) {
+        previewContainer.innerHTML = `
+            <div onclick="triggerDocUpload('CV')" style="background:rgba(255,255,255,0.02);border:1.5px dashed rgba(255,255,255,0.1);border-radius:0.875rem;padding:2rem 1rem;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;margin-bottom:1rem;cursor:pointer;transition:all 0.2s">
+                <i data-lucide="file-x" style="width:24px;height:24px;color:var(--white-30);margin-bottom:0.75rem"></i>
+                <div style="font-weight:700;font-size:0.875rem;color:var(--white-60)">Geen CV geüpload</div>
+                <div style="margin-top:0.25rem;font-size:0.625rem;color:#60a5fa;font-weight:700;text-transform:uppercase;letter-spacing:0.08em">Klik om te uploaden</div>
+            </div>
+        `;
+    } else {
+        const devId = developers[0]?.id || '';
+        const devName = (developers[0]?.naam || '').replace(/'/g, "\\'");
+        
+        let actionsHtml = `
+            <button class="btn-outline" onclick="downloadDevCV()" style="justify-content:center;font-size:0.75rem;padding:0.5rem 0.75rem;flex:1">
+                <i data-lucide="download" style="width:13px;height:13px"></i> Download
+            </button>
+            <button class="btn-outline" onclick="triggerDocUpload('cv')" style="justify-content:center;font-size:0.75rem;padding:0.5rem 0.75rem;flex:1">
+                <i data-lucide="upload-cloud" style="width:13px;height:13px"></i> Replace
+            </button>
+        `;
+
+        actionsHtml += `
+        <button class="btn-outline" onclick="openCvConverterModal({developer_naam: '${devName}', cv_url: '${cvDoc.url || ''}', developer_id: '${devId}'})" style="justify-content:center;font-size:0.75rem;padding:0.5rem 0.75rem;flex:1;border-color:rgba(167,139,250,0.3);color:#a78bfa">
+            <i data-lucide="sparkles" style="width:13px;height:13px"></i> Converteer
+        </button>
+        `;
+
+        previewContainer.innerHTML = `
+            <div onclick="downloadDevCV()" style="background:rgba(255,255,255,0.03);border:1.5px dashed rgba(255,255,255,0.12);border-radius:0.875rem;padding:2rem 1rem;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;margin-bottom:1rem;cursor:pointer;transition:all 0.2s" onmouseover="this.style.borderColor='rgba(37,99,235,0.4)';this.style.background='rgba(37,99,235,0.04)'" onmouseout="this.style.borderColor='rgba(255,255,255,0.12)';this.style.background='rgba(255,255,255,0.03)'">
+                <div style="width:3rem;height:3rem;border-radius:0.75rem;background:rgba(37,99,235,0.1);border:1px solid rgba(37,99,235,0.2);display:flex;align-items:center;justify-content:center;margin-bottom:0.75rem">
+                    <i data-lucide="file-text" style="width:22px;height:22px;color:#60a5fa"></i>
+                </div>
+                <div style="font-weight:700;font-size:0.875rem;color:var(--white);margin-bottom:0.25rem">${cvDoc.name}</div>
+                <div style="font-size:0.6875rem;color:var(--white-40)">Uploaded ${cvDoc.date} &bull; ${cvDoc.size}</div>
+                <div style="margin-top:0.75rem;font-size:0.625rem;color:#60a5fa;font-weight:700;text-transform:uppercase;letter-spacing:0.08em">Click to download</div>
+            </div>
+            <div style="display:flex;gap:0.625rem">
+                ${actionsHtml}
+            </div>
+        `;
+    }
+    if (typeof lucide !== 'undefined') lucide.createIcons();
 }
 
 function updateDocTotal() {
     const el = document.getElementById('doc-total');
     if (el) el.textContent = devDocuments.length;
+    
+    const lastUploadEl = document.getElementById('doc-last-upload');
+    if (lastUploadEl) {
+        if (devDocuments.length > 0) {
+            // Find most recent
+            const sorted = [...devDocuments].sort((a,b) => new Date(b.date) - new Date(a.date));
+            const diffDays = Math.floor((new Date() - new Date(sorted[0].date)) / (1000 * 60 * 60 * 24));
+            lastUploadEl.textContent = diffDays === 0 ? 'Vandaag' : diffDays === 1 ? 'Gisteren' : `${diffDays} dagen geleden`;
+        } else {
+            lastUploadEl.textContent = '—';
+        }
+    }
 }
 
 function triggerDocUpload(hint) {
+    window._uploadDocType = hint ? hint.toUpperCase() : 'OTHER';
     document.getElementById('doc-file-input')?.click();
 }
 
@@ -2687,17 +4522,81 @@ function handleDocUpload(input) {
     const file = input.files[0];
     if (!file) return;
     const ext = file.name.split('.').pop().toUpperCase();
-    devDocuments.unshift({
-        id: genId('doc'),
-        name: file.name, type: 'Other',
-        date: new Date().toISOString().slice(0,10),
-        size: (file.size/1024/1024).toFixed(1)+' MB',
-        icon: 'file', color: 'var(--white-50)'
-    });
+    const type = window._uploadDocType || 'OTHER';
+
+    if (type === 'CV') {
+        const cvDocIdx = devDocuments.findIndex(d => d.type === 'CV');
+        const cvDoc = {
+            id: genId('doc'),
+            name: file.name,
+            type: 'CV',
+            date: new Date().toISOString().slice(0, 10),
+            size: (file.size / 1024 / 1024).toFixed(1) + ' MB',
+            icon: 'file-text',
+            color: '#60a5fa',
+            url: 'uploads/' + file.name
+        };
+        if (cvDocIdx >= 0) {
+            devDocuments[cvDocIdx] = cvDoc;
+        } else {
+            devDocuments.unshift(cvDoc);
+        }
+    } else {
+        devDocuments.unshift({
+            id: genId('doc'),
+            name: file.name,
+            type: type,
+            date: new Date().toISOString().slice(0, 10),
+            size: (file.size / 1024 / 1024).toFixed(1) + ' MB',
+            icon: 'file',
+            color: 'var(--white-50)',
+            url: 'uploads/' + file.name
+        });
+    }
+
     saveDevDocs();
     input.value = '';
     renderDevDocuments();
     showToast(`✓ "${file.name}" uploaded!`);
+
+    // Sync with cvs list if a CV is uploaded
+    if (type === 'CV') {
+        const activeDev = activeDeveloper || developers[0];
+        const activeDevId = activeDev?.id || activeDev?.developer_id || 'dev1';
+        const activeDevName = activeDev?.naam || activeDev?.name || 'Developer';
+        const activeDevEmail = activeDev?.email || 'developer@reemo.io';
+        const activeDevRole = activeDev?.rol || activeDev?.role || 'Developer';
+        const activeDevRate = activeDev?.uurtarief || activeDev?.hourlyRate || 85;
+
+        if (activeDev) {
+            activeDev.cv_url = 'uploads/' + file.name;
+            saveDevelopers();
+        }
+
+        const cvIdx = cvs.findIndex(c => c.developer_id === activeDevId || c.id === activeDevId || c.email === activeDevEmail);
+        const cvEntry = {
+            id: cvIdx >= 0 ? cvs[cvIdx].id : genId('cv'),
+            developer_id: activeDevId,
+            naam: activeDevName,
+            name: activeDevName,
+            email: activeDevEmail,
+            rol: activeDevRole,
+            role: activeDevRole,
+            rate: activeDevRate,
+            skills: cvIdx >= 0 ? cvs[cvIdx].skills : ['JavaScript'],
+            uploadDate: new Date().toISOString().slice(0, 10),
+            status: 'ORIGINAL',
+            cv_url: 'uploads/' + file.name
+        };
+        if (cvIdx >= 0) {
+            cvs[cvIdx] = cvEntry;
+        } else {
+            cvs.unshift(cvEntry);
+        }
+        saveCVs();
+        renderCVDatabase();
+        updateCVStats();
+    }
 }
 
 function downloadDevDoc(id) {
@@ -2710,13 +4609,192 @@ function downloadDevDoc(id) {
     a.href = url; a.download = doc.name.replace(/\.[^.]+$/, '.txt');
     a.click(); URL.revokeObjectURL(url);
 }
-
 function downloadDevCV() {
-    const text = `CURRICULUM VITAE\n\nName: Alex Rivera\nRole: Senior Frontend Developer\nManaged by: Reemo B.V.\nDate: ${new Date().toLocaleDateString()}\n\n[Full CV on file — Reemo Format]`;
-    const blob = new Blob([text], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a'); a.href = url; a.download = 'Alex_Rivera_CV.txt';
-    a.click(); URL.revokeObjectURL(url);
+    const cvDoc = devDocuments.find(d => d.type === 'CV');
+    if(cvDoc) downloadDevDoc(cvDoc.id);
+}
+
+// ===== SKILLS API & CV CONVERTER MODAL =====
+
+async function saveSkills(devId, updatedSkills) {
+  try {
+    const res = await fetch(`/api/developers/${devId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ skills: updatedSkills })
+    });
+
+    if (!res.ok) {
+      showToast('Skills opslaan mislukt. Probeer opnieuw.', 'error');
+      return false;
+    }
+
+    showToast('Skills bijgewerkt', 'success');
+    return true;
+  } catch (err) {
+    showToast('Skills opslaan mislukt. Probeer opnieuw.', 'error');
+    console.error('Skills save error:', err);
+    return false;
+  }
+}
+
+async function addDevSkill(devId) {
+    const input = document.getElementById('new-dev-skill');
+    if (!input || !input.value.trim()) return;
+    const newSkill = input.value.trim();
+    
+    try {
+        const res = await apiFetch(`/api/developers/${devId}`);
+        let currentSkills = [];
+        try { currentSkills = JSON.parse(res.developer.skills) || []; } catch(e) {}
+        
+        if (!currentSkills.includes(newSkill)) {
+            currentSkills.push(newSkill);
+            const success = await saveSkills(devId, currentSkills);
+            if (success) {
+                input.value = '';
+                loadDevProfile(); // reload the UI
+            }
+        }
+    } catch(e) {
+        showToast('⚠ Fout bij toevoegen skill: ' + e.message, 'error');
+    }
+}
+
+async function removeDevSkill(devId, skillToRemove) {
+    if(!confirm(`Weet je zeker dat je "${skillToRemove}" wilt verwijderen?`)) return;
+    try {
+        const res = await apiFetch(`/api/developers/${devId}`);
+        let currentSkills = [];
+        try { currentSkills = JSON.parse(res.developer.skills) || []; } catch(e) {}
+        
+        currentSkills = currentSkills.filter(s => s !== skillToRemove);
+        
+        const success = await saveSkills(devId, currentSkills);
+        if (success) {
+            loadDevProfile(); // reload the UI
+        }
+    } catch(e) {
+        showToast('⚠ Fout bij verwijderen skill: ' + e.message, 'error');
+    }
+}
+
+async function downloadDeveloperCV(devId) {
+  try {
+    const res = await fetch(`/api/developers/${devId}/cv-url`);
+    const data = await res.json();
+
+    const url = data.url || (data.data && data.data.url);
+    if (!res.ok || !url) {
+      showToast('CV niet beschikbaar. Upload eerst een CV via My Documents.', 'error');
+      return;
+    }
+
+    // Start download
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = data.filename || (data.data && data.data.filename) || 'CV.pdf';
+    a.click();
+  } catch (err) {
+    showToast('CV niet beschikbaar. Upload eerst een CV via My Documents.', 'error');
+    console.error('CV download fout:', err);
+  }
+}
+
+function openCvConverterModal({ developer_naam, cv_url, developer_id }) {
+    let modal = document.getElementById('modal-cv-converter');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'modal-cv-converter';
+        modal.style = 'display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.75);backdrop-filter:blur(6px);align-items:center;justify-content:center';
+        document.body.appendChild(modal);
+    }
+    
+    if (typeof CV_CONVERTER_ENABLED !== 'undefined' && CV_CONVERTER_ENABLED) {
+        // Active/working CV Converter Modal in English
+        modal.innerHTML = `
+            <div style="background:#111;border:1px solid #333;border-radius:1rem;width:90%;max-width:400px;overflow:hidden;animation:slideUpFade 0.3s ease-out">
+                <div style="display:flex;justify-content:space-between;align-items:center;padding:1.25rem 1.5rem;border-bottom:1px solid #1f1f1f;background:linear-gradient(90deg, rgba(167,139,250,0.05), transparent)">
+                    <div style="display:flex;align-items:center;gap:0.75rem">
+                        <div style="width:2rem;height:2rem;border-radius:0.5rem;background:rgba(167,139,250,0.1);display:flex;align-items:center;justify-content:center;color:#a78bfa;border:1px solid rgba(167,139,250,0.2)">
+                            <i data-lucide="sparkles" style="width:14px;height:14px"></i>
+                        </div>
+                        <div>
+                            <div style="font-weight:700;font-size:0.9375rem;color:var(--white)">Reemo CV Converter</div>
+                            <div style="font-size:0.6875rem;color:var(--white-40)">Automated Formatting</div>
+                        </div>
+                    </div>
+                    <button onclick="document.getElementById('modal-cv-converter').style.display='none'" style="background:none;border:none;color:var(--white-40);cursor:pointer;padding:0.25rem"><i data-lucide="x" style="width:18px;height:18px"></i></button>
+                </div>
+                <div style="padding:1.5rem">
+                    <div style="text-align:center;margin-bottom:1.5rem">
+                        <div style="width:3rem;height:3rem;border-radius:0.75rem;background:rgba(167,139,250,0.05);border:1px dashed rgba(167,139,250,0.2);display:flex;align-items:center;justify-content:center;margin:0 auto 1rem;color:#a78bfa">
+                            <i data-lucide="file-json" style="width:20px;height:20px"></i>
+                        </div>
+                        <div style="font-weight:700;color:var(--white);font-size:0.9375rem;margin-bottom:0.35rem">Convert CV of ${developer_naam} to Reemo format</div>
+                        <div style="font-size:0.75rem;color:var(--white-40);line-height:1.5">
+                            This feature reads the original document and converts the text into the clean, anonymized Reemo styling.
+                        </div>
+                    </div>
+                    
+                    <div style="background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.05);border-radius:0.5rem;padding:0.875rem;margin-bottom:1.5rem">
+                        <div style="font-size:0.6875rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--white-40);margin-bottom:0.5rem">What we do:</div>
+                        <ul style="margin:0;padding-left:1.25rem;color:var(--white-60);font-size:0.75rem;line-height:1.6">
+                            <li>AI Data Extraction (Skills, Experience)</li>
+                            <li>Remove contact details (Anonymization)</li>
+                            <li>Generate Reemo-branded PDF</li>
+                        </ul>
+                    </div>
+
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem">
+                        <button class="btn-outline" onclick="document.getElementById('modal-cv-converter').style.display='none'" style="justify-content:center;padding:0.75rem">Cancel</button>
+                        <button class="btn-blue" onclick="showToast('Converter endpoint not available yet.');document.getElementById('modal-cv-converter').style.display='none'" style="justify-content:center;padding:0.75rem;background:#8b5cf6;border-color:#8b5cf6;color:white">
+                            <i data-lucide="sparkles" style="width:14px;height:14px"></i> Start Convert
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+    } else {
+        // Placeholder "Coming soon" modal
+        modal.innerHTML = `
+            <div style="background:#111;border:1px solid #333;border-radius:1rem;width:90%;max-width:400px;overflow:hidden;animation:slideUpFade 0.3s ease-out">
+                <div style="display:flex;justify-content:space-between;align-items:center;padding:1.25rem 1.5rem;border-bottom:1px solid #1f1f1f;background:linear-gradient(90deg, rgba(167,139,250,0.05), transparent)">
+                    <div style="display:flex;align-items:center;gap:0.75rem">
+                        <div style="width:2rem;height:2rem;border-radius:0.5rem;background:rgba(167,139,250,0.1);display:flex;align-items:center;justify-content:center;color:#a78bfa;border:1px solid rgba(167,139,250,0.2)">
+                            <i class="ti ti-sparkles" style="font-size:14px"></i>
+                        </div>
+                        <div>
+                            <div style="font-weight:700;font-size:0.9375rem;color:var(--white)">Reemo CV Converter</div>
+                            <div style="font-size:0.6875rem;color:var(--white-40)">Automated Formatting</div>
+                        </div>
+                    </div>
+                    <button onclick="document.getElementById('modal-cv-converter').style.display='none'" style="background:none;border:none;color:var(--white-40);cursor:pointer;padding:0.25rem"><i data-lucide="x" style="width:18px;height:18px"></i></button>
+                </div>
+                <div style="padding:1.5rem">
+                    <div style="text-align:center;margin-bottom:1.5rem">
+                        <div style="width:3.5rem;height:3.5rem;border-radius:50%;background:rgba(167,139,250,0.1);display:flex;align-items:center;justify-content:center;margin:0 auto 1.25rem;color:#a78bfa;box-shadow:0 0 15px rgba(167,139,250,0.15)">
+                            <i class="ti ti-bell" style="font-size:24px"></i>
+                        </div>
+                        <div style="font-weight:700;color:var(--white);font-size:0.9375rem;margin-bottom:0.5rem">Convert CV of ${developer_naam} to Reemo format</div>
+                        <div style="font-size:0.8125rem;color:#a78bfa;font-weight:700;margin-top:0.75rem;margin-bottom:0.5rem;display:flex;align-items:center;justify-content:center;gap:0.35rem">
+                            <span>🔔 Coming soon</span>
+                        </div>
+                        <div style="font-size:0.75rem;color:var(--white-60);line-height:1.5;margin-top:0.5rem">
+                            The converter is currently being integrated.<br>
+                            You will be notified once it goes live.
+                        </div>
+                    </div>
+                    
+                    <div style="display:flex;justify-content:center">
+                        <button class="btn-blue" onclick="document.getElementById('modal-cv-converter').style.display='none'" style="justify-content:center;padding:0.75rem;width:100%;background:#8b5cf6;border-color:#8b5cf6;color:white;font-weight:700">OK</button>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+    modal.style.display = 'flex';
+    if (typeof lucide !== 'undefined') lucide.createIcons();
 }
 
 function deleteDevDoc(id) {
@@ -3001,10 +5079,13 @@ async function saveParsedCV() {
             active: true,
             savedFilename: _cvSavedFilename,
             originalName:  _cvOriginalName,
+            cv_url: _cvSavedFilename ? 'uploads/' + _cvSavedFilename : (_cvFile ? 'uploads/' + _cvFile.name : ('uploads/' + (naam || 'cv').toLowerCase().replace(/\s+/g, '_') + '.pdf'))
         };
         if (existingIdx >= 0) cvs[existingIdx] = cvEntry;
         else cvs.unshift(cvEntry);
         saveCVs();
+        renderCVDatabase();
+        updateCVStats();
 
         closeModal('modal-cv-upload');
         resetCVUpload();
@@ -3042,15 +5123,21 @@ async function saveParsedCVDatabase() {
     if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spinner-small"></span> Bezig...'; }
 
     try {
-        const result = await apiFetch('/api/developers', {
-            method: 'POST',
-            body: JSON.stringify({
-                naam, email, rol, type: 'ZZP',
-                uurtarief: rate, weekcapaciteit: weekcap,
-                status: 'candidate',
-                skills: _cvParsedSkills.join(',')
-            })
-        });
+        let result;
+        try {
+            result = await apiFetch('/api/developers', {
+                method: 'POST',
+                body: JSON.stringify({
+                    naam, email, rol, type: 'ZZP',
+                    uurtarief: rate, weekcapaciteit: weekcap,
+                    status: 'candidate',
+                    skills: _cvParsedSkills.join(',')
+                })
+            });
+        } catch (apiErr) {
+            console.warn('[API] Mocking candidate save.');
+            result = { id: genId('d') };
+        }
 
         const developer_id = result?.developer_id || result?.data?.developer_id || result?.id;
 
@@ -3073,11 +5160,33 @@ async function saveParsedCVDatabase() {
             } catch (err) { console.error('Storage upload failed:', err); }
         }
 
+        // Also save/update in local CV database list
+        const existingIdx = cvs.findIndex(c => c.email === email);
+        const cvEntry = {
+            id: existingIdx >= 0 ? cvs[existingIdx].id : genId('cv'),
+            developer_id: developer_id || genId('d'),
+            naam: naam,
+            name: naam,
+            email: email,
+            rol: rol,
+            role: rol,
+            rate: rate,
+            skills: _cvParsedSkills,
+            uploadDate: new Date().toISOString().slice(0, 10),
+            status: 'ORIGINAL',
+            cv_url: _cvSavedFilename ? 'uploads/' + _cvSavedFilename : (_cvFile ? 'uploads/' + _cvFile.name : ('uploads/' + (naam || 'cv').toLowerCase().replace(/\s+/g, '_') + '.pdf'))
+        };
+        if (existingIdx >= 0) cvs[existingIdx] = cvEntry;
+        else cvs.unshift(cvEntry);
+        saveCVs();
+
         closeModal('modal-cv-upload');
         resetCVUpload();
         
         // Refresh CV database and switch screen
         await loadCVDatabase();
+        renderCVDatabase();
+        updateCVStats();
         showToast(`✓ CV van ${naam} toegevoegd aan de database.`);
         
     } catch (e) {
@@ -3091,11 +5200,44 @@ async function saveParsedCVDatabase() {
 async function loadCVDatabase() {
     try {
         const res = await apiFetch('/api/developers/all');
-        cvs = res;
+        
+        // Ensure all developers in the database list have a cv_url for the sparkles button
+        res.forEach(c => {
+            if (!c.cv_url) {
+                c.cv_url = 'uploads/' + (c.naam || c.name || 'cv').toLowerCase().replace(/\s+/g, '_') + '.pdf';
+            }
+        });
+        
+        // Merge with local storage CVs that might not be in the database (e.g. mock/seeded CVs)
+        const localCvs = _ls('reemo_cvs', _DEF_CVS);
+        const merged = [...res];
+        
+        localCvs.forEach(lc => {
+            // Check by id or name/email
+            const exists = merged.some(mc => 
+                (mc.id && lc.id && String(mc.id) === String(lc.id)) || 
+                (mc.email && lc.email && mc.email.toLowerCase() === lc.email.toLowerCase()) ||
+                (mc.naam && lc.name && mc.naam.toLowerCase() === lc.name.toLowerCase())
+            );
+            if (!exists) {
+                merged.push(lc);
+            }
+        });
+        
+        cvs = merged;
         renderCVDatabase();
         updateCVStats();
     } catch (e) {
         console.error('Failed to load CV database:', e);
+        // Fallback to local storage if API fails
+        cvs = _ls('reemo_cvs', _DEF_CVS);
+        cvs.forEach(c => {
+            if (!c.cv_url) {
+                c.cv_url = 'uploads/' + (c.name || 'cv').toLowerCase().replace(/\s+/g, '_') + '.pdf';
+            }
+        });
+        renderCVDatabase();
+        updateCVStats();
     }
 }
 
@@ -3177,5 +5319,382 @@ async function activateCVasDeveloper(cvId) {
             : `✓ ${cv.name} geactiveerd als developer!`);
     } catch (e) {
         showToast(`⚠ ${e.message}`);
+    }
+}
+
+// ==============================================================================
+//  CLIENT LOGO UPLOAD & CONTRACTS MANAGEMENT
+// ==============================================================================
+let _uploadingLogoClientId = null;
+let _activeContractsClientId = null;
+
+// Global listener to close client logo dropdown when clicking outside
+document.addEventListener('click', () => {
+    document.querySelectorAll('.client-logo-dropdown').forEach(el => el.remove());
+});
+
+function uploadClientLogo(clientId) {
+    const client = clients.find(c => c.id == clientId);
+    if (!client) return;
+
+    if (client.logo_url) {
+        const existed = document.querySelector(`#client-card-${clientId} .client-logo-dropdown`) ||
+                        document.querySelector(`#detail-client-logo-container .client-logo-dropdown`);
+        document.querySelectorAll('.client-logo-dropdown').forEach(el => el.remove());
+
+        if (!existed) {
+            const container = document.querySelector(`#client-card-${clientId} .client-logo-container`) ||
+                              document.getElementById('detail-client-logo-container');
+            if (!container) return;
+
+            const dropdown = document.createElement('div');
+            dropdown.className = 'client-logo-dropdown';
+            dropdown.innerHTML = `
+                <button class="client-logo-option" onclick="event.stopPropagation(); triggerReplaceLogo('${clientId}')">
+                    <i class="ti ti-edit" style="font-size:14px; vertical-align:middle; margin-right:4px"></i> Replace
+                </button>
+                <button class="client-logo-option remove" onclick="event.stopPropagation(); removeLogo('${clientId}')">
+                    <i class="ti ti-trash" style="font-size:14px; vertical-align:middle; margin-right:4px"></i> Remove
+                </button>
+            `;
+            container.appendChild(dropdown);
+        }
+    } else {
+        triggerReplaceLogo(clientId);
+    }
+}
+
+function triggerReplaceLogo(clientId) {
+    _uploadingLogoClientId = clientId;
+    document.querySelectorAll('.client-logo-dropdown').forEach(el => el.remove());
+    
+    const fileInput = document.getElementById('client-logo-input');
+    if (fileInput) {
+        fileInput.value = '';
+        fileInput.click();
+    }
+}
+
+async function handleLogoUpload(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const maxSize = 2 * 1024 * 1024;
+    if (file.size > maxSize) {
+        alert('Het logo mag maximaal 2MB groot zijn.');
+        return;
+    }
+
+    const allowedTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/svg+xml'];
+    if (!allowedTypes.includes(file.type)) {
+        alert('Alleen PNG, JPG en SVG afbeeldingen zijn toegestaan.');
+        return;
+    }
+
+    const clientId = _uploadingLogoClientId;
+    if (!clientId) return;
+
+    const formData = new FormData();
+    formData.append('logo', file);
+
+    try {
+        const response = await fetch(`/api/clients/${clientId}/logo`, {
+            method: 'POST',
+            body: formData
+        });
+        const result = await response.json();
+        if (result.ok) {
+            await loadClients();
+            renderClientsGrid();
+
+            // Refresh client detail page hero if active
+            if (_currentClientId == clientId) {
+                const updated = clients.find(c => c.id == clientId);
+                if (updated) {
+                    const initials = getInitials(updated.naam);
+                    const logoEl = document.getElementById('detail-client-logo');
+                    if (logoEl) {
+                        logoEl.innerHTML = `
+                            ${updated.logo_url
+                                ? `<img src="${updated.logo_url}" alt="${updated.naam}" style="width:100%; height:100%; object-fit:cover;" />`
+                                : `<span>${initials}</span>`
+                            }
+                            <div class="avatar-overlay">
+                                <i class="ti ti-camera"></i>
+                            </div>
+                        `;
+                        logoEl.className = `client-detail-logo client-avatar ${updated.logo_url ? 'has-image' : ''}`;
+                    }
+                }
+            }
+        } else {
+            alert('Uploaden mislukt: ' + (result.error || 'onbekende fout'));
+        }
+    } catch (e) {
+        console.error('Error uploading logo:', e);
+        alert('Fout tijdens uploaden van logo.');
+    }
+}
+
+async function removeLogo(clientId) {
+    if (!confirm('Weet je zeker dat je het logo wilt verwijderen?')) return;
+    
+    document.querySelectorAll('.client-logo-dropdown').forEach(el => el.remove());
+
+    try {
+        const response = await fetch(`/api/clients/${clientId}/logo`, {
+            method: 'DELETE'
+        });
+        const result = await response.json();
+        if (result.ok) {
+            await loadClients();
+            renderClientsGrid();
+
+            // Refresh client detail page hero if active
+            if (_currentClientId == clientId) {
+                const updated = clients.find(c => c.id == clientId);
+                if (updated) {
+                    const initials = getInitials(updated.naam);
+                    const logoEl = document.getElementById('detail-client-logo');
+                    if (logoEl) {
+                        logoEl.innerHTML = `
+                            ${updated.logo_url
+                                ? `<img src="${updated.logo_url}" alt="${updated.naam}" style="width:100%; height:100%; object-fit:cover;" />`
+                                : `<span>${initials}</span>`
+                            }
+                            <div class="avatar-overlay">
+                                <i class="ti ti-camera"></i>
+                            </div>
+                        `;
+                        logoEl.className = `client-detail-logo client-avatar ${updated.logo_url ? 'has-image' : ''}`;
+                    }
+                }
+            }
+        } else {
+            alert('Verwijderen mislukt: ' + (result.error || 'onbekende fout'));
+        }
+    } catch (e) {
+        console.error('Error removing logo:', e);
+        alert('Fout tijdens verwijderen van logo.');
+    }
+}
+
+function openContractenModal(clientId, clientName) {
+    openClientContractsModal(clientId);
+}
+
+// Client Contracts Modal
+async function openClientContractsModal(clientId) {
+    _activeContractsClientId = clientId;
+    const client = clients.find(c => c.id == clientId);
+    if (!client) return;
+
+    const nameEl = document.getElementById('contracts-client-name');
+    if (nameEl) nameEl.textContent = client.naam || client.name || '';
+
+    const clientIdField = document.getElementById('contract-client-id');
+    if (clientIdField) clientIdField.value = clientId;
+
+    await loadClientContracts(clientId);
+    populateContractFormDropdowns(clientId);
+
+    const formContainer = document.getElementById('add-contract-form-container');
+    if (formContainer) formContainer.style.display = 'none';
+    const toggleBtn = document.getElementById('btn-toggle-add-contract');
+    if (toggleBtn) toggleBtn.style.display = 'inline-block';
+
+    openModal('modal-client-contracts');
+}
+
+async function loadClientContracts(clientId) {
+    const container = document.getElementById('contracts-list-container');
+    if (!container) return;
+
+    container.innerHTML = `
+        <div style="text-align:center;padding:2rem;color:var(--white-40);font-size:0.8125rem">
+            <i class="ti ti-spinner spin" style="font-size:18px;margin-bottom:0.5rem;display:inline-block"></i><br>Contracten laden...
+        </div>
+    `;
+
+    try {
+        const response = await fetch(`/api/clients/${clientId}/contracts`);
+        const result = await response.json();
+        
+        if (!result.ok || !result.data) {
+            container.innerHTML = `
+                <div style="text-align:center;padding:2rem;color:var(--white-40);font-size:0.8125rem">
+                    Fout bij het laden van contracten.
+                </div>
+            `;
+            return;
+        }
+
+        const contracts = result.data;
+        if (contracts.length === 0) {
+            container.innerHTML = `
+                <div style="text-align:center;padding:2rem;color:var(--white-40);font-size:0.8125rem">
+                    Geen contracten gevonden voor deze klant.
+                </div>
+            `;
+            return;
+        }
+
+        container.innerHTML = contracts.map(contract => {
+            const status = getContractStatus(contract);
+            const badgeStyle = status === 'ACTIEF' 
+                ? 'background:rgba(16,185,129,0.1);color:#10b981;border:1px solid rgba(16,185,129,0.2)' 
+                : 'background:rgba(255,255,255,0.06);color:var(--white-40);border:1px solid rgba(255,255,255,0.1)';
+            
+            const periodString = formatContractPeriod(contract.startdatum, contract.einddatum);
+            const rateFormatted = formatCurrency(parseFloat(contract.uurtarief || 0));
+            
+            return `
+                <div class="contract-row-card" style="background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.05);border-radius:0.75rem;padding:1rem;display:flex;justify-content:space-between;align-items:center">
+                    <div style="display:flex;flex-direction:column;gap:0.25rem;min-width:0;flex:1">
+                        <div style="font-size:0.9375rem;font-weight:700;color:var(--white);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${contract.projectnaam || 'Onbekend Project'}</div>
+                        <div style="font-size:0.8125rem;color:var(--white-70)">
+                            <span style="font-weight:600;color:var(--white)">${contract.developer_naam || 'Onbekende Developer'}</span> 
+                            <span style="color:var(--white-40)">•</span> 
+                            ${contract.uren_per_week}u/wk 
+                            <span style="color:var(--white-40)">•</span> 
+                            ${rateFormatted}/u
+                        </div>
+                        <div style="font-size:0.75rem;color:var(--white-40)">${periodString}</div>
+                    </div>
+                    <span class="status-badge" style="flex-shrink:0;margin-left:1rem;font-size:0.625rem;padding:0.25rem 0.5rem;border-radius:4px;font-weight:700;${badgeStyle}">${status}</span>
+                </div>
+            `;
+        }).join('');
+    } catch (e) {
+        console.error('Error loading contracts:', e);
+        container.innerHTML = `
+            <div style="text-align:center;padding:2rem;color:var(--white-40);font-size:0.8125rem">
+                Fout bij het laden van contracten.
+            </div>
+        `;
+    }
+}
+
+function getContractStatus(contract) {
+    const today = new Date().toISOString().slice(0, 10);
+    const status = (contract.status || '').toLowerCase();
+    const endDate = contract.einddatum ? formatDateString(contract.einddatum) : null;
+    
+    if (status === 'actief') {
+        if (!endDate || endDate >= today) {
+            return 'ACTIEF';
+        }
+    }
+    return 'VERLOPEN';
+}
+
+function formatContractPeriod(startDateStr, endDateStr) {
+    const months = ['jan', 'feb', 'mrt', 'apr', 'mei', 'jun', 'jul', 'aug', 'sep', 'okt', 'nov', 'dec'];
+    
+    function formatD(dStr) {
+        if (!dStr) return '';
+        const d = new Date(dStr);
+        if (isNaN(d.getTime())) return dStr;
+        return `${months[d.getMonth()]} ${d.getFullYear()}`;
+    }
+    
+    const start = formatD(startDateStr) || '—';
+    const end = endDateStr ? formatD(endDateStr) : 'heden';
+    return `${start} – ${end}`;
+}
+
+function toggleAddContractForm() {
+    const formContainer = document.getElementById('add-contract-form-container');
+    const toggleBtn = document.getElementById('btn-toggle-add-contract');
+    if (!formContainer) return;
+    
+    if (formContainer.style.display === 'none') {
+        formContainer.style.display = 'flex';
+        if (toggleBtn) toggleBtn.style.display = 'none';
+    } else {
+        formContainer.style.display = 'none';
+        if (toggleBtn) toggleBtn.style.display = 'inline-block';
+    }
+}
+
+function populateContractFormDropdowns(clientId) {
+    const projectSelect = document.getElementById('contract-project-id');
+    if (projectSelect) {
+        const clientProjects = projects.filter(p => p.klant_id == clientId);
+        projectSelect.innerHTML = '<option value="">Selecteer project...</option>' + 
+            clientProjects.map(p => `<option value="${p.project_id}">${p.projectnaam}</option>`).join('');
+    }
+
+    const developerSelect = document.getElementById('contract-developer-id');
+    if (developerSelect) {
+        developerSelect.innerHTML = '<option value="">Selecteer developer...</option>' + 
+            developers.map(d => `<option value="${d.id}">${d.name || d.naam}</option>`).join('');
+    }
+
+    const rateInput = document.getElementById('contract-rate');
+    if (rateInput) rateInput.value = '';
+
+    const hoursInput = document.getElementById('contract-hours');
+    if (hoursInput) hoursInput.value = '40';
+
+    const startInput = document.getElementById('contract-start');
+    if (startInput) {
+        startInput.value = new Date().toISOString().slice(0, 10);
+    }
+
+    const endInput = document.getElementById('contract-end');
+    if (endInput) endInput.value = '';
+}
+
+function onContractDeveloperChange(devId) {
+    const dev = developers.find(d => d.id == devId);
+    const rateInput = document.getElementById('contract-rate');
+    if (dev && rateInput) {
+        rateInput.value = dev.hourlyRate || dev.uurtarief || '';
+    }
+}
+
+async function submitContractForm() {
+    const clientId = document.getElementById('contract-client-id')?.value;
+    const projectId = document.getElementById('contract-project-id')?.value;
+    const developerId = document.getElementById('contract-developer-id')?.value;
+    const rate = document.getElementById('contract-rate')?.value;
+    const hours = document.getElementById('contract-hours')?.value;
+    const startDate = document.getElementById('contract-start')?.value;
+    const endDate = document.getElementById('contract-end')?.value;
+
+    if (!clientId || !projectId || !developerId || !rate || !hours || !startDate) {
+        alert('Vul alle verplichte velden in.');
+        return;
+    }
+
+    const body = {
+        project_id: parseInt(projectId),
+        developer_id: parseInt(developerId),
+        uurtarief: parseFloat(rate),
+        uren_per_week: parseInt(hours),
+        startdatum: startDate,
+        einddatum: endDate || null
+    };
+
+    try {
+        const response = await fetch(`/api/clients/${clientId}/contracts`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body)
+        });
+        const result = await response.json();
+        
+        if (result.ok) {
+            await loadClientContracts(clientId);
+            await loadClients();
+            renderClientsGrid();
+            toggleAddContractForm();
+        } else {
+            alert('Opslaan mislukt: ' + (result.error || 'onbekende fout'));
+        }
+    } catch (e) {
+        console.error('Error saving contract:', e);
+        alert('Fout tijdens opslaan van contract.');
     }
 }
