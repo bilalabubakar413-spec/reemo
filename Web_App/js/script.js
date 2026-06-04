@@ -1639,14 +1639,15 @@ async function renderDashboardStats() {
 
     }
 
-    // Update Bezetting Circular Progress Ring
+    // Update Bezetting Circular Progress Ring, status badge and detail cards
     const circle = document.getElementById('bezetting-progress-circle');
     const pctText = document.getElementById('bezetting-circle-pct');
     const hoursText = document.getElementById('bezetting-circle-hours');
-    const headcountText = document.getElementById('bezetting-headcount');
+    const detailsContainer = document.getElementById('bezetting-details-container');
+    const statusBadge = document.getElementById('bezetting-status-badge');
 
     if (circle) {
-        const radius = parseFloat(circle.getAttribute('r')) || 40;
+        const radius = parseFloat(circle.getAttribute('r')) || 62;
         const circumference = 2 * Math.PI * radius;
         const pct = Math.min(100, Math.max(0, parseFloat(bezettingPct) || 0));
         const offset = circumference - (pct / 100) * circumference;
@@ -1655,9 +1656,45 @@ async function renderDashboardStats() {
     }
     if (pctText) pctText.textContent = Math.round(parseFloat(bezettingPct) || 0) + '%';
     if (hoursText) hoursText.textContent = `${totalAssigned} / ${totalCap}u`;
-    if (headcountText) {
-        const assignedDevs = developers.filter(d => (d.assignedHours || 0) > 0).length;
-        headcountText.textContent = `${assignedDevs} / ${developers.length}`;
+
+    const totalDevs = developers.length || 0;
+    const assignedDevs = developers.filter(d => (d.assignedHours || 0) > 0).length;
+    const benchDevs = totalDevs - assignedDevs;
+    const assignedPct = totalDevs > 0 ? ((assignedDevs / totalDevs) * 100).toFixed(1) : 0;
+    const benchPct = totalDevs > 0 ? ((benchDevs / totalDevs) * 100).toFixed(1) : 0;
+
+    if (statusBadge) {
+        const pctVal = parseFloat(bezettingPct) || 0;
+        if (pctVal >= 80) {
+            statusBadge.innerHTML = `<span class="status-badge status-approved" style="font-size:10px; padding:2px 8px; font-weight:700; color:#10B981; background:rgba(16,185,129,0.1); border:1px solid rgba(16,185,129,0.25); border-radius:100px;">Gezond niveau</span>`;
+        } else if (pctVal >= 65) {
+            statusBadge.innerHTML = `<span class="status-badge status-pending" style="font-size:10px; padding:2px 8px; font-weight:700; color:#f59e0b; background:rgba(245,158,11,0.1); border:1px solid rgba(245,158,11,0.25); border-radius:100px;">Aandacht vereist</span>`;
+        } else {
+            statusBadge.innerHTML = `<span class="status-badge status-rejected" style="font-size:10px; padding:2px 8px; font-weight:700; color:#ef4444; background:rgba(239,68,68,0.1); border:1px solid rgba(239,68,68,0.25); border-radius:100px;">Kritiek niveau</span>`;
+        }
+    }
+
+    if (detailsContainer) {
+        detailsContainer.innerHTML = `
+            <div class="bezetting-detail-card opdracht" style="background:rgba(59,130,246,0.04); border:1px solid rgba(59,130,246,0.12); border-radius:0.75rem; padding:10px 14px; display:flex; flex-direction:column; gap:4px; transition: all 0.2s ease;">
+                <div style="display:flex; align-items:center; gap:6px;">
+                    <span style="width:7px; height:7px; border-radius:50%; background:#3b82f6; box-shadow: 0 0 5px #3b82f6;"></span>
+                    <span style="font-size:0.75rem; font-weight:700; color:var(--white-80);">Op Opdracht</span>
+                </div>
+                <div style="font-size:1.125rem; font-weight:800; color:#FFFFFF;">
+                    ${assignedDevs} <span style="font-size:0.75rem; font-weight:500; color:var(--white-40);">devs (${assignedPct}%)</span>
+                </div>
+            </div>
+            <div class="bezetting-detail-card bench" style="background:rgba(255,255,255,0.015); border:1px solid rgba(255,255,255,0.04); border-radius:0.75rem; padding:10px 14px; display:flex; flex-direction:column; gap:4px; transition: all 0.2s ease;">
+                <div style="display:flex; align-items:center; gap:6px;">
+                    <span style="width:7px; height:7px; border-radius:50%; background:#64748b;"></span>
+                    <span style="font-size:0.75rem; font-weight:700; color:var(--white-80);">Bench (Vrij)</span>
+                </div>
+                <div style="font-size:1.125rem; font-weight:800; color:#FFFFFF;">
+                    ${benchDevs} <span style="font-size:0.75rem; font-weight:500; color:var(--white-40);">devs (${benchPct}%)</span>
+                </div>
+            </div>
+        `;
     }
 
     if (typeof renderOmzetTrendChart === 'function') {
