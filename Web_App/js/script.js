@@ -5117,6 +5117,272 @@ function resetCVUpload() {
     _cvParsedSkills = [];
 }
 
+async function openBulkUploadModal() {
+  const modal = document.getElementById('modal-bulk-upload');
+  if (modal) modal.style.display = 'flex';
+
+  // Reset inputs and previews
+  const fileInput = document.getElementById('bulk-file-input');
+  if (fileInput) fileInput.value = '';
+  
+  const preview = document.getElementById('bulk-file-preview');
+  if (preview) preview.innerHTML = '';
+  
+  const resultaat = document.getElementById('bulk-upload-resultaat');
+  if (resultaat) resultaat.innerHTML = '';
+  
+  const progressLabel = document.getElementById('bulk-progress-label');
+  if (progressLabel) progressLabel.textContent = '';
+
+  window._bulkUploadFiles = [];
+  window._totalSelectedFilesCount = 0;
+  window._bulkUploadAborted = false;
+
+  // Reset footer buttons
+  const startBtn = document.getElementById('btn-start-bulk-upload');
+  if (startBtn) {
+    startBtn.style.display = 'inline-block';
+    startBtn.textContent = 'Upload bestanden';
+    startBtn.disabled = true;
+    startBtn.onclick = startBulkUpload;
+  }
+  const cancelBtn = document.querySelector('#modal-bulk-upload .btn-secondary');
+  if (cancelBtn) {
+    cancelBtn.textContent = 'Annuleer';
+    cancelBtn.onclick = closeBulkUploadModal;
+  }
+}
+
+function closeBulkUploadModal() {
+  const modal = document.getElementById('modal-bulk-upload');
+  if (modal) modal.style.display = 'none';
+  window._bulkUploadFiles = [];
+  window._totalSelectedFilesCount = 0;
+  window._bulkUploadAborted = true; // Abort active loop if any
+  
+  const preview = document.getElementById('bulk-file-preview');
+  if (preview) preview.innerHTML = '';
+  
+  const resultaat = document.getElementById('bulk-upload-resultaat');
+  if (resultaat) resultaat.innerHTML = '';
+}
+
+function handleBulkFileSelect(event) {
+  const files = Array.from(event.target.files);
+  window._totalSelectedFilesCount = files.length;
+  renderBulkFilePreview(files);
+}
+
+function handleBulkDrop(event) {
+  event.preventDefault();
+  const files = Array.from(event.dataTransfer.files);
+  window._totalSelectedFilesCount = files.length;
+  renderBulkFilePreview(files);
+}
+
+function renderBulkFilePreview(files) {
+  const MAX_SIZE = 10 * 1024 * 1024; // 10MB
+  const ALLOWED  = ['application/pdf',
+                    'application/msword',
+                    'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+
+  const validated = files.map(f => {
+    const isAllowedType = ALLOWED.includes(f.type) || 
+      f.name.endsWith('.pdf') || 
+      f.name.endsWith('.doc') || 
+      f.name.endsWith('.docx');
+    
+    return {
+      file:   f,
+      naam:   f.name,
+      grootte: (f.size / 1024 / 1024).toFixed(1) + ' MB',
+      geldig: f.size <= MAX_SIZE && isAllowedType,
+      fout:   f.size > MAX_SIZE ? 'Te groot (max 10MB)' :
+              !isAllowedType ? 'Ongeldig bestand' : null
+    };
+  });
+
+  const geldig = validated.filter(f => f.geldig);
+
+  // Render preview lijst
+  const container = document.getElementById('bulk-file-preview');
+  if (!container) return;
+
+  container.innerHTML = validated.map(f => `
+    <div class="bulk-file-row ${f.geldig ? 'valid' : 'invalid'}">
+      <span class="file-icon">📄</span>
+      <span class="file-naam">${f.naam}</span>
+      <span class="file-grootte">${f.grootte}</span>
+      <span class="file-status">
+        ${f.geldig
+          ? '<span style="color:#22C55E;">✓ Klaar</span>'
+          : `<span style="color:#EF4444;">✗ ${f.fout}</span>`}
+      </span>
+    </div>
+  `).join('');
+
+  // Update knop tekst
+  const btn = document.getElementById('btn-start-bulk-upload');
+  if (btn) {
+    btn.textContent = `Upload ${geldig.length} bestand${geldig.length !== 1 ? 'en' : ''}`;
+    btn.disabled = geldig.length === 0;
+    btn.dataset.files = JSON.stringify(geldig.map(f => f.naam));
+  }
+
+  // Sla geldige files op voor upload
+  window._bulkUploadFiles = geldig.map(f => f.file);
+}
+
+async function startBulkUpload() {
+  const files = window._bulkUploadFiles;
+  if (!files || files.length === 0) return;
+
+  window._bulkUploadAborted = false;
+
+  // Change UI to upload/progress state inside the preview box
+  const container = document.getElementById('bulk-file-preview');
+  if (container) {
+    container.innerHTML = files.map(f => {
+      const cleanName = f.name.replace(/[^a-z0-9]/gi, '_');
+      return `
+        <div class="bulk-file-row valid" style="display:flex; align-items:center;">
+          <span class="file-icon">📄</span>
+          <span class="file-naam" style="flex:0.4; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${f.name}</span>
+          <div style="flex:1; height:6px; background:#1E293B; border-radius:3px; overflow:hidden; margin:0 12px; border:1px solid #334155;">
+            <div id="progress-${cleanName}" style="width:0%; height:100%; background:#3B82F6; transition:width 0.2s;"></div>
+          </div>
+          <span id="status-${cleanName}" class="file-status" style="width:70px; text-align:right; color:#94A3B8;">Wachten</span>
+        </div>
+      `;
+    }).join('');
+  }
+
+  // Hide upload button during active upload
+  const startBtn = document.getElementById('btn-start-bulk-upload');
+  if (startBtn) {
+    startBtn.style.display = 'none';
+  }
+
+  // Change cancel button to stop upload
+  const cancelBtn = document.querySelector('#modal-bulk-upload .btn-secondary');
+  if (cancelBtn) {
+    cancelBtn.textContent = 'Stop upload';
+    cancelBtn.onclick = () => {
+      window._bulkUploadAborted = true;
+      closeBulkUploadModal();
+    };
+  }
+
+  const resultaten = { geslaagd: 0, mislukt: 0 };
+
+  for (let i = 0; i < files.length; i++) {
+    if (window._bulkUploadAborted) {
+      break;
+    }
+
+    const file = files[i];
+
+    // Update progress
+    updateBulkProgress(i + 1, files.length, file.name);
+
+    try {
+      const formData = new FormData();
+      formData.append('cv', file);
+      formData.append('naam', file.name.replace(/\.[^/.]+$/, '').replace(/_/g, ' '));
+
+      const res = await fetch('/api/cv-database/bulk-upload-single', {
+        method: 'POST',
+        body: formData
+      });
+
+      if (res.ok) {
+        resultaten.geslaagd++;
+        markBulkFileStatus(file.name, 'success');
+      } else {
+        resultaten.mislukt++;
+        markBulkFileStatus(file.name, 'error');
+      }
+    } catch (err) {
+      resultaten.mislukt++;
+      markBulkFileStatus(file.name, 'error');
+    }
+  }
+
+  // Toon eindresultaat
+  showBulkUploadResultaat(resultaten);
+  
+  // Refresh the database lists
+  await Promise.all([loadDevelopers(), loadCVDatabase()]); 
+  if (typeof renderCVDatabase === 'function') renderCVDatabase();
+  if (typeof updateCVStats === 'function') updateCVStats();
+}
+
+function updateBulkProgress(huidig, totaal, bestandsnaam) {
+  const label = document.getElementById('bulk-progress-label');
+  if (label) label.textContent = `${huidig} van ${totaal} geüpload`;
+
+  const cleanName = bestandsnaam.replace(/[^a-z0-9]/gi, '_');
+  const bar = document.getElementById(`progress-${cleanName}`);
+  if (bar) bar.style.width = '50%';
+
+  const statusEl = document.getElementById(`status-${cleanName}`);
+  if (statusEl) {
+    statusEl.innerHTML = '<span style="color:#fbbf24;">Bezig...</span>';
+  }
+}
+
+function markBulkFileStatus(bestandsnaam, status) {
+  const cleanName = bestandsnaam.replace(/[^a-z0-9]/gi, '_');
+  const bar = document.getElementById(`progress-${cleanName}`);
+  if (bar) bar.style.width = '100%';
+
+  const statusEl = document.getElementById(`status-${cleanName}`);
+  if (statusEl) {
+    if (status === 'success') {
+      statusEl.innerHTML = '<span style="color:#22C55E;">✓ Klaar</span>';
+    } else {
+      statusEl.innerHTML = '<span style="color:#EF4444;">✗ Fout</span>';
+    }
+  }
+}
+
+function showBulkUploadResultaat(resultaten) {
+  const container = document.getElementById('bulk-upload-resultaat');
+  if (!container) return;
+
+  const overgeslagen = window._totalSelectedFilesCount - resultaten.geslaagd;
+
+  container.innerHTML = `
+    <div style="text-align:center; padding:20px; background:rgba(30,41,59,0.3); border:1px solid #1e293b; border-radius:12px; margin-top:12px;">
+      ${resultaten.geslaagd > 0
+        ? `<p style="color:#22C55E; font-size:15px; font-weight:600; margin-bottom:8px;">✅ ${resultaten.geslaagd} CV${resultaten.geslaagd !== 1 ? 's' : ''} succesvol geüpload</p>`
+        : ''}
+      ${overgeslagen > 0
+        ? `<p style="color:#EF4444; font-size:14px; font-weight:600; margin-bottom:8px;">❌ ${overgeslagen} bestand${overgeslagen !== 1 ? 'en' : ''} overgeslagen (te groot of ongeldig)</p>`
+        : ''}
+      <p style="color:#94A3B8; font-size:12px; margin-top:8px;">De CVs zijn toegevoegd aan de CV Database.</p>
+    </div>
+  `;
+
+  // Update footer buttons to allow closing or viewing the results
+  const cancelBtn = document.querySelector('#modal-bulk-upload .btn-secondary');
+  if (cancelBtn) {
+    cancelBtn.textContent = 'Sluiten';
+    cancelBtn.onclick = closeBulkUploadModal;
+  }
+
+  const startBtn = document.getElementById('btn-start-bulk-upload');
+  if (startBtn) {
+    startBtn.style.display = 'inline-block';
+    startBtn.textContent = 'Bekijk geüploade CVs';
+    startBtn.disabled = false;
+    startBtn.onclick = () => {
+      closeBulkUploadModal();
+      navigateTo('cvs');
+    };
+  }
+}
+
 function handleCVDrop(event) {
     const file = event.dataTransfer?.files?.[0];
     if (file) handleCVFileSelect(file);

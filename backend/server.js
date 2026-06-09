@@ -1435,6 +1435,76 @@ app.post('/api/cv/parse', upload.single('cv'), async (req, res) => {
     res.status(500).json({ ok: false, error: 'Fout bij het lezen van het CV: ' + e.message });
   }
 });
+
+// POST – bulk upload single CV and map/create developer candidate
+app.post('/api/cv-database/bulk-upload-single', storageUpload.single('cv'), async (req, res) => {
+  try {
+    const file = req.file;
+    if (!file) return res.status(400).json({ error: 'Geen bestand ontvangen' });
+    const naam = req.body.naam || file.originalname.replace(/\.[^/.]+$/, '');
+
+    // Upload naar Supabase Storage
+    const bestandsnaam = `${Date.now()}_${file.originalname.replace(/\s+/g, '_')}`;
+    const { data: uploadData, error: uploadError } = await supabaseAdmin.storage
+      .from('developer-cvs')
+      .upload(bestandsnaam, file.buffer, {
+        contentType: file.mimetype,
+        upsert: false
+      });
+
+    if (uploadError) throw uploadError;
+
+    // Haal publieke URL op
+    const { data: urlData } = supabaseAdmin.storage
+      .from('developer-cvs')
+      .getPublicUrl(bestandsnaam);
+
+    // Zoek of developer al bestaat op basis van naam
+    const naamDelen = naam.trim().split(/\s+/);
+    let developerId = null;
+
+    if (naamDelen.length >= 2) {
+      const { data: bestaande } = await supabase
+        .from('developer')
+        .select('developer_id')
+        .ilike('naam', `%${naam}%`)
+        .limit(1);
+
+      if (bestaande && bestaande.length > 0) {
+        developerId = bestaande[0].developer_id;
+
+        // Update bestaande developer met nieuwe CV
+        await supabase
+          .from('developer')
+          .update({ cv_url: urlData.publicUrl })
+          .eq('developer_id', developerId);
+      }
+    }
+
+    // Als developer niet bestaat: maak nieuwe aan
+    if (!developerId) {
+      const { data: nieuw } = await supabase
+        .from('developer')
+        .insert({
+          naam:       naam,
+          cv_url:     urlData.publicUrl,
+          type:       'candidate',
+          aangemaakt_op: new Date().toISOString()
+        })
+        .select('developer_id')
+        .single();
+
+      developerId = nieuw?.developer_id;
+    }
+
+    res.json({ ok: true, developer_id: developerId, cv_url: urlData.publicUrl });
+
+  } catch (err) {
+    console.error('Bulk upload fout:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // ── Dashboard Endpoints ────────────────────────────────────────────────────────
 
 // GET /api/dashboard/cashflow — filterable by period (week, maand, kwartaal, jaar)
