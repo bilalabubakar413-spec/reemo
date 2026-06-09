@@ -661,6 +661,45 @@ app.patch('/api/developers/:id/skills', async (req, res) => {
   }
 });
 
+app.get('/api/developers/:id/check-actief', async (req, res) => {
+  const { id } = req.params;
+  try {
+    const { data: contracten } = await supabase
+      .from('contract')
+      .select('contract_id, project_id, project:project_id(projectnaam, klant:klant_id(naam))')
+      .eq('developer_id', id)
+      .eq('status', 'actief');
+
+    res.json({
+      actief: contracten && contracten.length > 0,
+      aantalProjecten: contracten?.length || 0,
+      projecten: (contracten || []).map(c => ({
+        projectnaam: c.project?.projectnaam || 'Onbekend project',
+        klantnaam:   c.project?.klant?.naam  || 'Onbekende klant'
+      }))
+    });
+  } catch (err) {
+    console.error('[GET /api/developers/:id/check-actief] Error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.delete('/api/developers/:id', async (req, res) => {
+  const { id } = req.params;
+  try {
+    const { error } = await supabase
+      .from('developer')
+      .delete()
+      .eq('developer_id', id);
+
+    if (error) return res.status(500).json({ error: error.message });
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('[DELETE /api/developers/:id] Error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // ==============================================================================
 //  URENREGISTRATIE  →  /api/timesheets
 // ==============================================================================

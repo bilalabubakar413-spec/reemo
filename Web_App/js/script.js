@@ -2962,7 +2962,7 @@ function renderDevelopersGrid() {
                         <div style="font-size:0.7rem;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;color:var(--white-40);margin-top:0.15rem">${devRole}</div>
                     </div>
                 </div>
-                <div style="display:flex;gap:0.35rem">
+                <div style="display:flex;gap:0.35rem;align-items:center;">
                     <button class="btn-outline" style="padding:0.35rem;width:auto;height:auto;border-radius:0.375rem" title="Assign to Project" onclick="openAssignProjectModal('${dev.id}')">
                         <i data-lucide="link" style="width:13px;height:13px;color:#60a5fa"></i>
                     </button>
@@ -2970,6 +2970,11 @@ function renderDevelopersGrid() {
                     <button class="btn-outline" style="padding:0.35rem;width:auto;height:auto;border-radius:0.375rem" title="Bekijk CV" onclick="viewDeveloperCV('${dev.id}')">
                         <i data-lucide="file-text" style="width:13px;height:13px;color:#34d399"></i>
                     </button>` : ''}
+                    <button onclick="verwijderDeveloper('${dev.id}', '${devName}')" 
+                             title="Verwijder developer"
+                             style="background:transparent; border:none; color:#EF4444; cursor:pointer; padding:4px; display:flex; align-items:center;">
+                      <i class="ti ti-trash" style="font-size:16px;"></i>
+                    </button>
                 </div>
             </div>
 
@@ -3022,6 +3027,29 @@ function renderDevelopersGrid() {
         `;
     }).join('');
     if (typeof lucide !== 'undefined') lucide.createIcons();
+}
+
+async function verwijderDeveloper(devId, naam) {
+  const res  = await fetch(`/api/developers/${devId}/check-actief`);
+  const data = await res.json();
+
+  let bericht = `Weet je zeker dat je ${naam} wilt verwijderen?`;
+
+  if (data.actief) {
+    bericht = `⚠️ Let op: ${naam} is momenteel actief op ${data.aantalProjecten} project(en):\n\n` +
+      data.projecten.map(p => `• ${p.projectnaam} (${p.klantnaam})`).join('\n') +
+      `\n\nAls je toch verwijdert worden alle koppelingen verbroken. Weet je het zeker?`;
+  }
+
+  const bevestig = confirm(bericht);
+  if (!bevestig) return;
+
+  const del = await fetch(`/api/developers/${devId}`, { method: 'DELETE' });
+  if (!del.ok) { showToast('Verwijderen mislukt', 'error'); return; }
+
+  showToast(`${naam} is verwijderd`, 'success');
+  await loadDevelopers();
+  renderDevelopersGrid();
 }
 
 // Per-session status overrides
