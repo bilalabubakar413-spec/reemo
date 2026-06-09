@@ -1079,9 +1079,10 @@
                                 Log New Hours
                             </div>
 
-                            <div style="margin-bottom:0.875rem">
-                                <label style="display:block;font-size:0.5625rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--white-40);margin-bottom:0.4rem">Date *</label>
-                                <input id="dev-ts-date" type="date" class="filter-input" style="width:100%;color-scheme:dark">
+                            <div class="form-group" style="margin-bottom:0.875rem">
+                                <label style="display:block;font-size:0.5625rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--white-40);margin-bottom:0.4rem">Week</label>
+                                <input type="week" id="timesheet-week" class="filter-input" style="width:100%;color-scheme:dark">
+                                <p id="week-label" style="font-size:11px; color:#94A3B8; margin-top:4px;"></p>
                             </div>
 
                             <div style="margin-bottom:0.875rem">
@@ -1097,22 +1098,10 @@
                                 </div>
                             </div>
 
-                            <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;margin-bottom:0.875rem">
-                                <div>
-                                    <label style="display:block;font-size:0.5625rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--white-40);margin-bottom:0.4rem">Hours *</label>
-                                    <input id="dev-ts-hours" type="number" placeholder="8" min="0.5" max="24" step="0.5" class="filter-input" style="width:100%">
-                                </div>
-                                <div>
-                                    <label style="display:block;font-size:0.5625rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--white-40);margin-bottom:0.4rem">Type</label>
-                                    <div class="filter-select-wrap" style="width:100%">
-                                        <select id="dev-ts-type" class="filter-select" style="width:100%">
-                                            <option>Regular</option>
-                                            <option>Overtime</option>
-                                            <option>On-Call</option>
-                                        </select>
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
-                                    </div>
-                                </div>
+                            <div class="form-group" style="margin-bottom:0.875rem">
+                                <label style="display:block;font-size:0.5625rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--white-40);margin-bottom:0.4rem">Totaal uren deze week</label>
+                                <input type="number" id="timesheet-uren" min="1" max="40" step="0.5"
+                                       class="filter-input" style="width:100%" placeholder="bijv. 32">
                             </div>
 
                             <div style="margin-bottom:1.25rem">

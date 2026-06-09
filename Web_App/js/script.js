@@ -281,6 +281,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         document.getElementById('btn-manage-clients').addEventListener('click', () => navigateTo('clients'));
     }
 
+    document.getElementById('timesheet-week')?.addEventListener('change', (e) => {
+        const week = e.target.value; // bijv. "2026-W23"
+        const weekNr = week.split('W')[1];
+        const label = document.getElementById('week-label');
+        if (label) label.textContent = `Week ${weekNr} — maximaal 40 uur`;
+    });
+
     // Load all data from Supabase (including projects for dropdowns)
     await Promise.all([loadClients(), loadDevelopers(), loadTimesheets(), loadInvoices(), loadProjects()]);
 
@@ -479,14 +486,17 @@ function navigateTo(targetScreenId) {
             });
         }
 
-        // Auto-fill today's date
-        const dateEl = document.getElementById('dev-ts-date');
-        if (dateEl && !dateEl.value) {
-            dateEl.value = new Date().toISOString().split('T')[0];
+        // Auto-fill current week
+        const weekEl = document.getElementById('timesheet-week');
+        if (weekEl && !weekEl.value) {
+            weekEl.value = getCurrentISOWeekString();
+            const weekNr = weekEl.value.split('W')[1];
+            const label = document.getElementById('week-label');
+            if (label) label.textContent = `Week ${weekNr} — maximaal 40 uur`;
         }
         // Clear hours to avoid stale values
-        const hoursEl = document.getElementById('dev-ts-hours');
-        if (hoursEl) hoursEl.value = '';
+        const urenEl = document.getElementById('timesheet-uren');
+        if (urenEl) urenEl.value = '';
         renderDevTimesheets();
         updateDevTsStats();
         if (typeof lucide !== 'undefined') lucide.createIcons();
@@ -4517,6 +4527,30 @@ async function deleteDevTimesheet(id) {
     }
 }
 
+function getCurrentISOWeekString() {
+    const d = new Date();
+    d.setHours(0, 0, 0, 0);
+    d.setDate(d.getDate() + 4 - (d.getDay() || 7));
+    const yearStart = new Date(d.getFullYear(), 0, 1);
+    const weekNo = Math.ceil(( ( (d.getTime() - yearStart.getTime()) / 86400000) + 1) / 7);
+    return `${d.getFullYear()}-W${String(weekNo).padStart(2, '0')}`;
+}
+
+function getMondayFromWeek(weekStr) {
+    if (!weekStr) return null;
+    const parts = weekStr.split('-W');
+    if (parts.length !== 2) return null;
+    const year = parseInt(parts[0], 10);
+    const week = parseInt(parts[1], 10);
+    const jan4 = new Date(year, 0, 4);
+    const day = jan4.getDay();
+    const dayOfWeek = day === 0 ? 7 : day;
+    const startOfYear = new Date(jan4.getTime() - (dayOfWeek - 1) * 24 * 60 * 60 * 1000);
+    const weekMonday = new Date(startOfYear.getTime() + (week - 1) * 7 * 24 * 60 * 60 * 1000);
+    const pad = (num) => String(num).padStart(2, '0');
+    return `${weekMonday.getFullYear()}-${pad(weekMonday.getMonth() + 1)}-${pad(weekMonday.getDate())}`;
+}
+
 async function submitDevTimesheet() {
     const developer_id = activeDeveloper?.id || developers[0]?.id;
     if (!developer_id) {
@@ -4524,10 +4558,9 @@ async function submitDevTimesheet() {
         return;
     }
 
-    const date        = document.getElementById('dev-ts-date')?.value;
+    const weekVal     = document.getElementById('timesheet-week')?.value;
     const project_id  = document.getElementById('dev-ts-project')?.value;
-    const hours       = parseFloat(document.getElementById('dev-ts-hours')?.value);
-    const type        = document.getElementById('dev-ts-type')?.value || 'Regular';
+    const hours       = parseFloat(document.getElementById('timesheet-uren')?.value);
     let desc          = document.getElementById('dev-ts-desc')?.value?.trim() || '';
 
     if (!developer_id) {
@@ -4538,18 +4571,16 @@ async function submitDevTimesheet() {
         showToast('⚠ Selecteer een geldig project.');
         return;
     }
-    if (!date) {
-        showToast('⚠ Kies een datum.');
+    if (!weekVal) {
+        showToast('⚠ Kies een week.');
         return;
     }
-    if (!hours || hours <= 0 || hours > 8) {
-        showToast('⚠ Voer een geldig aantal uren in (1-8).');
+    if (!hours || hours <= 0 || hours > 40) {
+        showToast('⚠ Voer een geldig aantal uren in (1-40 per week).');
         return;
     }
 
-    if (type === 'Overtime') {
-        desc = `[OVERTIME] ${desc}`;
-    }
+    const date = getMondayFromWeek(weekVal);
 
     try {
         await apiFetch('/api/timesheets', {
@@ -4564,8 +4595,9 @@ async function submitDevTimesheet() {
         });
 
         // Reset form
-        document.getElementById('dev-ts-date').value  = '';
-        document.getElementById('dev-ts-hours').value = '';
+        if (document.getElementById('timesheet-week')) document.getElementById('timesheet-week').value = '';
+        if (document.getElementById('timesheet-uren')) document.getElementById('timesheet-uren').value = '';
+        if (document.getElementById('week-label')) document.getElementById('week-label').textContent = '';
         if (document.getElementById('dev-ts-desc')) document.getElementById('dev-ts-desc').value = '';
 
         await loadTimesheets(); // refetch from DB

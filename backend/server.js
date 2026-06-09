@@ -746,6 +746,45 @@ app.post('/api/timesheets', async (req, res) => {
     });
   }
 
+  // Vervang de check aantal_uren <= 8 door:
+  if (!aantal_uren || aantal_uren <= 0 || aantal_uren > 40) {
+    return res.status(400).json({
+      ok: false,
+      error: 'Voer een geldig aantal uren in (1-40 per week)'
+    });
+  }
+
+  // Get weekStart and weekEind from datum
+  const parts = datum.split('-');
+  const d = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+  const day = d.getDay();
+  const diff = d.getDate() - (day === 0 ? 6 : day - 1);
+  const startDatum = new Date(d.setDate(diff));
+  const eindDatum = new Date(startDatum);
+  eindDatum.setDate(startDatum.getDate() + 6);
+
+  const pad = (num) => String(num).padStart(2, '0');
+  const formatDate = (dateObj) => `${dateObj.getFullYear()}-${pad(dateObj.getMonth() + 1)}-${pad(dateObj.getDate())}`;
+  
+  const weekStart = formatDate(startDatum);
+  const weekEind = formatDate(eindDatum);
+
+  // Controleer of er al een timesheet is voor die week + project
+  const { data: bestaand, error: checkError } = await supabase
+    .from('urenregistratie')
+    .select('uren_id')
+    .eq('developer_id', developer_id)
+    .eq('project_id', project_id)
+    .gte('datum', weekStart)  // maandag van die week
+    .lte('datum', weekEind);  // zondag van die week
+
+  if (bestaand && bestaand.length > 0) {
+    return res.status(400).json({
+      ok: false,
+      error: 'Je hebt al een timesheet ingediend voor deze week op dit project.'
+    });
+  }
+
   let contract_id = null;
   let bedrag = null;
 
