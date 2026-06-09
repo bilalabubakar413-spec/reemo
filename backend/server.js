@@ -983,6 +983,49 @@ app.patch('/api/clients/:id', async (req, res) => {
   } catch (e) { res.status(500).json({ ok: false, error: e.message }); }
 });
 
+app.get('/api/clients/:id/check-actief', async (req, res) => {
+  const { id } = req.params;
+  try {
+    const { data: projecten } = await supabase
+      .from('project')
+      .select('projectnaam')
+      .eq('klant_id', id)
+      .eq('status', 'actief');
+
+    const { data: facturen } = await supabase
+      .from('factuur')
+      .select('factuur_id')
+      .eq('klant_id', id)
+      .in('betalingsstatus', ['open', 'verzonden']);
+
+    res.json({
+      actief: (projecten?.length > 0) || (facturen?.length > 0),
+      aantalProjecten: projecten?.length || 0,
+      openFacturen:    facturen?.length  || 0,
+      projecten: (projecten || []).map(p => p.projectnaam)
+    });
+  } catch (err) {
+    console.error('[GET /api/clients/:id/check-actief] Error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.delete('/api/clients/:id', async (req, res) => {
+  const { id } = req.params;
+  try {
+    const { error } = await supabase
+      .from('klant')
+      .delete()
+      .eq('klant_id', id);
+
+    if (error) return res.status(500).json({ error: error.message });
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('[DELETE /api/clients/:id] Error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // POST – upload client logo
 app.post('/api/clients/:id/logo', storageUpload.single('logo'), async (req, res) => {
   const { id } = req.params;

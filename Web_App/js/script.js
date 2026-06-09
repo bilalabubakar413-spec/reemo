@@ -2018,7 +2018,7 @@ function renderClientsGrid() {
                 <button class="client-card-btn" title="Bewerken" onclick="event.stopPropagation();openEditClientModal('${id}')">
                     <i data-lucide="pencil" style="width:12px;height:12px"></i>
                 </button>
-                <button class="client-card-btn" title="Verwijderen" style="color:#f43f5e" onclick="event.stopPropagation();deleteClient('${id}','${(c.naam||'').replace(/'/g,"\\'")}', this)">
+                <button class="client-card-btn" title="Verwijderen" style="color:#f43f5e" onclick="event.stopPropagation();verwijderKlant('${id}','${(c.naam||'').replace(/'/g,"\\'")}')">
                     <i data-lucide="trash-2" style="width:12px;height:12px"></i>
                 </button>
             </div>
@@ -2144,6 +2144,33 @@ async function deleteClient(id, naam, btnElement) {
             if (typeof lucide !== 'undefined') lucide.createIcons();
         }
     }
+}
+
+async function verwijderKlant(klantId, naam) {
+  const res  = await fetch(`/api/clients/${klantId}/check-actief`);
+  const data = await res.json();
+
+  let bericht = `Weet je zeker dat je ${naam} wilt verwijderen?`;
+
+  if (data.actief) {
+    bericht = `⚠️ Let op: ${naam} heeft nog actieve relaties:\n\n`;
+    if (data.aantalProjecten > 0)
+      bericht += `Actieve projecten:\n${data.projecten.map(p => `• ${p}`).join('\n')}\n\n`;
+    if (data.openFacturen > 0)
+      bericht += `Openstaande facturen: ${data.openFacturen}\n\n`;
+    bericht += `Als je toch verwijdert worden alle gegevens permanent verwijderd. Weet je het zeker?`;
+  }
+
+  const bevestig = confirm(bericht);
+  if (!bevestig) return;
+
+  const del = await fetch(`/api/clients/${klantId}`, { method: 'DELETE' });
+  if (!del.ok) { showToast('Verwijderen mislukt', 'error'); return; }
+
+  showToast(`${naam} is verwijderd`, 'success');
+  await loadClients();
+  renderClientsGrid();
+  if (typeof renderDashboardStats === 'function') renderDashboardStats();
 }
 
 function applyClientFilter() {
