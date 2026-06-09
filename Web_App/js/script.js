@@ -523,6 +523,9 @@ function navigateTo(targetScreenId) {
     if (targetScreenId === 'dev-profile') {
         loadDevProfile();
     }
+    if (targetScreenId === 'data-management') {
+        initDataManagement();
+    }
 }
 
 async function loadDevDashboard() {
@@ -6252,3 +6255,215 @@ async function submitContractForm() {
         alert('Fout tijdens opslaan van contract.');
     }
 }
+
+// === Data Management Logic ===
+const SYSTEM_RESET_ENABLED = false;
+
+let huidigeDMScope = null;
+
+function switchDMSection(sectie) {
+  const importSection = document.getElementById('dm-sectie-import');
+  const gevaarlijkSection = document.getElementById('dm-sectie-gevaarlijk');
+  
+  if (importSection) {
+    importSection.style.display = sectie === 'import' ? 'block' : 'none';
+  }
+  if (gevaarlijkSection) {
+    gevaarlijkSection.style.display = sectie === 'gevaarlijk' ? 'block' : 'none';
+  }
+
+  const toggleImport = document.getElementById('toggle-import');
+  const toggleGevaarlijk = document.getElementById('toggle-gevaarlijk');
+
+  if (toggleImport) {
+    toggleImport.classList.toggle('active', sectie === 'import');
+  }
+  if (toggleGevaarlijk) {
+    toggleGevaarlijk.classList.toggle('active', sectie === 'gevaarlijk');
+  }
+}
+
+function initDataManagement() {
+  switchDMSection('import');
+  // De-select any scopes
+  huidigeDMScope = null;
+  document.querySelectorAll('.dm-scope-card').forEach(c => c.classList.remove('selected'));
+  
+  // Hide criteria and impact panels
+  ['default', 'periode', 'klant', 'reset'].forEach(s => {
+    const el = document.getElementById(`dm-criteria-${s}`);
+    if (el) el.style.display = s === 'default' ? 'block' : 'none';
+  });
+  const impactEl = document.getElementById('dm-impact-analyse');
+  if (impactEl) impactEl.style.display = 'none';
+}
+
+function downloadTemplate(type) {
+  console.log('Download template:', type);
+  showToast('Sjabloon download komt binnenkort beschikbaar', 'info');
+}
+
+function handleDMAutoDrop(event) {
+  event.preventDefault();
+  console.log('Auto drop - nog niet geïmplementeerd');
+  showToast('Auto-sortering komt in stap 2', 'info');
+}
+
+function handleDMAutoFileSelect(event) {
+  console.log('Auto file select - nog niet geïmplementeerd');
+  showToast('Auto-sortering komt in stap 2', 'info');
+}
+
+function openDMImportModal(type) {
+  console.log('Open import modal voor:', type);
+  showToast(`Import voor ${type} komt in stap 2`, 'info');
+}
+
+function selectDMScope(scope) {
+  // Reset alle kaarten
+  document.querySelectorAll('.dm-scope-card').forEach(c => c.classList.remove('selected'));
+
+  // Als reset uitgeschakeld is blokkeer dan
+  if (scope === 'reset' && !SYSTEM_RESET_ENABLED) {
+    showToast('System Reset is uitgeschakeld door de beheerder', 'error');
+    return;
+  }
+
+  huidigeDMScope = scope;
+  document.getElementById(`scope-${scope}`)?.classList.add('selected');
+
+  // Verberg alle criteria panelen
+  ['default','periode','klant','reset'].forEach(s => {
+    const el = document.getElementById(`dm-criteria-${s}`);
+    if (el) el.style.display = 'none';
+  });
+
+  // Verberg impact analyse
+  const impactEl = document.getElementById('dm-impact-analyse');
+  if (impactEl) impactEl.style.display = 'none';
+
+  // Toon juiste criteria paneel
+  if (scope === 'uren' || scope === 'omzet') {
+    const titel = scope === 'uren' ? 'Periode voor urenregistraties' : 'Periode voor facturen';
+    const titelEl = document.getElementById('dm-criteria-titel');
+    if (titelEl) titelEl.textContent = titel;
+    const periodeEl = document.getElementById('dm-criteria-periode');
+    if (periodeEl) periodeEl.style.display = 'block';
+  } else if (scope === 'klant') {
+    const klantEl = document.getElementById('dm-criteria-klant');
+    if (klantEl) klantEl.style.display = 'block';
+    laadKlantenDropdown();
+  } else if (scope === 'reset') {
+    const resetEl = document.getElementById('dm-criteria-reset');
+    if (resetEl) resetEl.style.display = 'block';
+  }
+}
+
+async function laadKlantenDropdown() {
+  try {
+    const data = await apiFetchSafe('/api/klanten');
+    const select = document.getElementById('dm-klant-select');
+    if (!select) return;
+    
+    const clientsList = data || [];
+    select.innerHTML = '<option value="">— Kies een klant —</option>' +
+      clientsList.map(k =>
+        `<option value="${k.klant_id || k.id || ''}">${k.naam || k.name || ''}</option>`
+      ).join('');
+  } catch(err) {
+    console.error('Klanten laden mislukt:', err);
+    showToast('Fout bij het laden van klanten', 'error');
+  }
+}
+
+function evaluerenImpact() {
+  // Validatie
+  if (huidigeDMScope === 'klant') {
+    const sel = document.getElementById('dm-klant-select')?.value;
+    if (!sel) {
+      showToast('Fout: Gelieve eerst de te verwijderen klant te selecteren.', 'error');
+      return;
+    }
+  }
+  if ((huidigeDMScope === 'uren' || huidigeDMScope === 'omzet')) {
+    const van = document.getElementById('dm-periode-van')?.value;
+    const tot = document.getElementById('dm-periode-tot')?.value;
+    if (!van || !tot) {
+      showToast('Fout: Selecteer een van- en tot-datum.', 'error');
+      return;
+    }
+  }
+
+  // Toon mock impact analyse
+  const targetEl = document.getElementById('impact-target');
+  if (targetEl) {
+    targetEl.textContent =
+      huidigeDMScope === 'klant' ? 'KLANT' :
+      huidigeDMScope === 'uren' ? 'UREN' :
+      huidigeDMScope === 'omzet' ? 'OMZET' : 'SYSTEEM';
+  }
+
+  const subEl = document.getElementById('impact-target-sub');
+  if (subEl) subEl.textContent = 'Mock data — stap 2 koppelt echte data';
+  
+  const recordsEl = document.getElementById('impact-records');
+  if (recordsEl) recordsEl.textContent = '—';
+  
+  const verliesEl = document.getElementById('impact-verlies');
+  if (verliesEl) verliesEl.textContent = '—';
+  
+  const cascadeEl = document.getElementById('impact-cascade');
+  if (cascadeEl) {
+    cascadeEl.textContent = 'De echte cascade-impact wordt berekend in stap 3 wanneer de backend is gekoppeld.';
+  }
+
+  const impactEl = document.getElementById('dm-impact-analyse');
+  if (impactEl) impactEl.style.display = 'block';
+
+  // Reset checkboxes en PIN
+  ['check-1','check-2','check-3'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.checked = false;
+  });
+  ['pin-1','pin-2','pin-3','pin-4'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  const confirmEl = document.getElementById('dm-confirm-text');
+  if (confirmEl) confirmEl.value = '';
+  updateVernietigKnop();
+}
+
+function movePinFocus(current, nextId) {
+  if (current.value.length === 1 && nextId) {
+    document.getElementById(nextId)?.focus();
+  }
+  updateVernietigKnop();
+}
+
+function updateVernietigKnop() {
+  const check1 = document.getElementById('check-1')?.checked;
+  const check2 = document.getElementById('check-2')?.checked;
+  const check3 = document.getElementById('check-3')?.checked;
+  const pin = ['pin-1','pin-2','pin-3','pin-4']
+    .map(id => document.getElementById(id)?.value || '')
+    .join('');
+  const confirmText = document.getElementById('dm-confirm-text')?.value;
+
+  const allesKlaar = check1 && check2 && check3 &&
+                     pin.length === 4 &&
+                     confirmText === 'VERWIJDER';
+
+  const btn = document.getElementById('btn-permanent-vernietigen');
+  if (btn) {
+    btn.disabled = !allesKlaar;
+    btn.classList.toggle('active', allesKlaar);
+  }
+}
+
+function permanentVernietigen() {
+  // STUB — doet niets in stap 1
+  console.log('Vernietigen aangeroepen voor scope:', huidigeDMScope);
+  showToast('Backend koppeling komt in stap 3', 'info');
+}
+

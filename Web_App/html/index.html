@@ -165,6 +165,10 @@
                         <i data-lucide="file-text" class="w-5 h-5 nav-icon"></i>
                         Invoices
                     </button>
+                    <button data-target="data-management" class="nav-item">
+                        <i class="ti ti-alert-circle w-5 h-5 nav-icon" style="font-size:1.2rem; display:flex; align-items:center; justify-content:center;"></i>
+                        Data Management
+                    </button>
                 </div>
 
                 <!-- Developer Navigation -->
@@ -864,6 +868,298 @@
                                     <!-- Filled by JS -->
                                 </tbody>
                             </table>
+                        </div>
+                    </div>
+                </div>
+
+
+                <!-- Data Management Screen -->
+                <div id="screen-data-management" class="screen-content" style="display:none;">
+                    <!-- Header kaart -->
+                    <div class="dm-header-card">
+                        <div class="dm-header-left">
+                            <span class="dm-badge operations">OPERATIONS</span>
+                            <h1 class="dm-title">Reemo Data Engine</h1>
+                            <p class="dm-subtitle">
+                                Uniform CSV-importbesturingssysteem & Beveiligde auditvriendelijke record opschoning.
+                            </p>
+                        </div>
+                        <div class="dm-section-toggle">
+                            <button id="toggle-import" class="dm-toggle-btn active" onclick="switchDMSection('import')">
+                                <i class="ti ti-upload"></i> Sectie 1: Importeren
+                            </button>
+                            <button id="toggle-gevaarlijk" class="dm-toggle-btn danger" onclick="switchDMSection('gevaarlijk')">
+                                <i class="ti ti-trash"></i> Sectie 2: Gevaarlijke Acties
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Sectie 1: Importeren -->
+                    <div id="dm-sectie-import">
+                        <!-- Bovenste rij: Auto-sortering + Sjablonen -->
+                        <div class="dm-top-row">
+                            <!-- Auto-sortering kaart -->
+                            <div class="dm-card dm-card-wide">
+                                <div class="dm-card-icon"><i class="ti ti-sparkles"></i></div>
+                                <h3>Intelligente Auto-Sortering</h3>
+                                <p>Drop hier direct eender welk CSV-bestand. Ons systeem herkent automatisch de kolomkoppen, vergelijkt ze met onze database-schema's en selecteert de juiste bestemming (Timesheets, Facturen, Klanten, Projecten of Developers).</p>
+                            </div>
+
+                            <!-- Sjablonen kaart -->
+                            <div class="dm-card dm-card-narrow">
+                                <div class="dm-card-icon"><i class="ti ti-download"></i></div>
+                                <h3>Sjablonen nodig?</h3>
+                                <p>Download de perfect geformatteerde CSV-structuren:</p>
+                                <div class="dm-template-grid">
+                                    <button class="dm-template-btn" onclick="downloadTemplate('operations')">
+                                        <i class="ti ti-clock"></i> Operations
+                                    </button>
+                                    <button class="dm-template-btn" onclick="downloadTemplate('cashflow')">
+                                        <i class="ti ti-file-invoice"></i> Cashflow
+                                    </button>
+                                    <button class="dm-template-btn" onclick="downloadTemplate('crm')">
+                                        <i class="ti ti-users"></i> CRM
+                                    </button>
+                                    <button class="dm-template-btn" onclick="downloadTemplate('contracts')">
+                                        <i class="ti ti-briefcase"></i> Operational Contracts
+                                    </button>
+                                    <button class="dm-template-btn" onclick="downloadTemplate('hr')">
+                                        <i class="ti ti-user"></i> Human Resources
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Dropzone -->
+                        <div class="dm-dropzone" id="dm-auto-dropzone"
+                             onclick="document.getElementById('dm-auto-file-input').click()"
+                             ondragover="event.preventDefault()"
+                             ondrop="handleDMAutoDrop(event)">
+                            <i class="ti ti-cloud-upload" style="font-size:40px; color:#3B82F6;"></i>
+                            <h3>Sleep uw CSV-bestand hiernaartoe of klik om te bladeren</h3>
+                            <p>Nederlands & Europees Excel-formaat ondersteund (automatische scheidingsteken detectie: ";" of ",")</p>
+                            <div class="dm-dropzone-tags">
+                                <span class="dm-tag">Urenregistratie</span>
+                                <span class="dm-tag">Omzetsheets</span>
+                                <span class="dm-tag">Relaties</span>
+                                <span class="dm-tag">Freelancer lists</span>
+                            </div>
+                        </div>
+                        <input type="file" id="dm-auto-file-input" accept=".csv" style="display:none"
+                               onchange="handleDMAutoFileSelect(event)" />
+
+                        <!-- Handmatige configuratie -->
+                        <div class="dm-manual-label">OF CONFIGUREER HANDMATIG:</div>
+                        <div class="dm-manual-grid">
+                            <div class="dm-manual-card" onclick="openDMImportModal('timesheets')">
+                                <span class="dm-badge operations">OPERATIONS</span>
+                                <i class="ti ti-clock dm-manual-icon"></i>
+                                <h4>Timesheets (Urenregistratie)</h4>
+                                <p>Bij gewerkte uren, periodieke urenlijsten en wekelijkse of dagelijkse registers.</p>
+                            </div>
+
+                            <div class="dm-manual-card" onclick="openDMImportModal('facturen')">
+                                <span class="dm-badge cashflow">CASHFLOW</span>
+                                <i class="ti ti-file-invoice dm-manual-icon"></i>
+                                <h4>Facturen & Omzet</h4>
+                                <p>Boekhoudrapporten, verzonden facturen, betalingstermijnen en omzethistorie.</p>
+                            </div>
+
+                            <div class="dm-manual-card" onclick="openDMImportModal('klanten')">
+                                <span class="dm-badge crm">CRM</span>
+                                <i class="ti ti-users dm-manual-icon"></i>
+                                <h4>Klanten Dossier</h4>
+                                <p>Relaties, aangesloten bedrijven, sectorindeling en klantcontactpersonen.</p>
+                            </div>
+
+                            <div class="dm-manual-card" onclick="openDMImportModal('projecten')">
+                                <span class="dm-badge contracts">OPERATIONAL CONTRACTS</span>
+                                <i class="ti ti-briefcase dm-manual-icon"></i>
+                                <h4>Project Allocaties</h4>
+                                <p>Nieuwe lopende opdrachten, projectfases en vaste prijs- of T&M afspraken.</p>
+                            </div>
+
+                            <div class="dm-manual-card" onclick="openDMImportModal('developers')">
+                                <span class="dm-badge hr">HUMAN RESOURCES</span>
+                                <i class="ti ti-user dm-manual-icon"></i>
+                                <h4>Developers Netwerk</h4>
+                                <p>Freelancers, consultants en inzetbare specialisten met uurtarieven.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Sectie 2: Gevaarlijke Acties -->
+                    <div id="dm-sectie-gevaarlijk" style="display:none;">
+                        <div class="dm-danger-layout">
+                            <!-- Linkerkolom: scopes -->
+                            <div class="dm-danger-left">
+                                <div class="dm-section-label">SYSTEEM OPSCHONING SCOPES</div>
+
+                                <div class="dm-scope-card" id="scope-uren" onclick="selectDMScope('uren')">
+                                    <div class="dm-scope-header">
+                                        <span class="dm-badge danger">UREN</span>
+                                        <span class="dm-scope-tag">Operations</span>
+                                    </div>
+                                    <h4>Urenregistraties (Timesheets) periodegewijs</h4>
+                                    <p>Schoont alle goedgekeurde/lopende uren over een bepaald segment permanent.</p>
+                                </div>
+
+                                <div class="dm-scope-card" id="scope-omzet" onclick="selectDMScope('omzet')">
+                                    <div class="dm-scope-header">
+                                        <span class="dm-badge danger">OMZET</span>
+                                        <span class="dm-scope-tag">Cashflow</span>
+                                    </div>
+                                    <h4>Facturen & Cashflow records periodegewijs</h4>
+                                    <p>Schoont declaraties, boekingen of testomzetten over periodes permanent.</p>
+                                </div>
+
+                                <div class="dm-scope-card" id="scope-klant" onclick="selectDMScope('klant')">
+                                    <div class="dm-scope-header">
+                                        <span class="dm-badge danger">KLANT</span>
+                                        <span class="dm-scope-tag">Dossier purge</span>
+                                    </div>
+                                    <h4>Volledige data van één specifieke klant</h4>
+                                    <p>Gevaarlijk: Verwijdert het klantdossier, uren en omzetrecords.</p>
+                                </div>
+
+                                <div class="dm-scope-card disabled" id="scope-reset" onclick="selectDMScope('reset')">
+                                    <div class="dm-scope-header">
+                                        <i class="ti ti-alert-triangle" style="color:#EF4444;"></i>
+                                        <span class="dm-scope-tag critical">Fabrieksstand</span>
+                                    </div>
+                                    <h4>Critical SYSTEM RESET</h4>
+                                    <p>Volledige Reemo Operations Reset</p>
+                                    <p style="color:#EF4444; font-size:11px; margin-top:4px;">
+                                        Blazen van alle entiteiten, developers, dossiers, CVs en data.
+                                        <br><strong>⚠️ Uitgeschakeld door beheerder</strong>
+                                    </p>
+                                </div>
+                            </div>
+
+                            <!-- Rechterkolom: criteria + impact + bevestiging -->
+                            <div class="dm-danger-right">
+                                <!-- Default staat -->
+                                <div id="dm-criteria-default" class="dm-criteria-card">
+                                    <i class="ti ti-selector" style="font-size:32px; color:#475569;"></i>
+                                    <p style="color:#64748B; margin-top:12px;">
+                                        Kies links een van de opschoningsacties om criteria te configureren.
+                                    </p>
+                                </div>
+
+                                <!-- Criteria voor uren/omzet -->
+                                <div id="dm-criteria-periode" class="dm-criteria-card" style="display:none;">
+                                    <h4 id="dm-criteria-titel">Criteria</h4>
+                                    <div class="dm-criteria-row">
+                                        <label>Van</label>
+                                        <input type="date" id="dm-periode-van" class="filter-input" style="background:#0a0a0a; border:1px solid #1e1e1e; border-radius:6px; padding:6px; color:white; flex:1;" />
+                                    </div>
+                                    <div class="dm-criteria-row">
+                                        <label>Tot</label>
+                                        <input type="date" id="dm-periode-tot" class="filter-input" style="background:#0a0a0a; border:1px solid #1e1e1e; border-radius:6px; padding:6px; color:white; flex:1;" />
+                                    </div>
+                                    <button class="btn-danger-eval" onclick="evaluerenImpact()">
+                                        Evalueer & Preview Impact →
+                                    </button>
+                                </div>
+
+                                <!-- Criteria voor klant -->
+                                <div id="dm-criteria-klant" class="dm-criteria-card" style="display:none;">
+                                    <h4>Selecteer klant om te verwijderen</h4>
+                                    <select id="dm-klant-select" class="filter-input" style="background:#0a0a0a; border:1px solid #1e1e1e; border-radius:6px; padding:6px; color:white; flex:1; width:100%;">
+                                        <option value="">— Kies een klant —</option>
+                                    </select>
+                                    <button class="btn-danger-eval" onclick="evaluerenImpact()">
+                                        Evalueer & Preview Impact →
+                                    </button>
+                                </div>
+
+                                <!-- Criteria voor reset -->
+                                <div id="dm-criteria-reset" class="dm-criteria-card dm-criteria-critical" style="display:none;">
+                                    <i class="ti ti-alert-triangle" style="font-size:32px; color:#EF4444;"></i>
+                                    <h4 style="color:#EF4444;">Volledige system reset</h4>
+                                    <p style="color:#94A3B8; font-size:12px;">
+                                        Deze actie verwijdert ALLE data inclusief developers, klanten, CVs en historische records.
+                                        Dit kan niet ongedaan worden gemaakt.
+                                    </p>
+                                    <button class="btn-danger-eval" onclick="evaluerenImpact()">
+                                        Evalueer & Preview Impact →
+                                    </button>
+                                </div>
+
+                                <!-- Impact analyse (mock) -->
+                                <div id="dm-impact-analyse" style="display:none;">
+                                    <div class="dm-impact-stats">
+                                        <div class="dm-impact-stat">
+                                            <span class="dm-impact-label">TARGET DATA</span>
+                                            <span class="dm-impact-value" id="impact-target">—</span>
+                                            <span class="dm-impact-sub" id="impact-target-sub">Rijselectie</span>
+                                        </div>
+                                        <div class="dm-impact-stat">
+                                            <span class="dm-impact-label">AANTAL RECORDS</span>
+                                            <span class="dm-impact-value" id="impact-records">—</span>
+                                            <span class="dm-impact-sub">worden onherstelbaar gewist</span>
+                                        </div>
+                                        <div class="dm-impact-stat">
+                                            <span class="dm-impact-label">GECALCULEERD VERLIES</span>
+                                            <span class="dm-impact-value danger" id="impact-verlies">—</span>
+                                            <span class="dm-impact-sub">associatieve waarde</span>
+                                        </div>
+                                    </div>
+
+                                    <div class="dm-cascade-box">
+                                        <span class="dm-section-label">CASCADE RELATIE-IMPACT</span>
+                                        <p id="impact-cascade">De geselecteerde actie heeft impact op gerelateerde records.</p>
+                                    </div>
+
+                                    <!-- 3 checkboxes -->
+                                    <div class="dm-checklist">
+                                        <span class="dm-section-label">BEVEILIGINGS- EN VALIDATIE-CHECKLISTS</span>
+                                        <label class="dm-check-item">
+                                            <input type="checkbox" id="check-1" onchange="updateVernietigKnop()" />
+                                            Ik bevestig dat deze actie permanent is en niet ongedaan gemaakt kan worden.
+                                        </label>
+                                        <label class="dm-check-item">
+                                            <input type="checkbox" id="check-2" onchange="updateVernietigKnop()" />
+                                            Ik heb de gecalculeerde impactwaarde gecontroleerd en ga akkoord.
+                                        </label>
+                                        <label class="dm-check-item">
+                                            <input type="checkbox" id="check-3" onchange="updateVernietigKnop()" />
+                                            Ik verklaar dat ik over de benodigde administratieve bevoegdheden beschik.
+                                        </label>
+                                    </div>
+
+                                    <!-- PIN invoer -->
+                                    <div class="dm-auth-section">
+                                        <span class="dm-section-label">AUTORISATIE VRIJGEVEN</span>
+
+                                        <div style="margin-bottom:12px;">
+                                            <p style="font-size:12px; color:#94A3B8; margin-bottom:8px;">Stap 1 — Voer de beheerderscode in:</p>
+                                            <div class="dm-pin-row">
+                                                <input type="password" maxlength="1" class="dm-pin-digit" id="pin-1"
+                                                       oninput="movePinFocus(this, 'pin-2')" onchange="updateVernietigKnop()" />
+                                                <input type="password" maxlength="1" class="dm-pin-digit" id="pin-2"
+                                                       oninput="movePinFocus(this, 'pin-3')" onchange="updateVernietigKnop()" />
+                                                <input type="password" maxlength="1" class="dm-pin-digit" id="pin-3"
+                                                       oninput="movePinFocus(this, 'pin-4')" onchange="updateVernietigKnop()" />
+                                                <input type="password" maxlength="1" class="dm-pin-digit" id="pin-4"
+                                                       oninput="movePinFocus(this, null)" onchange="updateVernietigKnop()" />
+                                            </div>
+                                        </div>
+
+                                        <div>
+                                            <p style="font-size:12px; color:#94A3B8; margin-bottom:8px;">Stap 2 — Typ "VERWIJDER" ter bevestiging:</p>
+                                            <input type="text" id="dm-confirm-text" class="filter-input dm-confirm-input" style="background:#0a0a0a; border:1px solid #1e1e1e; border-radius:6px; padding:8px; color:white; width:100%;"
+                                                   placeholder="VERWIJDER" oninput="updateVernietigKnop()" />
+                                        </div>
+                                    </div>
+
+                                    <!-- Vernietig knop -->
+                                    <button id="btn-permanent-vernietigen" class="btn-danger-final"
+                                            disabled onclick="permanentVernietigen()">
+                                        Permanent Vernietigen 🗑️
+                                    </button>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -2243,6 +2539,160 @@
 .bulk-file-row .file-naam    { flex: 1; color: #CBD5E1; }
 .bulk-file-row .file-grootte { color: #64748B; font-size: 11px; white-space: nowrap; }
 .bulk-file-row .file-status  { white-space: nowrap; }
+
+/* ── Data Management ─────────────────────────────────── */
+.dm-header-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  background: var(--surface);
+  border: 1px solid var(--white-10);
+  border-radius: 12px;
+  padding: 24px;
+  margin-bottom: 24px;
+}
+.dm-title { font-size: 24px; font-weight: 700; color: white; margin: 6px 0 4px; }
+.dm-subtitle { font-size: 12px; color: #64748B; max-width: 500px; }
+.dm-section-toggle { display: flex; gap: 8px; }
+.dm-toggle-btn {
+  padding: 8px 16px; border-radius: 8px; border: 1px solid #334155;
+  background: #1E293B; color: #94A3B8; cursor: pointer; font-size: 12px;
+  display: flex; align-items: center; gap: 6px; transition: all 0.15s;
+}
+.dm-toggle-btn.active { background: #1D3A5F; border-color: #3B82F6; color: #3B82F6; font-weight: 600; }
+.dm-toggle-btn.danger.active { background: #450A0A; border-color: #EF4444; color: #EF4444; }
+
+.dm-badge { font-size: 9px; font-weight: 700; padding: 2px 8px; border-radius: 4px;
+  letter-spacing: 0.08em; display: inline-block; }
+.dm-badge.operations { background: #1D3A5F; color: #3B82F6; }
+.dm-badge.cashflow   { background: #4A2800; color: #F59E0B; }
+.dm-badge.crm        { background: #14402A; color: #22C55E; }
+.dm-badge.contracts  { background: #3B1A5A; color: #A855F7; }
+.dm-badge.hr         { background: #1A3050; color: #60A5FA; }
+.dm-badge.danger     { background: #450A0A; color: #EF4444; }
+
+.dm-top-row { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; margin-bottom: 16px; }
+.dm-card {
+  background: var(--surface); border: 1px solid var(--white-10);
+  border-radius: 12px; padding: 20px;
+}
+.dm-card h3 { font-size: 14px; font-weight: 600; color: white; margin: 10px 0 6px; }
+.dm-card p  { font-size: 12px; color: #64748B; line-height: 1.5; }
+.dm-card-icon { font-size: 24px; color: #3B82F6; }
+
+.dm-template-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 10px; }
+.dm-template-btn {
+  background: #1E293B; border: 1px solid #334155; color: #94A3B8;
+  padding: 6px 8px; border-radius: 6px; font-size: 10px; cursor: pointer;
+  display: flex; align-items: center; gap: 4px; transition: all 0.15s;
+}
+.dm-template-btn:hover { border-color: #3B82F6; color: #CBD5E1; }
+
+.dm-dropzone {
+  border: 2px dashed #334155; border-radius: 12px; padding: 40px 24px;
+  text-align: center; cursor: pointer; transition: all 0.2s; margin-bottom: 24px;
+}
+.dm-dropzone:hover { border-color: #3B82F6; background: rgba(59,130,246,0.04); }
+.dm-dropzone h3 { font-size: 15px; color: white; margin: 12px 0 6px; }
+.dm-dropzone p  { font-size: 12px; color: #64748B; }
+.dm-dropzone-tags { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin-top: 12px; }
+.dm-tag { background: #1E293B; border: 1px solid #334155; color: #94A3B8;
+  padding: 3px 10px; border-radius: 20px; font-size: 11px; }
+
+.dm-manual-label { font-size: 10px; font-weight: 700; color: #475569;
+  letter-spacing: 0.08em; margin-bottom: 12px; }
+.dm-section-label { font-size: 10px; font-weight: 700; color: #475569;
+  letter-spacing: 0.08em; margin-bottom: 10px; display: block; }
+
+.dm-manual-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; }
+.dm-manual-card {
+  background: var(--surface); border: 1px solid var(--white-10);
+  border-radius: 10px; padding: 16px; cursor: pointer; transition: all 0.15s;
+}
+.dm-manual-card:hover { border-color: #3B82F6; transform: translateY(-2px); }
+.dm-manual-card h4 { font-size: 12px; font-weight: 600; color: white; margin: 8px 0 4px; }
+.dm-manual-card p  { font-size: 11px; color: #64748B; line-height: 1.4; }
+.dm-manual-icon { font-size: 20px; color: #3B82F6; margin: 8px 0 4px; display: block; }
+
+/* Sectie 2 gevaarlijke acties */
+.dm-danger-layout { display: grid; grid-template-columns: 1fr 1.4fr; gap: 20px; }
+.dm-danger-left { display: flex; flex-direction: column; gap: 12px; }
+
+.dm-scope-card {
+  background: rgba(69,10,10,0.15); border: 1px solid #450A0A;
+  border-radius: 10px; padding: 16px; cursor: pointer; transition: all 0.15s;
+}
+.dm-scope-card:hover  { border-color: #EF4444; }
+.dm-scope-card.selected { border-color: #EF4444; background: rgba(69,10,10,0.35); }
+.dm-scope-card.disabled { opacity: 0.4; cursor: not-allowed; }
+.dm-scope-card h4 { font-size: 13px; font-weight: 600; color: white; margin: 8px 0 4px; }
+.dm-scope-card p  { font-size: 11px; color: #94A3B8; }
+.dm-scope-header  { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+.dm-scope-tag {
+  font-size: 9px; color: #EF4444; border: 1px solid #450A0A;
+  padding: 2px 6px; border-radius: 4px;
+}
+.dm-scope-tag.critical { color: #FCA5A5; background: #450A0A; }
+
+.dm-criteria-card {
+  background: var(--surface); border: 1px solid var(--white-10);
+  border-radius: 12px; padding: 20px; text-align: center;
+}
+.dm-criteria-card h4 { font-size: 14px; font-weight: 600; color: white; margin-bottom: 14px; text-align: left; }
+.dm-criteria-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+.dm-criteria-row label { font-size: 12px; color: #94A3B8; width: 40px; }
+.dm-criteria-critical { border-color: #450A0A; background: rgba(69,10,10,0.15); }
+
+.btn-danger-eval {
+  width: 100%; background: #450A0A; border: 1px solid #EF4444; color: #FCA5A5;
+  padding: 10px; border-radius: 8px; cursor: pointer; font-size: 13px;
+  font-weight: 600; margin-top: 14px; transition: all 0.15s;
+}
+.btn-danger-eval:hover { background: #7F1D1D; }
+
+.dm-impact-stats {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 16px;
+}
+.dm-impact-stat {
+  background: #1E293B; border: 1px solid #334155; border-radius: 8px;
+  padding: 12px; text-align: center;
+}
+.dm-impact-label { font-size: 9px; color: #475569; letter-spacing: 0.08em; display: block; margin-bottom: 4px; }
+.dm-impact-value { font-size: 20px; font-weight: 700; color: white; display: block; }
+.dm-impact-value.danger { color: #EF4444; }
+.dm-impact-sub  { font-size: 10px; color: #475569; display: block; margin-top: 2px; }
+
+.dm-cascade-box {
+  background: rgba(69,10,10,0.15); border: 1px solid #450A0A;
+  border-radius: 8px; padding: 14px; margin-bottom: 16px;
+}
+.dm-cascade-box p { font-size: 12px; color: #94A3B8; margin: 4px 0 0; }
+
+.dm-checklist { margin-bottom: 16px; }
+.dm-check-item {
+  display: flex; align-items: flex-start; gap: 8px;
+  font-size: 12px; color: #94A3B8; margin-bottom: 8px; cursor: pointer;
+}
+.dm-check-item input { margin-top: 2px; accent-color: #EF4444; }
+
+.dm-auth-section { margin-bottom: 16px; }
+.dm-pin-row { display: flex; gap: 8px; }
+.dm-pin-digit {
+  width: 44px; height: 44px; text-align: center; font-size: 20px; font-weight: 700;
+  background: #1E293B; border: 2px solid #334155; border-radius: 8px; color: white;
+}
+.dm-pin-digit:focus { border-color: #EF4444; outline: none; }
+.dm-confirm-input { text-align: center; font-weight: 700; letter-spacing: 0.1em; }
+
+.btn-danger-final {
+  width: 100%; background: #1E0505; border: 1px solid #450A0A; color: #64748B;
+  padding: 12px; border-radius: 8px; font-size: 14px; font-weight: 700;
+  cursor: not-allowed; transition: all 0.2s;
+}
+.btn-danger-final.active {
+  background: #EF4444; border-color: #EF4444; color: white; cursor: pointer;
+}
+.btn-danger-final.active:hover { background: #DC2626; }
 </style>
 
 <!-- ===== CREATE INVOICE MODAL ===== -->
