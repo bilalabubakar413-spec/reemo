@@ -1706,9 +1706,42 @@ async function renderDashboardStats() {
     if (typeof lucide !== 'undefined') lucide.createIcons();
 }
 
+let huidigeFunnelPeriode = 'maand';
+
+function setFunnelPeriode(periode, knop) {
+  huidigeFunnelPeriode = periode;
+
+  document.querySelectorAll('.funnel-filter-btn').forEach(b => b.classList.remove('active'));
+  if (knop) {
+    knop.classList.add('active');
+  } else {
+    const btnMap = {
+      'week': 'Week',
+      'maand': 'Maand',
+      'kwartaal': 'Kwartaal',
+      'jaar': 'Jaar'
+    };
+    const btns = document.querySelectorAll('.funnel-filter-btn');
+    btns.forEach(b => {
+      if (b.textContent.trim() === btnMap[periode]) b.classList.add('active');
+    });
+  }
+
+  const labels = {
+    'week':     'Deze week',
+    'maand':    'Deze maand (MTD)',
+    'kwartaal': 'Dit kwartaal',
+    'jaar':     'Dit jaar (YTD)'
+  };
+  const label = document.getElementById('funnel-periode-label');
+  if (label) label.textContent = labels[periode];
+
+  renderCashflowFunnel();
+}
+
 async function renderCashflowFunnel() {
   try {
-    const res = await fetch('/api/dashboard/cashflow');
+    const res = await fetch(`/api/dashboard/cashflow?periode=${huidigeFunnelPeriode}`);
     if (!res.ok) throw new Error('Cashflow endpoint niet bereikbaar');
     const json = await res.json();
     const data = json.data || json;

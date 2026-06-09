@@ -273,6 +273,13 @@
                             </div>
                             <span id="cashflow-maand-label" style="font-size:11px; color:#3B82F6; font-weight:600; background:rgba(59,130,246,0.1); border:1px solid rgba(59,130,246,0.25); padding:3px 10px; border-radius:20px;"></span>
                         </div>
+                        <div style="display:flex; gap:8px; margin-top:12px; margin-bottom:10px;">
+                          <button class="funnel-filter-btn" onclick="setFunnelPeriode('week', this)">Week</button>
+                          <button class="funnel-filter-btn active" onclick="setFunnelPeriode('maand', this)">Maand</button>
+                          <button class="funnel-filter-btn" onclick="setFunnelPeriode('kwartaal', this)">Kwartaal</button>
+                          <button class="funnel-filter-btn" onclick="setFunnelPeriode('jaar', this)">Jaar</button>
+                        </div>
+                        <p id="funnel-periode-label" style="font-size:11px; color:#94A3B8; margin-bottom:8px;">Deze maand (MTD)</p>
                         <div id="dashboard-cashflow-funnel"></div>
                     </div>
 
@@ -1913,6 +1920,27 @@
 .chart-filters {
   display: flex;
   gap: 8px;
+}
+
+.funnel-filter-btn {
+  background: #1E293B;
+  border: 1px solid #334155;
+  color: #94A3B8;
+  padding: 5px 14px;
+  border-radius: 6px;
+  font-size: 11px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.funnel-filter-btn:hover {
+  border-color: #3B82F6;
+  color: #CBD5E1;
+}
+.funnel-filter-btn.active {
+  background: #1D3A5F;
+  border-color: #3B82F6;
+  color: #3B82F6;
+  font-weight: 600;
 }
 
 /* ─── Cashflow Funnel — Modern Redesign ─────────────────────────────────── */

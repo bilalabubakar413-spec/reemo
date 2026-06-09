@@ -1437,43 +1437,76 @@ app.post('/api/cv/parse', upload.single('cv'), async (req, res) => {
 });
 // ── Dashboard Endpoints ────────────────────────────────────────────────────────
 
-// GET /api/dashboard/cashflow — MTD (correct: filtert gefactureerd via urenregistratie.datum)
+// GET /api/dashboard/cashflow — filterable by period (week, maand, kwartaal, jaar)
 app.get('/api/dashboard/cashflow', async (req, res) => {
   try {
+    const periode = req.query.periode || 'maand';
     const nu = new Date();
-    const jaar = nu.getFullYear();
-    const maand = nu.getMonth() + 1;
-    const startDatum = `${jaar}-${String(maand).padStart(2,'0')}-01`;
-    const lastDay = new Date(jaar, maand, 0).getDate();
-    const eindDatum  = `${jaar}-${String(maand).padStart(2,'0')}-${String(lastDay).padStart(2,'0')}`;
+    let startDatum, eindDatum;
 
-    // 1. Verwacht — actieve contracten, maandwaarde
+    if (periode === 'week') {
+      const dag = nu.getDay() || 7;
+      startDatum = new Date(nu);
+      startDatum.setDate(nu.getDate() - dag + 1);
+      eindDatum = new Date(startDatum);
+      eindDatum.setDate(startDatum.getDate() + 6);
+    } else if (periode === 'maand') {
+      startDatum = new Date(nu.getFullYear(), nu.getMonth(), 1);
+      eindDatum  = new Date(nu.getFullYear(), nu.getMonth() + 1, 0);
+    } else if (periode === 'kwartaal') {
+      const kw = Math.floor(nu.getMonth() / 3);
+      startDatum = new Date(nu.getFullYear(), kw * 3, 1);
+      eindDatum  = new Date(nu.getFullYear(), kw * 3 + 3, 0);
+    } else if (periode === 'jaar') {
+      startDatum = new Date(nu.getFullYear(), 0, 1);
+      eindDatum  = new Date(nu.getFullYear(), 11, 31);
+    }
+
+    const pad = (num) => String(num).padStart(2, '0');
+    const formatDate = (dateObj) => `${dateObj.getFullYear()}-${pad(dateObj.getMonth() + 1)}-${pad(dateObj.getDate())}`;
+
+    const start = formatDate(startDatum);
+    const eind  = formatDate(eindDatum);
+
+    let weeksMultiplier = 4;
+    if (periode === 'week') {
+      weeksMultiplier = 1;
+    } else if (periode === 'maand') {
+      weeksMultiplier = 4;
+    } else if (periode === 'kwartaal') {
+      weeksMultiplier = 12;
+    } else if (periode === 'jaar') {
+      weeksMultiplier = 52;
+    }
+
+    // 1. Verwacht — actieve contracten overlapping met periode, geschaald naar periode
     const { data: contracten } = await supabase
       .from('contract')
       .select('uren_per_week, uurtarief, startdatum, einddatum')
-      .eq('status', 'actief');
+      .eq('status', 'actief')
+      .lte('startdatum', eind)
+      .or(`einddatum.gte.${start},einddatum.is.null`);
     const verwacht = (contracten || []).reduce((sum, c) =>
-      sum + ((c.uren_per_week || 0) * (c.uurtarief || 0) * 4), 0);
+      sum + ((c.uren_per_week || 0) * (c.uurtarief || 0) * weeksMultiplier), 0);
 
-    // 2. Geleverd — approved uren DEZE maand
+    // 2. Geleverd — approved uren in periode
     const { data: urenMtd } = await supabase
       .from('urenregistratie')
       .select('bedrag')
       .eq('status', 'approved')
-      .gte('datum', startDatum)
-      .lte('datum', eindDatum);
+      .gte('datum', start)
+      .lte('datum', eind);
     const geleverd = (urenMtd || []).reduce((sum, u) => sum + parseFloat(u.bedrag || 0), 0);
 
-    // 3. Gefactureerd + Ontvangen — via factuur_regelitem → urenregistratie.datum
-    //    (NIET op factuurdatum — anders pakt het facturen voor vorige maand mee)
+    // 3. Gefactureerd + Ontvangen — via factuur_regelitem → urenregistratie.datum in periode
     const { data: regelitems } = await supabase
       .from('factuur_regelitem')
       .select('factuur_id, urenregistratie(datum)')
-      .gte('urenregistratie.datum', startDatum)
-      .lte('urenregistratie.datum', eindDatum);
+      .gte('urenregistratie.datum', start)
+      .lte('urenregistratie.datum', eind);
 
-    // Collect unieke factuur_ids waarvan de uren in deze maand vallen
-    const factuurIdsDezeMailand = [...new Set(
+    // Collect unieke factuur_ids waarvan de uren in deze periode vallen
+    const factuurIdsDezePeriode = [...new Set(
       (regelitems || [])
         .filter(r => r.urenregistratie && r.urenregistratie.datum)
         .map(r => r.factuur_id)
@@ -1482,11 +1515,11 @@ app.get('/api/dashboard/cashflow', async (req, res) => {
     let gefactureerd = 0;
     let ontvangen    = 0;
 
-    if (factuurIdsDezeMailand.length > 0) {
+    if (factuurIdsDezePeriode.length > 0) {
       const { data: facturenMtd } = await supabase
         .from('factuur')
         .select('totaalbedrag, betalingsstatus')
-        .in('factuur_id', factuurIdsDezeMailand);
+        .in('factuur_id', factuurIdsDezePeriode);
       (facturenMtd || []).forEach(f => {
         const b = parseFloat(f.totaalbedrag || 0);
         gefactureerd += b;
@@ -1494,13 +1527,12 @@ app.get('/api/dashboard/cashflow', async (req, res) => {
       });
     }
 
-    // 4. Cumulatief totaal (YTD huidig jaar — sluit testfacturen zonder regelitems uit)
-    const ytdStart = `${jaar}-01-01`;
+    // 4. Cumulatief totaal (periode — sluit testfacturen zonder regelitems uit)
     const { data: regelitemsYtd } = await supabase
       .from('factuur_regelitem')
       .select('factuur_id, urenregistratie(datum)')
-      .gte('urenregistratie.datum', ytdStart)
-      .lte('urenregistratie.datum', eindDatum);
+      .gte('urenregistratie.datum', start)
+      .lte('urenregistratie.datum', eind);
 
     const factuurIdsYtd = [...new Set(
       (regelitemsYtd || [])
@@ -1528,7 +1560,26 @@ app.get('/api/dashboard/cashflow', async (req, res) => {
     const realisatie_percentage = verwacht > 0
       ? parseFloat(((geleverd / verwacht) * 100).toFixed(1))
       : 0;
-    const maandnaam = nu.toLocaleDateString('nl-NL', { month: 'long', year: 'numeric' });
+
+    function getISOWeekNumber(dObj) {
+      const date = new Date(dObj.getTime());
+      date.setHours(0, 0, 0, 0);
+      date.setDate(date.getDate() + 3 - (date.getDay() + 6) % 7);
+      const week1 = new Date(date.getFullYear(), 0, 4);
+      return 1 + Math.round(((date.getTime() - week1.getTime()) / 86400000 - 3 + (week1.getDay() + 6) % 7) / 7);
+    }
+
+    let labelText = '';
+    if (periode === 'week') {
+      labelText = `Week ${getISOWeekNumber(nu)}`;
+    } else if (periode === 'maand') {
+      labelText = nu.toLocaleDateString('nl-NL', { month: 'long', year: 'numeric' });
+    } else if (periode === 'kwartaal') {
+      const kw = Math.floor(nu.getMonth() / 3) + 1;
+      labelText = `Q${kw} ${nu.getFullYear()}`;
+    } else if (periode === 'jaar') {
+      labelText = `${nu.getFullYear()}`;
+    }
 
     res.json({
       ok: true,
@@ -1538,7 +1589,7 @@ app.get('/api/dashboard/cashflow', async (req, res) => {
         gefactureerd,
         ontvangen,
         realisatie_percentage,
-        mtd: { verwacht, geleverd, gefactureerd, ontvangen, maand: maandnaam },
+        mtd: { verwacht, geleverd, gefactureerd, ontvangen, maand: labelText },
         totaal: { ooit_gefactureerd, ooit_ontvangen, openstaand }
       }
     });
