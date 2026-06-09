@@ -6284,6 +6284,9 @@ function switchDMSection(sectie) {
 }
 
 function initDataManagement() {
+  const container = document.getElementById('screen-data-management');
+  if (!container) return;
+
   switchDMSection('import');
   // De-select any scopes
   huidigeDMScope = null;

@@ -165,10 +165,10 @@
                         <i data-lucide="file-text" class="w-5 h-5 nav-icon"></i>
                         Invoices
                     </button>
-                    <button data-target="data-management" class="nav-item">
+                    <li class="nav-item" data-target="data-management" onclick="navigateTo('data-management')">
                         <i class="ti ti-alert-circle w-5 h-5 nav-icon" style="font-size:1.2rem; display:flex; align-items:center; justify-content:center;"></i>
-                        Data Management
-                    </button>
+                        <span>Data Management</span>
+                    </li>
                 </div>
 
                 <!-- Developer Navigation -->
@@ -874,7 +874,7 @@
 
 
                 <!-- Data Management Screen -->
-                <div id="screen-data-management" class="screen-content" style="display:none;">
+                <div id="screen-data-management" class="screen-content">
                     <!-- Header kaart -->
                     <div class="dm-header-card">
                         <div class="dm-header-left">
