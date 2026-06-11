@@ -6302,24 +6302,295 @@ function initDataManagement() {
 }
 
 function downloadTemplate(type) {
-  console.log('Download template:', type);
-  showToast('Sjabloon download komt binnenkort beschikbaar', 'info');
+  const mapping = {
+    'operations': 'timesheets',
+    'cashflow':   'facturen',
+    'crm':        'klanten',
+    'contracts':  'projecten',
+    'hr':         'developers'
+  };
+  window.location.href = `/api/data-management/template/${mapping[type] || type}`;
+}
+
+function handleDMAutoFileSelect(event) {
+  const files = Array.from(event.target.files);
+  startDMPreview(files, null); // null = auto-detectie
 }
 
 function handleDMAutoDrop(event) {
   event.preventDefault();
-  console.log('Auto drop - nog niet geïmplementeerd');
-  showToast('Auto-sortering komt in stap 2', 'info');
-}
-
-function handleDMAutoFileSelect(event) {
-  console.log('Auto file select - nog niet geïmplementeerd');
-  showToast('Auto-sortering komt in stap 2', 'info');
+  const files = Array.from(event.dataTransfer.files);
+  startDMPreview(files, null);
 }
 
 function openDMImportModal(type) {
-  console.log('Open import modal voor:', type);
-  showToast(`Import voor ${type} komt in stap 2`, 'info');
+  // Open file picker voor specifiek type
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = '.csv,.xlsx,.xls';
+  input.multiple = true;
+  input.onchange = (e) => startDMPreview(Array.from(e.target.files), type);
+  input.click();
+}
+
+async function startDMPreview(files, geforceerdType) {
+  if (!files.length) return;
+
+  const formData = new FormData();
+  files.forEach(f => formData.append('bestanden', f));
+  if (geforceerdType) formData.append('type', geforceerdType);
+
+  showToast('Bestanden worden geanalyseerd...', 'info');
+
+  try {
+    const res = await fetch('/api/data-management/preview', { method: 'POST', body: formData });
+    const data = await res.json();
+
+    if (!res.ok) {
+      showToast(data.error || 'Preview mislukt', 'error');
+      return;
+    }
+
+    window._dmPendingFiles = files;
+    window._dmPendingType  = geforceerdType;
+    
+    // reset input values if using input file
+    const fileInput = document.getElementById('dm-auto-file-input');
+    if (fileInput) fileInput.value = '';
+
+    toonDMPreviewModal(data.resultaten);
+  } catch (err) {
+    console.error('Preview error:', err);
+    showToast('Fout bij het laden van preview: ' + err.message, 'error');
+  }
+}
+
+function toonDMPreviewModal(resultaten) {
+  const container = document.getElementById('dm-preview-content');
+  if (!container) return;
+
+  container.innerHTML = '';
+
+  const html = resultaten.map((res, index) => {
+    if (res.fout) {
+      return `
+        <div style="background:rgba(239,68,68,0.1); border:1px solid rgba(239,68,68,0.3); border-radius:8px; padding:1.25rem;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+            <strong style="color:#f87171; font-size:14px;"><i class="ti ti-alert-triangle"></i> ${res.bestand}</strong>
+            <span class="dm-badge danger">PARSE FOUT</span>
+          </div>
+          <p style="color:#fca5a5; font-size:12px; line-height:1.5; margin-bottom:8px;">${res.fout}</p>
+          ${res.gevondenHeaders ? `
+            <div style="font-size:11px; color:#94a3b8;">
+              <strong>Gevonden kolommen:</strong> ${res.gevondenHeaders.join(', ')}
+            </div>
+          ` : ''}
+        </div>
+      `;
+    }
+
+    const badgeClass = res.tabelType; // e.g. 'operations', 'cashflow', etc.
+    const badgeLabel = res.tabelType.toUpperCase();
+
+    // Generate table headers and rows
+    const records = res.records || [];
+    const headers = records.length > 0 ? Object.keys(records[0]) : [];
+    const duplicaatStatus = res.duplicaatStatus || [];
+
+    let tableHtml = '';
+    if (records.length > 0) {
+      tableHtml = `
+        <div style="overflow-x:auto; border:1px solid #1e1e1e; border-radius:6px; background:#050505; max-height:220px; overflow-y:auto; margin-top:10px;">
+          <table class="table" style="width:100%; font-size:11px; text-align:left; border-collapse:collapse;">
+            <thead>
+              <tr style="background:#111;">
+                <th style="padding:6px 12px; border-bottom:1px solid #1e1e1e; color:#64748b; font-size:10px; text-transform:uppercase;">Status</th>
+                ${headers.map(h => `<th style="padding:6px 12px; border-bottom:1px solid #1e1e1e; color:#64748b; font-size:10px; text-transform:uppercase;">${h}</th>`).join('')}
+              </tr>
+            </thead>
+            <tbody>
+              ${records.map((rec, rIdx) => {
+                const status = duplicaatStatus[rIdx] || 'nieuw';
+                const statusText = status === 'bestaat_al' ? 'Bestaat al' : 'Nieuw';
+                const rowStyle = status === 'bestaat_al' 
+                  ? 'background: rgba(245,158,11,0.06);' 
+                  : 'background: rgba(34,197,94,0.06);';
+                const statusBadgeStyle = status === 'bestaat_al'
+                  ? 'background:rgba(245,158,11,0.15); color:#fbbf24; border:1px solid rgba(245,158,11,0.3);'
+                  : 'background:rgba(34,197,94,0.15); color:#4ade80; border:1px solid rgba(34,197,94,0.3);';
+
+                return `
+                  <tr style="${rowStyle}">
+                    <td style="padding:6px 12px; border-bottom:1px solid #111;">
+                      <span style="font-size:9px; font-weight:700; padding:2px 6px; border-radius:4px; ${statusBadgeStyle}">${statusText}</span>
+                    </td>
+                    ${headers.map(h => `<td style="padding:6px 12px; border-bottom:1px solid #111; color:#cbd5e1; white-space:nowrap; max-width:200px; overflow:hidden; text-overflow:ellipsis;">${rec[h] !== undefined ? rec[h] : ''}</td>`).join('')}
+                  </tr>
+                `;
+              }).join('')}
+            </tbody>
+          </table>
+        </div>
+      `;
+    }
+
+    return `
+      <div style="background:#0e0e0e; border:1px solid #1e1e1e; border-radius:8px; padding:1.25rem;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+          <strong style="color:white; font-size:14px;"><i class="ti ti-file-text" style="color:#3B82F6;"></i> ${res.bestand}</strong>
+          <span class="dm-badge ${badgeClass === 'timesheets' ? 'operations' : (badgeClass === 'facturen' ? 'cashflow' : (badgeClass === 'klanten' ? 'crm' : (badgeClass === 'projecten' ? 'contracts' : 'hr')))}">${badgeLabel}</span>
+        </div>
+        <div style="font-size:12px; color:#94a3b8; display:flex; gap:16px;">
+          <span>Totaal rijen: <strong>${res.totaal}</strong></span>
+          <span style="color:#4ade80;">Nieuw: <strong>${res.nieuw}</strong></span>
+          <span style="color:#fbbf24;">Bestaat al: <strong>${res.bestaatAl}</strong></span>
+        </div>
+        ${tableHtml}
+      </div>
+    `;
+  }).join('');
+
+  container.innerHTML = html;
+  
+  // Reset checkboxes/inputs inside preview modal
+  const chk = document.getElementById('dm-overwrite-dup');
+  if (chk) chk.checked = false;
+
+  // Show the modal
+  const modal = document.getElementById('modal-dm-preview');
+  if (modal) {
+    modal.style.display = 'flex';
+  }
+}
+
+function openDmPinModal() {
+  // Reset PIN inputs
+  ['dm-imp-pin-1','dm-imp-pin-2','dm-imp-pin-3','dm-imp-pin-4'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  
+  const modal = document.getElementById('modal-dm-pin');
+  if (modal) {
+    modal.style.display = 'flex';
+    document.getElementById('dm-imp-pin-1')?.focus();
+  }
+}
+
+async function bevestigDMImport() {
+  const pin = ['dm-imp-pin-1','dm-imp-pin-2','dm-imp-pin-3','dm-imp-pin-4']
+    .map(id => document.getElementById(id)?.value || '').join('');
+
+  if (pin.length !== 4) {
+    showToast('Voer de volledige 4-cijferige code in', 'error');
+    return;
+  }
+
+  const overwrite = document.getElementById('dm-overwrite-dup')?.checked || false;
+
+  const formData = new FormData();
+  window._dmPendingFiles.forEach(f => formData.append('bestanden', f));
+  if (window._dmPendingType) formData.append('type', window._dmPendingType);
+  formData.append('pin', pin);
+  formData.append('overschrijf', overwrite ? 'true' : 'false');
+
+  showToast('Importeren is gestart...', 'info');
+
+  try {
+    const res = await fetch('/api/data-management/import', { method: 'POST', body: formData });
+    const data = await res.json();
+
+    if (!res.ok) {
+      showToast(data.error || 'Import mislukt', 'error');
+      return;
+    }
+
+    // Close preview and pin modals
+    closeModal('modal-dm-preview');
+    closeModal('modal-dm-pin');
+
+    // Show result modal
+    toonDMImportResultaat(data.resultaten);
+  } catch (err) {
+    console.error('Import error:', err);
+    showToast('Fout tijdens import: ' + err.message, 'error');
+  }
+}
+
+function toonDMImportResultaat(resultaten) {
+  const container = document.getElementById('dm-result-content');
+  if (!container) return;
+
+  container.innerHTML = '';
+
+  const html = resultaten.map(res => {
+    if (res.fout) {
+      return `
+        <div style="background:rgba(239,68,68,0.1); border:1px solid rgba(239,68,68,0.3); border-radius:8px; padding:1rem; margin-bottom:10px;">
+          <strong style="color:#f87171; display:block; margin-bottom:4px;"><i class="ti ti-alert-triangle"></i> ${res.bestand}</strong>
+          <span style="font-size:12px; color:#fca5a5;">Import mislukt: ${res.fout}</span>
+        </div>
+      `;
+    }
+
+    const hasFouten = res.fouten && res.fouten.length > 0;
+
+    return `
+      <div style="background:#0e0e0e; border:1px solid #1e1e1e; border-radius:8px; padding:1.25rem; margin-bottom:12px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+          <strong style="color:white; font-size:14px;"><i class="ti ti-file-check" style="color:#22c55e;"></i> ${res.bestand}</strong>
+          <span class="dm-badge ${res.tabelType === 'timesheets' ? 'operations' : (res.tabelType === 'facturen' ? 'cashflow' : (res.tabelType === 'klanten' ? 'crm' : (res.tabelType === 'projecten' ? 'contracts' : 'hr')))}">${res.tabelType.toUpperCase()}</span>
+        </div>
+        
+        <div style="font-size:12px; color:#cbd5e1; display:flex; gap:16px; margin-bottom:10px;">
+          <span style="color:#4ade80;">Toegevoegd: <strong>${res.toegevoegd}</strong></span>
+          <span style="color:#94a3b8;">Overgeslagen (duplicaten): <strong>${res.overgeslagen}</strong></span>
+          <span style="color:#f87171;">Fouten: <strong>${hasFouten ? res.fouten.length : 0}</strong></span>
+        </div>
+
+        ${hasFouten ? `
+          <div style="background:rgba(239,68,68,0.05); border:1px solid rgba(239,68,68,0.2); border-radius:6px; padding:8px 12px;">
+            <span style="font-size:10px; color:#fca5a5; font-weight:700; text-transform:uppercase; display:block; margin-bottom:4px;">Gedetecteerde Import Fouten (Eerste 20):</span>
+            <ul style="margin:0; padding-left:16px; font-size:11px; color:#f87171; line-height:1.5;">
+              ${res.fouten.map(f => `<li>${f}</li>`).join('')}
+            </ul>
+          </div>
+        ` : ''}
+      </div>
+    `;
+  }).join('');
+
+  container.innerHTML = html;
+
+  const modal = document.getElementById('modal-dm-result');
+  if (modal) {
+    modal.style.display = 'flex';
+  }
+}
+
+function sluitDmResultEnRefresh() {
+  closeModal('modal-dm-result');
+  
+  // Refresh all dashboard and lists states
+  if (typeof loadClients === 'function') loadClients();
+  if (typeof loadDevelopers === 'function') loadDevelopers();
+  if (typeof loadTimesheets === 'function') {
+    loadTimesheets().then(() => {
+      if (typeof renderTimesheetsTable === 'function') {
+        renderTimesheetsTable(
+          document.getElementById('ts-search')?.value || '',
+          document.getElementById('ts-status-filter')?.value || ''
+        );
+      }
+      if (typeof updateTimesheetSummary === 'function') updateTimesheetSummary();
+    });
+  }
+  if (typeof loadInvoices === 'function') {
+    loadInvoices().then(() => {
+      if (typeof renderInvoicesTable === 'function') renderInvoicesTable();
+      if (typeof updateInvoiceStats === 'function') updateInvoiceStats();
+    });
+  }
 }
 
 function selectDMScope(scope) {
