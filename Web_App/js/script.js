@@ -6650,61 +6650,65 @@ async function laadKlantenDropdown() {
   }
 }
 
-function evaluerenImpact() {
-  // Validatie
-  if (huidigeDMScope === 'klant') {
-    const sel = document.getElementById('dm-klant-select')?.value;
-    if (!sel) {
-      showToast('Fout: Gelieve eerst de te verwijderen klant te selecteren.', 'error');
-      return;
-    }
-  }
-  if ((huidigeDMScope === 'uren' || huidigeDMScope === 'omzet')) {
-    const van = document.getElementById('dm-periode-van')?.value;
-    const tot = document.getElementById('dm-periode-tot')?.value;
-    if (!van || !tot) {
+async function evaluerenImpact() {
+  const body = { scope: huidigeDMScope };
+
+  if (huidigeDMScope === 'uren' || huidigeDMScope === 'omzet') {
+    body.van = document.getElementById('dm-periode-van')?.value;
+    body.tot = document.getElementById('dm-periode-tot')?.value;
+    if (!body.van || !body.tot) {
       showToast('Fout: Selecteer een van- en tot-datum.', 'error');
       return;
     }
   }
-
-  // Toon mock impact analyse
-  const targetEl = document.getElementById('impact-target');
-  if (targetEl) {
-    targetEl.textContent =
-      huidigeDMScope === 'klant' ? 'KLANT' :
-      huidigeDMScope === 'uren' ? 'UREN' :
-      huidigeDMScope === 'omzet' ? 'OMZET' : 'SYSTEEM';
+  if (huidigeDMScope === 'klant') {
+    body.klant_id = document.getElementById('dm-klant-select')?.value;
+    if (!body.klant_id) {
+      showToast('Fout: Gelieve eerst de te verwijderen klant te selecteren.', 'error');
+      return;
+    }
   }
 
-  const subEl = document.getElementById('impact-target-sub');
-  if (subEl) subEl.textContent = 'Mock data — stap 2 koppelt echte data';
-  
-  const recordsEl = document.getElementById('impact-records');
-  if (recordsEl) recordsEl.textContent = '—';
-  
-  const verliesEl = document.getElementById('impact-verlies');
-  if (verliesEl) verliesEl.textContent = '—';
-  
-  const cascadeEl = document.getElementById('impact-cascade');
-  if (cascadeEl) {
-    cascadeEl.textContent = 'De echte cascade-impact wordt berekend in stap 3 wanneer de backend is gekoppeld.';
+  const res = await fetch('/api/data-management/impact-analyse', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body)
+  });
+  const data = await res.json();
+
+  if (!res.ok) {
+    showToast(data.error || 'Impact analyse mislukt', 'error');
+    return;
   }
 
-  const impactEl = document.getElementById('dm-impact-analyse');
-  if (impactEl) impactEl.style.display = 'block';
+  // Vul de echte data in
+  document.getElementById('impact-target').textContent = data.target;
+  document.getElementById('impact-target-sub').textContent = data.targetSub;
+  document.getElementById('impact-records').textContent = data.aantalRecords;
+  document.getElementById('impact-verlies').textContent =
+    '€' + Math.round(data.verlies).toLocaleString('nl-NL');
+  document.getElementById('impact-cascade').textContent = data.cascade;
 
-  // Reset checkboxes en PIN
+  // Update checkbox 2 tekst met het echte bedrag
+  const check2Label = document.querySelector('label[for="check-2"], #check-2')?.closest('.dm-check-item');
+  if (check2Label) {
+    check2Label.innerHTML = `<input type="checkbox" id="check-2" onchange="updateVernietigKnop()" />
+      Ik heb de gecalculeerde impactwaarde van €${Math.round(data.verlies).toLocaleString('nl-NL')} gecontroleerd en ga akkoord.`;
+  }
+
+  // Bewaar voor de vernietig-stap
+  window._dmImpactData = body;
+
+  document.getElementById('dm-impact-analyse').style.display = 'block';
+
+  // Reset checks/PIN
   ['check-1','check-2','check-3'].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.checked = false;
+    const el = document.getElementById(id); if (el) el.checked = false;
   });
   ['pin-1','pin-2','pin-3','pin-4'].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.value = '';
+    const el = document.getElementById(id); if (el) el.value = '';
   });
-  const confirmEl = document.getElementById('dm-confirm-text');
-  if (confirmEl) confirmEl.value = '';
+  const c = document.getElementById('dm-confirm-text'); if (c) c.value = '';
   updateVernietigKnop();
 }
 
@@ -6735,9 +6739,54 @@ function updateVernietigKnop() {
   }
 }
 
-function permanentVernietigen() {
-  // STUB — doet niets in stap 1
-  console.log('Vernietigen aangeroepen voor scope:', huidigeDMScope);
-  showToast('Backend koppeling komt in stap 3', 'info');
+async function permanentVernietigen() {
+  const pin = ['pin-1','pin-2','pin-3','pin-4']
+    .map(id => document.getElementById(id)?.value || '').join('');
+  const bevestiging = document.getElementById('dm-confirm-text')?.value;
+
+  const body = {
+    ...window._dmImpactData,
+    pin,
+    bevestiging
+  };
+
+  const btn = document.getElementById('btn-permanent-vernietigen');
+  btn.disabled = true;
+  btn.textContent = 'Bezig met vernietigen...';
+
+  const res = await fetch('/api/data-management/vernietig', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body)
+  });
+  const data = await res.json();
+
+  if (!res.ok) {
+    showToast(data.error || 'Vernietiging mislukt', 'error');
+    btn.disabled = false;
+    btn.textContent = 'Permanent Vernietigen 🗑️';
+    return;
+  }
+
+  // Toon resultaat
+  const samenvatting = Object.entries(data.verwijderd)
+    .map(([k, v]) => `${v} ${k}`).join(', ');
+  showToast(`Vernietiging voltooid: ${samenvatting}`, 'success');
+
+  // Reset de hele sectie en refresh data
+  document.getElementById('dm-impact-analyse').style.display = 'none';
+  document.querySelectorAll('.dm-scope-card').forEach(c => c.classList.remove('selected'));
+  ['default','periode','klant','reset'].forEach(s => {
+    const el = document.getElementById(`dm-criteria-${s}`);
+    if (el) el.style.display = s === 'default' ? 'block' : 'none';
+  });
+  huidigeDMScope = null;
+
+  btn.disabled = true;
+  btn.textContent = 'Permanent Vernietigen 🗑️';
+
+  // Refresh alle dashboards/lijsten zodat de verwijderde data verdwijnt
+  if (typeof renderDashboardStats === 'function') renderDashboardStats();
+  if (typeof loadClients === 'function') loadClients();
 }
 

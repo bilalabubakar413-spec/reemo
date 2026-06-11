@@ -2308,6 +2308,239 @@ app.post('/api/data-management/import', dmUpload.array('bestanden', 50), async (
   }
 });
 
+app.post('/api/data-management/impact-analyse', async (req, res) => {
+  try {
+    const { scope, van, tot, klant_id } = req.body;
+
+    if (scope === 'uren') {
+      if (!van || !tot) return res.status(400).json({ error: 'Selecteer een van- en tot-datum' });
+
+      const { data: uren } = await supabase
+        .from('urenregistratie')
+        .select('uren_id, bedrag, factuur_id')
+        .gte('datum', van)
+        .lte('datum', tot);
+
+      const totaalBedrag = (uren || []).reduce((s, u) => s + parseFloat(u.bedrag || 0), 0);
+      const gekoppeldAanFactuur = (uren || []).filter(u => u.factuur_id).length;
+
+      return res.json({
+        target: 'UREN',
+        targetSub: `${van} t/m ${tot}`,
+        aantalRecords: uren?.length || 0,
+        verlies: totaalBedrag,
+        cascade: gekoppeldAanFactuur > 0
+          ? `${gekoppeldAanFactuur} van deze uren zijn gekoppeld aan facturen via factuur_regelitem. De regelitems worden mee verwijderd; de facturen zelf blijven bestaan maar verliezen hun onderbouwing.`
+          : 'Geen van deze uren is gekoppeld aan een factuur. Geen cascade-impact.'
+      });
+    }
+
+    if (scope === 'omzet') {
+      if (!van || !tot) return res.status(400).json({ error: 'Selecteer een van- en tot-datum' });
+
+      const { data: facturen } = await supabase
+        .from('factuur')
+        .select('factuur_id, totaalbedrag')
+        .gte('factuurdatum', van)
+        .lte('factuurdatum', tot);
+
+      const factuurIds = (facturen || []).map(f => f.factuur_id);
+      let regelitems = 0;
+      if (factuurIds.length > 0) {
+        const { count } = await supabase
+          .from('factuur_regelitem')
+          .select('*', { count: 'exact', head: true })
+          .in('factuur_id', factuurIds);
+        regelitems = count || 0;
+      }
+
+      const totaalBedrag = (facturen || []).reduce((s, f) => s + parseFloat(f.totaalbedrag || 0), 0);
+
+      return res.json({
+        target: 'OMZET',
+        targetSub: `${van} t/m ${tot}`,
+        aantalRecords: facturen?.length || 0,
+        verlies: totaalBedrag,
+        cascade: regelitems > 0
+          ? `${regelitems} factuur-regelitems worden mee verwijderd. De gekoppelde uren krijgen factuur_id = null en worden weer factureerbaar.`
+          : 'Geen regelitems gekoppeld. Alleen de factuurrecords worden verwijderd.'
+      });
+    }
+
+    if (scope === 'klant') {
+      if (!klant_id) return res.status(400).json({ error: 'Selecteer eerst een klant' });
+
+      const { data: klant } = await supabase
+        .from('klant').select('naam').eq('klant_id', klant_id).single();
+
+      const { data: projecten } = await supabase
+        .from('project').select('project_id').eq('klant_id', klant_id);
+      const projectIds = (projecten || []).map(p => p.project_id);
+
+      let urenCount = 0, urenBedrag = 0, contractCount = 0;
+      if (projectIds.length > 0) {
+        const { data: uren } = await supabase
+          .from('urenregistratie').select('bedrag').in('project_id', projectIds);
+        urenCount = uren?.length || 0;
+        urenBedrag = (uren || []).reduce((s, u) => s + parseFloat(u.bedrag || 0), 0);
+
+        const { count: cc } = await supabase
+          .from('contract').select('*', { count: 'exact', head: true })
+          .in('project_id', projectIds);
+        contractCount = cc || 0;
+      }
+
+      const { data: facturen } = await supabase
+        .from('factuur').select('factuur_id, totaalbedrag').eq('klant_id', klant_id);
+      const factuurBedrag = (facturen || []).reduce((s, f) => s + parseFloat(f.totaalbedrag || 0), 0);
+
+      const totaalRecords = 1 + projectIds.length + urenCount + contractCount + (facturen?.length || 0);
+
+      return res.json({
+        target: 'KLANT',
+        targetSub: klant?.naam || 'Onbekend',
+        aantalRecords: totaalRecords,
+        verlies: factuurBedrag + urenBedrag,
+        cascade: `Cascade verwijdert: ${projectIds.length} project(en), ${contractCount} contract(en), ${urenCount} urenregistratie(s), ${facturen?.length || 0} factu(u)r(en) inclusief regelitems, en het klantdossier zelf. Developers blijven bestaan maar verliezen hun koppeling met deze klant.`
+      });
+    }
+
+    if (scope === 'reset') {
+      return res.status(403).json({ error: 'System Reset is uitgeschakeld door de beheerder' });
+    }
+
+    return res.status(400).json({ error: 'Onbekende scope' });
+  } catch (err) {
+    console.error('Impact analyse fout:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/data-management/vernietig', async (req, res) => {
+  try {
+    const { scope, van, tot, klant_id, pin, bevestiging } = req.body;
+
+    // Beveiligingschecks — ALTIJD server-side
+    if (!pin || pin !== (process.env.ADMIN_PIN || '2526')) {
+      return res.status(403).json({ error: 'Ongeldige beheerderscode' });
+    }
+    if (bevestiging !== 'VERWIJDER') {
+      return res.status(403).json({ error: 'Bevestigingstekst onjuist' });
+    }
+    if (scope === 'reset') {
+      return res.status(403).json({ error: 'System Reset is uitgeschakeld door de beheerder' });
+    }
+
+    let verwijderd = {};
+
+    if (scope === 'uren') {
+      if (!van || !tot) return res.status(400).json({ error: 'Periode ontbreekt' });
+
+      // Eerst de uren-ids ophalen
+      const { data: uren } = await supabase
+        .from('urenregistratie').select('uren_id')
+        .gte('datum', van).lte('datum', tot);
+      const urenIds = (uren || []).map(u => u.uren_id);
+
+      if (urenIds.length > 0) {
+        // 1. Regelitems die naar deze uren wijzen
+        const { count: ri } = await supabase
+          .from('factuur_regelitem')
+          .delete({ count: 'exact' })
+          .in('uren_id', urenIds);
+        // 2. De uren zelf
+        const { count: u } = await supabase
+          .from('urenregistratie')
+          .delete({ count: 'exact' })
+          .in('uren_id', urenIds);
+        verwijderd = { regelitems: ri || 0, uren: u || 0 };
+      } else {
+        verwijderd = { regelitems: 0, uren: 0 };
+      }
+    }
+
+    if (scope === 'omzet') {
+      if (!van || !tot) return res.status(400).json({ error: 'Periode ontbreekt' });
+
+      const { data: facturen } = await supabase
+        .from('factuur').select('factuur_id')
+        .gte('factuurdatum', van).lte('factuurdatum', tot);
+      const factuurIds = (facturen || []).map(f => f.factuur_id);
+
+      if (factuurIds.length > 0) {
+        // 1. Ontkoppel uren (factuur_id terug naar null → weer factureerbaar)
+        await supabase.from('urenregistratie')
+          .update({ factuur_id: null })
+          .in('factuur_id', factuurIds);
+        // 2. Regelitems
+        const { count: ri } = await supabase
+          .from('factuur_regelitem')
+          .delete({ count: 'exact' })
+          .in('factuur_id', factuurIds);
+        // 3. Facturen
+        const { count: f } = await supabase
+          .from('factuur')
+          .delete({ count: 'exact' })
+          .in('factuur_id', factuurIds);
+        verwijderd = { regelitems: ri || 0, facturen: f || 0 };
+      } else {
+        verwijderd = { regelitems: 0, facturen: 0 };
+      }
+    }
+
+    if (scope === 'klant') {
+      if (!klant_id) return res.status(400).json({ error: 'Klant ontbreekt' });
+
+      // Verzamel alle gerelateerde ids
+      const { data: projecten } = await supabase
+        .from('project').select('project_id').eq('klant_id', klant_id);
+      const projectIds = (projecten || []).map(p => p.project_id);
+
+      const { data: facturen } = await supabase
+        .from('factuur').select('factuur_id').eq('klant_id', klant_id);
+      const factuurIds = (facturen || []).map(f => f.factuur_id);
+
+      let urenIds = [];
+      if (projectIds.length > 0) {
+        const { data: uren } = await supabase
+          .from('urenregistratie').select('uren_id').in('project_id', projectIds);
+        urenIds = (uren || []).map(u => u.uren_id);
+      }
+
+      // Cascade volgorde: regelitems → uren → contracten → developer_project → facturen → projecten → klant
+      if (factuurIds.length > 0)
+        await supabase.from('factuur_regelitem').delete().in('factuur_id', factuurIds);
+      if (urenIds.length > 0)
+        await supabase.from('factuur_regelitem').delete().in('uren_id', urenIds);
+      if (urenIds.length > 0)
+        await supabase.from('urenregistratie').delete().in('uren_id', urenIds);
+      if (projectIds.length > 0) {
+        await supabase.from('contract').delete().in('project_id', projectIds);
+        await supabase.from('developer_project').delete().in('project_id', projectIds);
+      }
+      if (factuurIds.length > 0)
+        await supabase.from('factuur').delete().in('factuur_id', factuurIds);
+      if (projectIds.length > 0)
+        await supabase.from('project').delete().in('project_id', projectIds);
+      await supabase.from('klant').delete().eq('klant_id', klant_id);
+
+      verwijderd = {
+        projecten: projectIds.length,
+        uren: urenIds.length,
+        facturen: factuurIds.length,
+        klant: 1
+      };
+    }
+
+    console.log(`[DATA-MANAGEMENT] Vernietiging uitgevoerd — scope: ${scope}`, verwijderd);
+    res.json({ ok: true, verwijderd });
+
+  } catch (err) {
+    console.error('Vernietig fout:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // ── Start ──────────────────────────────────────────────────────────────────────
 app.listen(PORT, () => {
   console.log('====================================');
