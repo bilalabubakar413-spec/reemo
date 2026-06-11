@@ -3102,27 +3102,61 @@ function renderDevelopersGrid() {
     if (typeof lucide !== 'undefined') lucide.createIcons();
 }
 
+let _verwijderDevId = null;
+
 async function verwijderDeveloper(devId, naam) {
-  const res  = await fetch(`/api/developers/${devId}/check-actief`);
+  _verwijderDevId = devId;
+
+  // Haal actief-status op
+  const res = await fetch(`/api/developers/${devId}/check-actief`);
   const data = await res.json();
 
-  let bericht = `Weet je zeker dat je ${naam} wilt verwijderen?`;
+  // Vul de modal
+  document.getElementById('vd-naam').textContent =
+    `Weet je zeker dat je ${naam} wilt verwijderen?`;
 
+  const waarschuwing = document.getElementById('vd-waarschuwing');
   if (data.actief) {
-    bericht = `⚠️ Let op: ${naam} is momenteel actief op ${data.aantalProjecten} project(en):\n\n` +
-      data.projecten.map(p => `• ${p.projectnaam} (${p.klantnaam})`).join('\n') +
-      `\n\nAls je toch verwijdert worden alle koppelingen verbroken. Weet je het zeker?`;
+    document.getElementById('vd-aantal').textContent = data.aantalProjecten;
+    document.getElementById('vd-projecten').innerHTML = data.projecten
+      .map(p => `<li>${p.projectnaam} <span style="color:#64748B;">(${p.klantnaam})</span></li>`)
+      .join('');
+    waarschuwing.style.display = 'block';
+  } else {
+    waarschuwing.style.display = 'none';
   }
 
-  const bevestig = confirm(bericht);
-  if (!bevestig) return;
+  document.getElementById('modal-verwijder-developer').style.display = 'flex';
+}
 
-  const del = await fetch(`/api/developers/${devId}`, { method: 'DELETE' });
-  if (!del.ok) { showToast('Verwijderen mislukt', 'error'); return; }
+function sluitVerwijderDevModal() {
+  document.getElementById('modal-verwijder-developer').style.display = 'none';
+  _verwijderDevId = null;
+}
 
-  showToast(`${naam} is verwijderd`, 'success');
+async function bevestigVerwijderDeveloper() {
+  if (!_verwijderDevId) return;
+
+  const btn = document.getElementById('vd-bevestig-btn');
+  btn.disabled = true;
+  btn.textContent = 'Bezig...';
+
+  const res = await fetch(`/api/developers/${_verwijderDevId}`, { method: 'DELETE' });
+  const data = await res.json();
+
+  btn.disabled = false;
+  btn.textContent = 'Permanent verwijderen';
+
+  if (!res.ok) {
+    showToast(`Verwijderen mislukt: ${data.error || 'onbekende fout'}`, 'error');
+    return;
+  }
+
+  sluitVerwijderDevModal();
+  showToast('Developer is verwijderd', 'success');
   await loadDevelopers();
-  renderDevelopersGrid();
+  if (typeof renderDevelopersGrid === 'function') renderDevelopersGrid();
+  if (typeof renderDashboardStats === 'function') renderDashboardStats();
 }
 
 // Per-session status overrides

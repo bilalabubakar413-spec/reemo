@@ -2799,6 +2799,46 @@
     </div>
 </div>
 
+<!-- ===== DEVELOPER DELETE CONFIRMATION MODAL ===== -->
+<div id="modal-verwijder-developer" class="modal-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);backdrop-filter:blur(6px);z-index:9999;align-items:center;justify-content:center;padding:1rem">
+  <div class="modal-card" style="background:#0a0a0a; border:1px solid #1e1e1e; border-radius:1rem; width:100%; max-width:480px; box-shadow:0 25px 50px -12px rgba(0,0,0,0.5); overflow:hidden;">
+    <div class="modal-header" style="padding:1.5rem; border-bottom:1px solid #450A0A; display:flex; justify-content:space-between; align-items:center;">
+      <h3 style="color:#EF4444; display:flex; align-items:center; gap:8px; font-size:1.125rem; font-weight:800; margin:0;">
+        <i class="ti ti-alert-triangle"></i> Developer verwijderen
+      </h3>
+      <button onclick="sluitVerwijderDevModal()" class="modal-close" style="width:2rem; height:2rem; border-radius:50%; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1); color:var(--white-60); cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:1rem;">✕</button>
+    </div>
+    <div class="modal-body" style="padding:1.5rem; display:flex; flex-direction:column; gap:1.25rem;">
+      <p id="vd-naam" style="font-size:15px; font-weight:600; color:white; margin:0;"></p>
+
+      <!-- Waarschuwing bij actieve projecten -->
+      <div id="vd-waarschuwing" style="display:none; background:rgba(69,10,10,0.3);
+           border:1px solid #450A0A; border-left:3px solid #EF4444;
+           border-radius:8px; padding:14px;">
+        <p style="color:#FCA5A5; font-size:13px; font-weight:600; margin-top:0; margin-bottom:8px;">
+          ⚠️ Deze developer is actief op <span id="vd-aantal"></span> project(en):
+        </p>
+        <ul id="vd-projecten" style="margin:0; padding-left:18px; color:#94A3B8; font-size:12px;"></ul>
+        <p style="color:#94A3B8; font-size:12px; margin-top:10px; margin-bottom:0;">
+          Bij verwijderen worden ook alle contracten, urenregistraties en het CV permanent verwijderd.
+        </p>
+      </div>
+
+      <p style="color:#64748B; font-size:12px; margin:0;">
+        Deze actie kan niet ongedaan worden gemaakt.
+      </p>
+    </div>
+    <div class="modal-footer" style="padding:1.25rem 1.5rem; border-top:1px solid #1e1e1e; background:#0d0d0d; display:flex; gap:10px; justify-content:flex-end;">
+      <button onclick="sluitVerwijderDevModal()" class="btn-outline">Annuleer</button>
+      <button id="vd-bevestig-btn" onclick="bevestigVerwijderDeveloper()"
+              style="background:#EF4444; border:none; color:white; padding:9px 20px;
+                     border-radius:8px; cursor:pointer; font-weight:600;">
+        Permanent verwijderen
+      </button>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>
 

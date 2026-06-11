@@ -688,16 +688,115 @@ app.get('/api/developers/:id/check-actief', async (req, res) => {
 
 app.delete('/api/developers/:id', async (req, res) => {
   const { id } = req.params;
-  try {
-    const { error } = await supabase
-      .from('developer')
-      .delete()
-      .eq('developer_id', id);
+  const devId = parseInt(id, 10);
+  if (isNaN(devId)) {
+    return res.status(400).json({ error: 'Ongeldige developer ID' });
+  }
 
-    if (error) return res.status(500).json({ error: error.message });
+  try {
+    // 1. Haal alle uren van deze developer op
+    const { data: uren, error: urenFetchErr } = await supabase
+      .from('urenregistratie')
+      .select('uren_id')
+      .eq('developer_id', devId);
+    if (urenFetchErr) {
+      console.error('Fetch uren error:', urenFetchErr);
+      throw urenFetchErr;
+    }
+    const urenIds = (uren || []).map(u => u.uren_id);
+
+    // 2. Haal alle contracten van deze developer op
+    const { data: contracts, error: contractsErr } = await supabase
+      .from('contract')
+      .select('contract_id')
+      .eq('developer_id', devId);
+    if (contractsErr) {
+      console.error('Fetch contracts error:', contractsErr);
+      throw contractsErr;
+    }
+    const contractIds = (contracts || []).map(c => c.contract_id);
+
+    // 3. Verwijder references in timesheet_feiten
+    let tsFilter = `developer_id.eq.${devId}`;
+    if (contractIds.length > 0) {
+      tsFilter += `,contract_id.in.(${contractIds.join(',')})`;
+    }
+    const { error: tsFeitenErr } = await supabase
+      .from('timesheet_feiten')
+      .delete()
+      .or(tsFilter);
+    if (tsFeitenErr) {
+      console.error('Delete timesheet_feiten error:', tsFeitenErr);
+      throw tsFeitenErr;
+    }
+
+    // 4. Update facturen referencing contracts to set contract_id = null
+    if (contractIds.length > 0) {
+      const { error: factuurErr } = await supabase
+        .from('factuur')
+        .update({ contract_id: null })
+        .in('contract_id', contractIds);
+      if (factuurErr) {
+        console.error('Update factuur contract_id error:', factuurErr);
+        throw factuurErr;
+      }
+    }
+
+    // 5. Verwijder factuur-regelitems die naar deze uren wijzen
+    if (urenIds.length > 0) {
+      const { error: riErr } = await supabase.from('factuur_regelitem').delete().in('uren_id', urenIds);
+      if (riErr) {
+        console.error('Delete regelitems error:', riErr);
+        throw riErr;
+      }
+    }
+
+    // 6. Verwijder de urenregistraties
+    const { error: urenDelErr } = await supabase.from('urenregistratie').delete().eq('developer_id', devId);
+    if (urenDelErr) {
+      console.error('Delete uren error:', urenDelErr);
+      throw urenDelErr;
+    }
+
+    // 7. Verwijder contracten van deze developer
+    const { error: contractDelErr } = await supabase.from('contract').delete().eq('developer_id', devId);
+    if (contractDelErr) {
+      console.error('Delete contract error:', contractDelErr);
+      throw contractDelErr;
+    }
+
+    // 8. Verwijder developer_project koppelingen
+    const { error: dpDelErr } = await supabase.from('developer_project').delete().eq('developer_id', devId);
+    if (dpDelErr) {
+      console.error('Delete developer_project error:', dpDelErr);
+      throw dpDelErr;
+    }
+
+    // 9. Verwijder het CV-bestand uit Storage (indien aanwezig)
+    const { data: dev, error: devFetchErr } = await supabase
+      .from('developer').select('cv_url').eq('developer_id', devId).single();
+    if (devFetchErr && devFetchErr.code !== 'PGRST116') { // PGRST116 is not found, which is fine
+      console.error('Fetch developer cv error:', devFetchErr);
+    }
+    if (dev?.cv_url) {
+      const pad = dev.cv_url.split('/developer-cvs/')[1];
+      if (pad) {
+        const { error: storageErr } = await supabase.storage.from('developer-cvs').remove([pad]);
+        if (storageErr) console.error('Remove CV storage error:', storageErr);
+      }
+    }
+
+    // 10. Verwijder de developer zelf
+    const { error: devDelErr } = await supabase
+      .from('developer').delete().eq('developer_id', devId);
+    if (devDelErr) {
+      console.error('Delete developer error:', devDelErr);
+      throw devDelErr;
+    }
+
     res.json({ ok: true });
   } catch (err) {
-    console.error('[DELETE /api/developers/:id] Error:', err);
+    console.error('Developer delete fout:', err);
     res.status(500).json({ error: err.message });
   }
 });
