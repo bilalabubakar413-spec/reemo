@@ -2083,13 +2083,85 @@ const SCHEMA_SIGNATURES = {
   developers: ['naam', 'uurtarief', 'weekcapaciteit']
 };
 
+// Synoniemen: veel voorkomende kolomnamen → ons schema
+const KOLOM_SYNONIEMEN = {
+  // klanten
+  'naam':            ['naam', 'bedrijfsnaam', 'klantnaam', 'klant', 'bedrijf', 'company', 'name', 'client'],
+  'email':           ['email', 'e-mail', 'mail', 'emailadres', 'e-mailadres'],
+  'telefoonnummer':  ['telefoonnummer', 'telefoon', 'tel', 'phone', 'mobiel', 'nummer'],
+  'sector':          ['sector', 'branche', 'industrie', 'industry', 'categorie'],
+  'contactpersoon':  ['contactpersoon', 'contact', 'aanspreekpunt', 'contactperson'],
+  // projecten
+  'projectnaam':     ['projectnaam', 'project', 'opdracht', 'opdrachtnaam', 'project naam'],
+  'klant_naam':      ['klant_naam', 'klantnaam', 'klant', 'opdrachtgever', 'bedrijf'],
+  'type':            ['type', 'soort', 'contracttype', 'projecttype'],
+  'startdatum':      ['startdatum', 'start', 'begindatum', 'vanaf', 'start datum'],
+  'einddatum':       ['einddatum', 'eind', 'tot', 'einde', 'eind datum'],
+  'status':          ['status', 'staat', 'fase'],
+  // facturen
+  'factuurdatum':    ['factuurdatum', 'datum', 'factuur datum', 'invoice date'],
+  'vervaldatum':     ['vervaldatum', 'verval', 'deadline', 'betaaltermijn', 'due date'],
+  'totaalbedrag':    ['totaalbedrag', 'bedrag', 'totaal', 'amount', 'som', 'factuurbedrag'],
+  'betalingsstatus': ['betalingsstatus', 'betaalstatus', 'status betaling', 'betaald'],
+  'betalingsdatum':  ['betalingsdatum', 'betaald op', 'betaaldatum'],
+  // developers
+  'rol':             ['rol', 'functie', 'role', 'positie'],
+  'uurtarief':       ['uurtarief', 'tarief', 'rate', 'uurprijs', 'prijs per uur'],
+  'weekcapaciteit':  ['weekcapaciteit', 'capaciteit', 'uren per week', 'beschikbaarheid'],
+  // timesheets
+  'developer_naam':  ['developer_naam', 'developer', 'medewerker', 'consultant', 'freelancer', 'naam developer'],
+  'project_naam':    ['project_naam', 'projectnaam', 'project'],
+  'week_startdatum': ['week_startdatum', 'week', 'datum', 'weekstart', 'periode'],
+  'aantal_uren':     ['aantal_uren', 'uren', 'hours', 'gewerkte uren', 'aantal'],
+  'omschrijving':    ['omschrijving', 'beschrijving', 'notitie', 'opmerking', 'description']
+};
+
+function normaliseerHeader(header) {
+  const schoon = header.toLowerCase().trim().replace(/[_\-\.]/g, ' ').replace(/\s+/g, ' ');
+  
+  // 1. Eerst exact matching proberen
+  for (const [standaard, synoniemen] of Object.entries(KOLOM_SYNONIEMEN)) {
+    if (synoniemen.some(s => s === schoon)) {
+      return standaard;
+    }
+  }
+
+  // 2. Indien geen exacte match, fuzzy/includes matching proberen
+  for (const [standaard, synoniemen] of Object.entries(KOLOM_SYNONIEMEN)) {
+    if (synoniemen.some(s => schoon.includes(s) || s.includes(schoon))) {
+      return standaard;
+    }
+  }
+  return null; // onbekende kolom — wordt genegeerd, niet als fout behandeld
+}
+
+function normaliseerRecords(records) {
+  // Hernoem alle kolommen van elk record naar het standaard schema
+  const origineleHeaders = Object.keys(records[0] || {});
+  const mapping = {};
+  origineleHeaders.forEach(h => {
+    const std = normaliseerHeader(h);
+    if (std) mapping[h] = std;
+  });
+
+  const genormaliseerd = records.map(r => {
+    const nieuw = {};
+    for (const [orig, std] of Object.entries(mapping)) {
+      nieuw[std] = r[orig];
+    }
+    return nieuw;
+  });
+
+  return { records: genormaliseerd, mapping, onherkend: origineleHeaders.filter(h => !mapping[h]) };
+}
+
 function detecteerTabelType(headers) {
-  const headersLower = headers.map(h => h.toLowerCase().trim());
+  const genormaliseerdeHeaders = headers.map(h => normaliseerHeader(h)).filter(Boolean);
   let besteMatch = null;
   let hoogsteScore = 0;
 
   for (const [type, signature] of Object.entries(SCHEMA_SIGNATURES)) {
-    const score = signature.filter(s => headersLower.includes(s)).length / signature.length;
+    const score = signature.filter(s => genormaliseerdeHeaders.includes(s)).length / signature.length;
     if (score > hoogsteScore) {
       hoogsteScore = score;
       besteMatch = type;
@@ -2161,20 +2233,89 @@ async function checkDuplicaten(tabelType, records) {
   return { nieuw, bestaatAl, status };
 }
 
+// Helper: vind klant of maak aan
+async function vindOfMaakKlant(klantNaam, autoAangemaakt) {
+  if (!klantNaam) return null;
+  const { data: bestaand } = await supabase
+    .from('klant').select('klant_id').ilike('naam', klantNaam.trim()).maybeSingle();
+  if (bestaand) return bestaand.klant_id;
+
+  const { data: nieuw } = await supabase.from('klant').insert({
+    naam: klantNaam.trim(),
+    sector: null,
+    contactpersoon: null
+  }).select('klant_id').single();
+
+  autoAangemaakt.push(`Klant "${klantNaam.trim()}" automatisch aangemaakt`);
+  return nieuw?.klant_id;
+}
+
+// Helper: vind developer of maak aan
+async function vindOfMaakDeveloper(naam, autoAangemaakt) {
+  if (!naam) return null;
+  const { data: bestaand } = await supabase
+    .from('developer').select('developer_id').ilike('naam', naam.trim()).maybeSingle();
+  if (bestaand) return bestaand.developer_id;
+
+  const { data: nieuw } = await supabase.from('developer').insert({
+    naam: naam.trim(),
+    rol: 'Developer',
+    status: 'candidate',
+    weekcapaciteit: 40,
+    uurtarief: 0
+  }).select('developer_id').single();
+
+  autoAangemaakt.push(`Developer "${naam.trim()}" automatisch aangemaakt`);
+  return nieuw?.developer_id;
+}
+
+// Helper: vind project of maak aan (voor timesheets)
+async function vindOfMaakProjectForTimesheet(projectNaam, autoAangemaakt) {
+  if (!projectNaam) return null;
+  const { data: bestaand } = await supabase
+    .from('project').select('project_id').ilike('projectnaam', projectNaam.trim()).maybeSingle();
+  if (bestaand) return bestaand.project_id;
+
+  // We hebben een klant nodig. Zoek een bestaande klant, of maak een default aan.
+  let { data: klant } = await supabase.from('klant').select('klant_id').limit(1).maybeSingle();
+  if (!klant) {
+    const { data: nieuwKlant } = await supabase.from('klant').insert({
+      naam: 'Auto-aangemaakte Klant',
+      sector: 'Algemeen'
+    }).select('klant_id').single();
+    klant = nieuwKlant;
+    autoAangemaakt.push(`Klant "Auto-aangemaakte Klant" automatisch aangemaakt`);
+  }
+
+  if (!klant) return null;
+
+  const { data: nieuw } = await supabase.from('project').insert({
+    projectnaam: projectNaam.trim(),
+    klant_id: klant.klant_id,
+    status: 'actief',
+    type: 'T&M'
+  }).select('project_id').single();
+
+  autoAangemaakt.push(`Project "${projectNaam.trim()}" automatisch aangemaakt`);
+  return nieuw?.project_id;
+}
+
 async function importeerRecords(tabelType, records, overschrijf) {
   let toegevoegd = 0, overgeslagen = 0, fouten = [];
+  const autoAangemaakt = [];
 
   for (const r of records) {
     try {
       if (tabelType === 'klanten') {
-        if (!r.naam) { fouten.push('Naam is verplicht'); continue; }
+        const klantNaam = r.naam || r.klant || r.klant_naam || r.bedrijfsnaam || r.bedrijf;
+        if (!klantNaam) { fouten.push('Naam is verplicht'); continue; }
         const { data: bestaand } = await supabase.from('klant')
-          .select('klant_id').ilike('naam', r.naam).maybeSingle();
+          .select('klant_id').ilike('naam', klantNaam.trim()).maybeSingle();
         if (bestaand && !overschrijf) { overgeslagen++; continue; }
 
         await supabase.from('klant').upsert({
           ...(bestaand ? { klant_id: bestaand.klant_id } : {}),
-          naam: r.naam,
+          naam: klantNaam.trim(),
           email: r.email || null,
           telefoonnummer: r.telefoonnummer || null,
           sector: r.sector || null,
@@ -2183,21 +2324,22 @@ async function importeerRecords(tabelType, records, overschrijf) {
         toegevoegd++;
 
       } else if (tabelType === 'projecten') {
-        if (!r.projectnaam) { fouten.push('Projectnaam is verplicht'); continue; }
-        if (!r.klant_naam) { fouten.push(`Project "${r.projectnaam}": klant_naam is verplicht`); continue; }
+        const projNaam = r.projectnaam || r.project_naam || r.project;
+        const klantNaam = r.klant_naam || r.naam || r.klant || r.bedrijf;
+        if (!projNaam) { fouten.push('Projectnaam is verplicht'); continue; }
+        if (!klantNaam) { fouten.push(`Project "${projNaam}": klant_naam is verplicht`); continue; }
         
-        // Zoek klant op naam
-        const { data: klant } = await supabase.from('klant')
-          .select('klant_id').ilike('naam', r.klant_naam).maybeSingle();
-        if (!klant) { fouten.push(`Project "${r.projectnaam}": klant "${r.klant_naam}" niet gevonden`); continue; }
+        // Zoek klant op naam, maak aan indien niet gevonden
+        const klantId = await vindOfMaakKlant(klantNaam, autoAangemaakt);
+        if (!klantId) { fouten.push(`Project "${projNaam}": klant "${klantNaam}" kon niet worden gevonden of aangemaakt`); continue; }
 
         const { data: bestaand } = await supabase.from('project')
-          .select('project_id').ilike('projectnaam', r.projectnaam).maybeSingle();
+          .select('project_id').ilike('projectnaam', projNaam.trim()).maybeSingle();
         if (bestaand && !overschrijf) { overgeslagen++; continue; }
 
         if (bestaand) {
           await supabase.from('project').update({
-            klant_id: klant.klant_id,
+            klant_id: klantId,
             type: r.type || 'T&M',
             startdatum: r.startdatum || null,
             einddatum: r.einddatum || null,
@@ -2205,8 +2347,8 @@ async function importeerRecords(tabelType, records, overschrijf) {
           }).eq('project_id', bestaand.project_id);
         } else {
           await supabase.from('project').insert({
-            projectnaam: r.projectnaam,
-            klant_id: klant.klant_id,
+            projectnaam: projNaam.trim(),
+            klant_id: klantId,
             type: r.type || 'T&M',
             startdatum: r.startdatum || null,
             einddatum: r.einddatum || null,
@@ -2216,33 +2358,36 @@ async function importeerRecords(tabelType, records, overschrijf) {
         toegevoegd++;
 
       } else if (tabelType === 'developers') {
-        if (!r.naam) { fouten.push('Naam is verplicht'); continue; }
+        const devNaam = r.naam || r.developer_naam || r.developer;
+        if (!devNaam) { fouten.push('Naam is verplicht'); continue; }
         const { data: bestaand } = await supabase.from('developer')
-          .select('developer_id').ilike('naam', r.naam).maybeSingle();
+          .select('developer_id').ilike('naam', devNaam.trim()).maybeSingle();
         if (bestaand && !overschrijf) { overgeslagen++; continue; }
 
         await supabase.from('developer').upsert({
           ...(bestaand ? { developer_id: bestaand.developer_id } : {}),
-          naam: r.naam,
+          naam: devNaam.trim(),
           email: r.email || null,
           rol: r.rol || null,
-          uurtarief: parseFloat(r.uurtarief) || null,
+          uurtarief: parseFloat(r.uurtarief) || 0,
           weekcapaciteit: parseInt(r.weekcapaciteit) || 40,
           status: r.status || 'available'
         });
         toegevoegd++;
 
       } else if (tabelType === 'facturen') {
-        if (!r.klant_naam) { fouten.push('klant_naam is verplicht'); continue; }
-        if (!r.factuurdatum) { fouten.push('factuurdatum is verplicht'); continue; }
+        const klantNaam = r.klant_naam || r.naam || r.klant || r.bedrijf;
+        const factuurDatum = r.factuurdatum || r.datum;
+        if (!klantNaam) { fouten.push('klant_naam is verplicht'); continue; }
+        if (!factuurDatum) { fouten.push('factuurdatum is verplicht'); continue; }
         
-        const { data: klant } = await supabase.from('klant')
-          .select('klant_id').ilike('naam', r.klant_naam).maybeSingle();
-        if (!klant) { fouten.push(`Factuur ${r.factuurdatum}: klant "${r.klant_naam}" niet gevonden`); continue; }
+        // Zoek klant op naam, maak aan indien niet gevonden
+        const klantId = await vindOfMaakKlant(klantNaam, autoAangemaakt);
+        if (!klantId) { fouten.push(`Factuur ${factuurDatum}: klant "${klantNaam}" kon niet worden gevonden of aangemaakt`); continue; }
 
         await supabase.from('factuur').insert({
-          klant_id: klant.klant_id,
-          factuurdatum: r.factuurdatum,
+          klant_id: klantId,
+          factuurdatum: factuurDatum,
           vervaldatum: r.vervaldatum || null,
           totaalbedrag: parseFloat(r.totaalbedrag) || 0,
           betalingsstatus: r.betalingsstatus || 'open',
@@ -2251,29 +2396,31 @@ async function importeerRecords(tabelType, records, overschrijf) {
         toegevoegd++;
 
       } else if (tabelType === 'timesheets') {
-        if (!r.developer_naam) { fouten.push('developer_naam is verplicht'); continue; }
-        if (!r.project_naam) { fouten.push('project_naam is verplicht'); continue; }
-        if (!r.week_startdatum) { fouten.push('week_startdatum is verplicht'); continue; }
+        const devNaam = r.developer_naam || r.naam || r.developer;
+        const projNaam = r.project_naam || r.projectnaam || r.project;
+        const weekStart = r.week_startdatum || r.week || r.datum;
+        if (!devNaam) { fouten.push('developer_naam is verplicht'); continue; }
+        if (!projNaam) { fouten.push('project_naam is verplicht'); continue; }
+        if (!weekStart) { fouten.push('week_startdatum is verplicht'); continue; }
 
-        const { data: dev } = await supabase.from('developer')
-          .select('developer_id').ilike('naam', r.developer_naam).maybeSingle();
-        const { data: proj } = await supabase.from('project')
-          .select('project_id').ilike('projectnaam', r.project_naam).maybeSingle();
-        if (!dev)  { fouten.push(`Timesheet: developer "${r.developer_naam}" niet gevonden`); continue; }
-        if (!proj) { fouten.push(`Timesheet: project "${r.project_naam}" niet gevonden`); continue; }
+        const devId = await vindOfMaakDeveloper(devNaam, autoAangemaakt);
+        if (!devId) { fouten.push(`Timesheet: developer "${devNaam}" kon niet worden gevonden of aangemaakt`); continue; }
+
+        const projId = await vindOfMaakProjectForTimesheet(projNaam, autoAangemaakt);
+        if (!projId) { fouten.push(`Timesheet: project "${projNaam}" kon niet worden gevonden of aangemaakt`); continue; }
 
         // Contract lookup voor bedrag (zelfde logica als normale timesheet POST)
         const { data: contract } = await supabase.from('contract')
           .select('contract_id, uurtarief')
-          .eq('developer_id', dev.developer_id)
-          .eq('project_id', proj.project_id)
+          .eq('developer_id', devId)
+          .eq('project_id', projId)
           .maybeSingle();
 
         await supabase.from('urenregistratie').insert({
-          developer_id: dev.developer_id,
-          project_id: proj.project_id,
+          developer_id: devId,
+          project_id: projId,
           contract_id: contract?.contract_id || null,
-          datum: r.week_startdatum,
+          datum: weekStart,
           aantal_uren: parseFloat(r.aantal_uren) || 0,
           bedrag: contract ? parseFloat(r.aantal_uren) * parseFloat(contract.uurtarief) : null,
           omschrijving: r.omschrijving || 'Historische import',
@@ -2287,7 +2434,7 @@ async function importeerRecords(tabelType, records, overschrijf) {
     }
   }
 
-  return { toegevoegd, overgeslagen, fouten: fouten.slice(0, 20) };
+  return { toegevoegd, overgeslagen, autoAangemaakt, fouten: fouten.slice(0, 20) };
 }
 
 app.get('/api/data-management/template/:type', (req, res) => {
@@ -2334,21 +2481,23 @@ app.post('/api/data-management/preview', dmUpload.array('bestanden', 50), async 
 
     for (const file of req.files) {
       try {
-        const records = parseBestand(file);
-        if (records.length === 0) {
+        const ruw = parseBestand(file);
+        if (ruw.length === 0) {
           resultaten.push({ bestand: file.originalname, fout: 'Geen data gevonden' });
           continue;
         }
 
-        const headers = Object.keys(records[0]);
-        // Geforceerd type (handmatige kaart) of auto-detectie
+        const { records, mapping, onherkend } = normaliseerRecords(ruw);
+        const headers = Object.keys(records[0] || {});
         const tabelType = req.body.type || detecteerTabelType(headers);
 
         if (!tabelType) {
           resultaten.push({
             bestand: file.originalname,
             fout: 'Kolomkoppen niet herkend. Gebruik een template of kies handmatig het type.',
-            gevondenHeaders: headers
+            gevondenHeaders: Object.keys(ruw[0] || {}),
+            kolomMapping: mapping,
+            onherkendekolommen: onherkend
           });
           continue;
         }
@@ -2363,7 +2512,9 @@ app.post('/api/data-management/preview', dmUpload.array('bestanden', 50), async 
           nieuw: duplicaatInfo.nieuw,
           bestaatAl: duplicaatInfo.bestaatAl,
           records: records.slice(0, 100), // max 100 in preview
-          duplicaatStatus: duplicaatInfo.status // array per record: 'nieuw' | 'bestaat_al'
+          duplicaatStatus: duplicaatInfo.status, // array per record: 'nieuw' | 'bestaat_al'
+          kolomMapping: mapping,        // bijv. { "Bedrijfsnaam": "naam", "Tel": "telefoonnummer" }
+          onherkendekolommen: onherkend // bijv. ["interne notitie"]
         });
       } catch (err) {
         resultaten.push({ bestand: file.originalname, fout: `Parsefout: ${err.message}` });
@@ -2377,6 +2528,8 @@ app.post('/api/data-management/preview', dmUpload.array('bestanden', 50), async 
   }
 });
 
+const IMPORT_VOLGORDE = ['klanten', 'developers', 'projecten', 'facturen', 'timesheets'];
+
 app.post('/api/data-management/import', dmUpload.array('bestanden', 50), async (req, res) => {
   try {
     // PIN verificatie EERST
@@ -2386,18 +2539,41 @@ app.post('/api/data-management/import', dmUpload.array('bestanden', 50), async (
     }
 
     const overschrijfDuplicaten = req.body.overschrijf === 'true';
+    const geparsed = [];
     const resultaten = [];
 
     for (const file of req.files) {
-      const records = parseBestand(file);
-      const tabelType = req.body.type || detecteerTabelType(Object.keys(records[0] || {}));
-      if (!tabelType) {
-        resultaten.push({ bestand: file.originalname, fout: 'Type niet herkend' });
-        continue;
-      }
+      try {
+        const ruw = parseBestand(file);
+        if (ruw.length === 0) {
+          resultaten.push({ bestand: file.originalname, fout: 'Geen data gevonden' });
+          continue;
+        }
 
-      const resultaat = await importeerRecords(tabelType, records, overschrijfDuplicaten);
-      resultaten.push({ bestand: file.originalname, tabelType, ...resultaat });
+        const { records } = normaliseerRecords(ruw);
+        const headers = Object.keys(records[0] || {});
+        const tabelType = req.body.type || detecteerTabelType(headers);
+
+        if (!tabelType) {
+          resultaten.push({ bestand: file.originalname, fout: 'Type niet herkend' });
+          continue;
+        }
+
+        geparsed.push({ bestand: file.originalname, file, tabelType, records });
+      } catch (err) {
+        resultaten.push({ bestand: file.originalname, fout: `Parsefout: ${err.message}` });
+      }
+    }
+
+    // Sorteer op afhankelijkheid: klanten eerst, timesheets laatst
+    geparsed.sort((a, b) =>
+      IMPORT_VOLGORDE.indexOf(a.tabelType) - IMPORT_VOLGORDE.indexOf(b.tabelType)
+    );
+
+    // Verwerk in deze volgorde
+    for (const item of geparsed) {
+      const resultaat = await importeerRecords(item.tabelType, item.records, overschrijfDuplicaten);
+      resultaten.push({ bestand: item.bestand, tabelType: item.tabelType, ...resultaat });
     }
 
     res.json({ resultaten });

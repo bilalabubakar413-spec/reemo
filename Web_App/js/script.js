@@ -6405,10 +6405,31 @@ function toonDMPreviewModal(resultaten) {
 
   container.innerHTML = '';
 
-  const html = resultaten.map((res, index) => {
+  const IMPORT_VOLGORDE = ['klanten', 'developers', 'projecten', 'facturen', 'timesheets'];
+
+  // Sorteer resultaten volgens IMPORT_VOLGORDE (parsefouten met undefined tabelType komen achteraan)
+  const gesorteerdeResultaten = [...resultaten].sort((a, b) => {
+    const idxA = a.tabelType ? IMPORT_VOLGORDE.indexOf(a.tabelType) : 99;
+    const idxB = b.tabelType ? IMPORT_VOLGORDE.indexOf(b.tabelType) : 99;
+    return idxA - idxB;
+  });
+
+  const succesvolleBestanden = gesorteerdeResultaten.filter(r => !r.fout && r.tabelType);
+  let volgordeHtml = '';
+  if (succesvolleBestanden.length > 0) {
+    const stappen = succesvolleBestanden.map((r, i) => `${i + 1}. <span style="color:#60a5fa; font-weight:600;">${r.bestand}</span> (${r.tabelType})`).join(' &rarr; ');
+    volgordeHtml = `
+      <div style="background:rgba(59,130,246,0.1); border:1px solid rgba(59,130,246,0.2); border-radius:8px; padding:12px 16px; margin-bottom:1.5rem; font-size:12px; color:#93c5fd; display:flex; align-items:center; gap:8px;">
+        <i class="ti ti-sort-ascending" style="font-size:16px;"></i> 
+        <span><strong>Verwerkvolgorde:</strong> ${stappen}</span>
+      </div>
+    `;
+  }
+
+  const html = gesorteerdeResultaten.map((res, index) => {
     if (res.fout) {
       return `
-        <div style="background:rgba(239,68,68,0.1); border:1px solid rgba(239,68,68,0.3); border-radius:8px; padding:1.25rem;">
+        <div style="background:rgba(239,68,68,0.1); border:1px solid rgba(239,68,68,0.3); border-radius:8px; padding:1.25rem; margin-bottom:12px;">
           <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
             <strong style="color:#f87171; font-size:14px;"><i class="ti ti-alert-triangle"></i> ${res.bestand}</strong>
             <span class="dm-badge danger">PARSE FOUT</span>
@@ -6468,8 +6489,25 @@ function toonDMPreviewModal(resultaten) {
       `;
     }
 
+    let mappingHtml = '';
+    if (res.kolomMapping && Object.keys(res.kolomMapping).length > 0) {
+      const mappingItems = Object.entries(res.kolomMapping)
+        .map(([orig, std]) => `<strong>${orig}</strong> &rarr; <span style="color:#60a5fa">${std}</span>`)
+        .join(' &bull; ');
+      
+      const genegeerdText = (res.onherkendekolommen && res.onherkendekolommen.length > 0)
+        ? ` &nbsp;|&nbsp; <span style="color:#ef4444;">Genegeerd:</span> "${res.onherkendekolommen.join('", "')}"`
+        : '';
+
+      mappingHtml = `
+        <div style="font-size:11px; background:#18181b; border:1px solid #27272a; border-radius:6px; padding:8px 12px; margin-top:10px; color:#a1a1aa; line-height:1.4;">
+          <span style="color:#22c55e; font-weight:600;"><i class="ti ti-check"></i> Herkende kolommen:</span> ${mappingItems}${genegeerdText}
+        </div>
+      `;
+    }
+
     return `
-      <div style="background:#0e0e0e; border:1px solid #1e1e1e; border-radius:8px; padding:1.25rem;">
+      <div style="background:#0e0e0e; border:1px solid #1e1e1e; border-radius:8px; padding:1.25rem; margin-bottom:12px;">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
           <strong style="color:white; font-size:14px;"><i class="ti ti-file-text" style="color:#3B82F6;"></i> ${res.bestand}</strong>
           <span class="dm-badge ${badgeClass === 'timesheets' ? 'operations' : (badgeClass === 'facturen' ? 'cashflow' : (badgeClass === 'klanten' ? 'crm' : (badgeClass === 'projecten' ? 'contracts' : 'hr')))}">${badgeLabel}</span>
@@ -6479,12 +6517,13 @@ function toonDMPreviewModal(resultaten) {
           <span style="color:#4ade80;">Nieuw: <strong>${res.nieuw}</strong></span>
           <span style="color:#fbbf24;">Bestaat al: <strong>${res.bestaatAl}</strong></span>
         </div>
+        ${mappingHtml}
         ${tableHtml}
       </div>
     `;
   }).join('');
 
-  container.innerHTML = html;
+  container.innerHTML = volgordeHtml + html;
   
   // Reset checkboxes/inputs inside preview modal
   const chk = document.getElementById('dm-overwrite-dup');
@@ -6568,6 +6607,7 @@ function toonDMImportResultaat(resultaten) {
     }
 
     const hasFouten = res.fouten && res.fouten.length > 0;
+    const hasAutoAangemaakt = res.autoAangemaakt && res.autoAangemaakt.length > 0;
 
     return `
       <div style="background:#0e0e0e; border:1px solid #1e1e1e; border-radius:8px; padding:1.25rem; margin-bottom:12px;">
@@ -6581,6 +6621,20 @@ function toonDMImportResultaat(resultaten) {
           <span style="color:#94a3b8;">Overgeslagen (duplicaten): <strong>${res.overgeslagen}</strong></span>
           <span style="color:#f87171;">Fouten: <strong>${hasFouten ? res.fouten.length : 0}</strong></span>
         </div>
+
+        ${hasAutoAangemaakt ? `
+          <div style="background:rgba(245,158,11,0.05); border:1px solid rgba(245,158,11,0.25); border-radius:6px; padding:8px 12px; margin-bottom:10px; border-left:3px solid #f59e0b;">
+            <span style="font-size:11px; color:#fbbf24; font-weight:700; display:flex; align-items:center; gap:4px; margin-bottom:4px;">
+              ⚡ ${res.autoAangemaakt.length} automatisch aangemaakt:
+            </span>
+            <ul style="margin:0; padding-left:16px; font-size:11px; color:#f59e0b; line-height:1.5;">
+              ${res.autoAangemaakt.map(item => `<li>${item}</li>`).join('')}
+            </ul>
+            <span style="font-size:10px; color:#a1a1aa; display:block; margin-top:6px;">
+              ℹ️ Vul de gegevens van auto-aangemaakte records later aan via de Clients/Developers pagina.
+            </span>
+          </div>
+        ` : ''}
 
         ${hasFouten ? `
           <div style="background:rgba(239,68,68,0.05); border:1px solid rgba(239,68,68,0.2); border-radius:6px; padding:8px 12px;">
