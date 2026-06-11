@@ -2168,52 +2168,94 @@ async function submitClientForm(btnElement) {
     }
 }
 
-async function deleteClient(id, naam, btnElement) {
-    if (!confirm(`Weet je zeker dat je "${naam}" wilt verwijderen? Dit kan niet ongedaan worden gemaakt.`)) return;
-    
-    if (btnElement) {
-        btnElement.disabled = true;
-        btnElement.innerHTML = '<div class="spinner" style="width:12px;height:12px;border:2px solid rgba(244,63,94,0.3);border-top-color:#f43f5e;border-radius:50%;animation:spin 1s linear infinite"></div>';
-    }
-    
-    try {
-        await apiFetch(`/api/klanten/${id}`, { method: 'DELETE' });
-        await loadClients();
-        renderClientsGrid();
-        if (typeof renderDashboardStats === 'function') renderDashboardStats();
-        showToast(`✓ Klant "${naam}" verwijderd.`);
-    } catch (e) { 
-        showToast(`⚠ ${e.message}`); 
-        if (btnElement) {
-            btnElement.disabled = false;
-            btnElement.innerHTML = '<i data-lucide="trash-2" style="width:12px;height:12px"></i>';
-            if (typeof lucide !== 'undefined') lucide.createIcons();
-        }
-    }
-}
+let _verwijderKlantId = null;
 
 async function verwijderKlant(klantId, naam) {
-  const res  = await fetch(`/api/clients/${klantId}/check-actief`);
+  _verwijderKlantId = klantId;
+
+  const res = await fetch(`/api/clients/${klantId}/check-actief`);
   const data = await res.json();
 
-  let bericht = `Weet je zeker dat je ${naam} wilt verwijderen?`;
+  document.getElementById('vk-naam').textContent =
+    `Weet je zeker dat je ${naam} wilt verwijderen?`;
 
+  const impact = document.getElementById('vk-impact');
   if (data.actief) {
-    bericht = `⚠️ Let op: ${naam} heeft nog actieve relaties:\n\n`;
-    if (data.aantalProjecten > 0)
-      bericht += `Actieve projecten:\n${data.projecten.map(p => `• ${p}`).join('\n')}\n\n`;
-    if (data.openFacturen > 0)
-      bericht += `Openstaande facturen: ${data.openFacturen}\n\n`;
-    bericht += `Als je toch verwijdert worden alle gegevens permanent verwijderd. Weet je het zeker?`;
+    document.getElementById('vk-stat-projecten').textContent = data.projecten.length;
+    document.getElementById('vk-stat-facturen').textContent = data.aantalFacturen;
+    document.getElementById('vk-stat-waarde').textContent =
+      '€' + Math.round(data.totaleWaarde).toLocaleString('nl-NL');
+
+    document.getElementById('vk-projecten-lijst').innerHTML = data.projecten
+      .map(p => `<li>${p.naam} <span style="color:#64748B;">(${p.status})</span></li>`).join('');
+
+    const extra = [];
+    if (data.aantalUren > 0) extra.push(`${data.aantalUren} urenregistraties`);
+    if (data.openFacturen > 0) extra.push(`${data.openFacturen} openstaande factu(u)r(en)`);
+    if (data.gekoppeldeDevelopers.length > 0)
+      extra.push(`Contracten van: ${data.gekoppeldeDevelopers.join(', ')} (developers zelf blijven bestaan)`);
+    document.getElementById('vk-extra-info').textContent = extra.join(' • ');
+
+    impact.style.display = 'block';
+  } else {
+    impact.style.display = 'none';
   }
 
-  const bevestig = confirm(bericht);
-  if (!bevestig) return;
+  // Reset PIN
+  ['vk-pin-1','vk-pin-2','vk-pin-3','vk-pin-4'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.value = '';
+  });
+  updateVKKnop();
 
-  const del = await fetch(`/api/clients/${klantId}`, { method: 'DELETE' });
-  if (!del.ok) { showToast('Verwijderen mislukt', 'error'); return; }
+  document.getElementById('modal-verwijder-klant').style.display = 'flex';
+  document.getElementById('vk-pin-1')?.focus();
+}
 
-  showToast(`${naam} is verwijderd`, 'success');
+function movePinFocusVK(current, nextId) {
+  if (current.value.length === 1 && nextId) document.getElementById(nextId)?.focus();
+  updateVKKnop();
+}
+
+function updateVKKnop() {
+  const pin = ['vk-pin-1','vk-pin-2','vk-pin-3','vk-pin-4']
+    .map(id => document.getElementById(id)?.value || '').join('');
+  const btn = document.getElementById('vk-bevestig-btn');
+  btn.disabled = pin.length !== 4;
+  btn.classList.toggle('active', pin.length === 4);
+}
+
+function sluitVerwijderKlantModal() {
+  document.getElementById('modal-verwijder-klant').style.display = 'none';
+  _verwijderKlantId = null;
+}
+
+async function bevestigVerwijderKlant() {
+  if (!_verwijderKlantId) return;
+
+  const pin = ['vk-pin-1','vk-pin-2','vk-pin-3','vk-pin-4']
+    .map(id => document.getElementById(id)?.value || '').join('');
+
+  const btn = document.getElementById('vk-bevestig-btn');
+  btn.disabled = true;
+  btn.textContent = 'Bezig met verwijderen...';
+
+  const res = await fetch(`/api/clients/${_verwijderKlantId}`, {
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json', 'x-admin-pin': pin }
+  });
+  const data = await res.json();
+
+  btn.textContent = 'Permanent verwijderen 🗑️';
+
+  if (!res.ok) {
+    showToast(`Verwijderen mislukt: ${data.error || 'onbekende fout'}`, 'error');
+    btn.disabled = false;
+    return;
+  }
+
+  sluitVerwijderKlantModal();
+  const v = data.verwijderd;
+  showToast(`Klant verwijderd (${v.projecten} projecten, ${v.facturen} facturen, ${v.uren} uren)`, 'success');
   await loadClients();
   renderClientsGrid();
   if (typeof renderDashboardStats === 'function') renderDashboardStats();

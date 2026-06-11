@@ -2837,6 +2837,65 @@
       </button>
     </div>
   </div>
+<!-- ===== CUSTOMER DELETE CONFIRMATION MODAL ===== -->
+<div id="modal-verwijder-klant" class="modal-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);backdrop-filter:blur(6px);z-index:9999;align-items:center;justify-content:center;padding:1rem">
+  <div class="modal-card" style="background:#0a0a0a; border:1px solid #1e1e1e; border-radius:1rem; width:100%; max-width:560px; box-shadow:0 25px 50px -12px rgba(0,0,0,0.5); overflow:hidden;">
+    <div class="modal-header" style="padding:1.5rem; border-bottom:1px solid #450A0A; display:flex; justify-content:space-between; align-items:center;">
+      <h3 style="color:#EF4444; display:flex; align-items:center; gap:8px; font-size:1.125rem; font-weight:800; margin:0;">
+        <i class="ti ti-alert-triangle"></i> Klant verwijderen
+      </h3>
+      <button onclick="sluitVerwijderKlantModal()" class="modal-close" style="width:2rem; height:2rem; border-radius:50%; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1); color:var(--white-60); cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:1rem;">✕</button>
+    </div>
+    <div class="modal-body" style="padding:1.5rem; display:flex; flex-direction:column; gap:1.25rem;">
+      <p id="vk-naam" style="font-size:15px; font-weight:600; color:white; margin:0;"></p>
+
+      <!-- Impact overzicht — groot en volledig -->
+      <div id="vk-impact" style="display:none;">
+        <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-bottom:0px;">
+          <div style="background:#1E293B; border:1px solid #334155; border-radius:8px; padding:12px; text-align:center;">
+            <span style="font-size:22px; font-weight:700; color:white; display:block;" id="vk-stat-projecten">0</span>
+            <span style="font-size:10px; color:#64748B;">PROJECTEN</span>
+          </div>
+          <div style="background:#1E293B; border:1px solid #334155; border-radius:8px; padding:12px; text-align:center;">
+            <span style="font-size:22px; font-weight:700; color:white; display:block;" id="vk-stat-facturen">0</span>
+            <span style="font-size:10px; color:#64748B;">FACTUREN</span>
+          </div>
+          <div style="background:#1E293B; border:1px solid #450A0A; border-radius:8px; padding:12px; text-align:center;">
+            <span style="font-size:22px; font-weight:700; color:#EF4444; display:block;" id="vk-stat-waarde">€0</span>
+            <span style="font-size:10px; color:#64748B;">TOTALE WAARDE</span>
+          </div>
+        </div>
+
+        <div style="background:rgba(69,10,10,0.3); border:1px solid #450A0A;
+             border-left:3px solid #EF4444; border-radius:8px; padding:14px; margin-top:14px;">
+          <p style="color:#FCA5A5; font-size:13px; font-weight:600; margin-top:0; margin-bottom:8px;">
+            Dit wordt permanent verwijderd:
+          </p>
+          <ul id="vk-projecten-lijst" style="margin:0 0 8px; padding-left:18px; color:#CBD5E1; font-size:12px; line-height:1.5;"></ul>
+          <p id="vk-extra-info" style="color:#94A3B8; font-size:12px; margin:0; line-height:1.5;"></p>
+        </div>
+      </div>
+
+      <!-- PIN verificatie -->
+      <div style="margin-bottom:6px;">
+        <p style="font-size:12px; color:#94A3B8; margin-bottom:8px;">Voer de beheerderscode in om te bevestigen:</p>
+        <div class="dm-pin-row" style="display:flex; gap:8px; justify-content:flex-start;">
+          <input type="password" maxlength="1" class="dm-pin-digit" id="vk-pin-1" oninput="movePinFocusVK(this,'vk-pin-2')" />
+          <input type="password" maxlength="1" class="dm-pin-digit" id="vk-pin-2" oninput="movePinFocusVK(this,'vk-pin-3')" />
+          <input type="password" maxlength="1" class="dm-pin-digit" id="vk-pin-3" oninput="movePinFocusVK(this,'vk-pin-4')" />
+          <input type="password" maxlength="1" class="dm-pin-digit" id="vk-pin-4" oninput="movePinFocusVK(this,null)" />
+        </div>
+      </div>
+      <p style="color:#64748B; font-size:11px; margin:0;">Deze actie kan niet ongedaan worden gemaakt.</p>
+    </div>
+    <div class="modal-footer" style="padding:1.25rem 1.5rem; border-top:1px solid #1e1e1e; background:#0d0d0d; display:flex; gap:10px; justify-content:flex-end;">
+      <button onclick="sluitVerwijderKlantModal()" class="btn-outline">Annuleer</button>
+      <button id="vk-bevestig-btn" onclick="bevestigVerwijderKlant()" disabled
+              class="btn-danger-final" style="width:auto; padding:9px 20px; font-size:13px; border-radius:8px;">
+        Permanent verwijderen 🗑️
+      </button>
+    </div>
+  </div>
 </div>
 
 </body>

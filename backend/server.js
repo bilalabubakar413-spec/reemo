@@ -1124,25 +1124,41 @@ app.patch('/api/clients/:id', async (req, res) => {
 });
 
 app.get('/api/clients/:id/check-actief', async (req, res) => {
-  const { id } = req.params;
+  const id = parseInt(req.params.id);
+
   try {
     const { data: projecten } = await supabase
-      .from('project')
-      .select('projectnaam')
-      .eq('klant_id', id)
-      .eq('status', 'actief');
+      .from('project').select('project_id, projectnaam, status').eq('klant_id', id);
+    const projectIds = (projecten || []).map(p => p.project_id);
 
     const { data: facturen } = await supabase
-      .from('factuur')
-      .select('factuur_id')
-      .eq('klant_id', id)
-      .in('betalingsstatus', ['open', 'verzonden']);
+      .from('factuur').select('factuur_id, totaalbedrag, betalingsstatus').eq('klant_id', id);
+
+    let urenCount = 0, urenBedrag = 0, developers = [];
+    if (projectIds.length > 0) {
+      const { data: uren } = await supabase
+        .from('urenregistratie').select('bedrag').in('project_id', projectIds);
+      urenCount = uren?.length || 0;
+      urenBedrag = (uren || []).reduce((s, u) => s + parseFloat(u.bedrag || 0), 0);
+
+      const { data: contracten } = await supabase
+        .from('contract')
+        .select('developer:developer_id(naam)')
+        .in('project_id', projectIds);
+      developers = [...new Set((contracten || []).map(c => c.developer?.naam).filter(Boolean))];
+    }
+
+    const factuurBedrag = (facturen || []).reduce((s, f) => s + parseFloat(f.totaalbedrag || 0), 0);
+    const openFacturen = (facturen || []).filter(f => ['open','verzonden'].includes(f.betalingsstatus)).length;
 
     res.json({
-      actief: (projecten?.length > 0) || (facturen?.length > 0),
-      aantalProjecten: projecten?.length || 0,
-      openFacturen:    facturen?.length  || 0,
-      projecten: (projecten || []).map(p => p.projectnaam)
+      actief: projectIds.length > 0 || (facturen?.length || 0) > 0,
+      projecten: (projecten || []).map(p => ({ naam: p.projectnaam, status: p.status })),
+      aantalFacturen: facturen?.length || 0,
+      openFacturen,
+      aantalUren: urenCount,
+      totaleWaarde: factuurBedrag + urenBedrag,
+      gekoppeldeDevelopers: developers
     });
   } catch (err) {
     console.error('[GET /api/clients/:id/check-actief] Error:', err);
@@ -1151,17 +1167,72 @@ app.get('/api/clients/:id/check-actief', async (req, res) => {
 });
 
 app.delete('/api/clients/:id', async (req, res) => {
-  const { id } = req.params;
-  try {
-    const { error } = await supabase
-      .from('klant')
-      .delete()
-      .eq('klant_id', id);
+  const id = parseInt(req.params.id);
 
-    if (error) return res.status(500).json({ error: error.message });
-    res.json({ ok: true });
+  // PIN-verificatie — server-side
+  const pin = req.body?.pin || req.headers['x-admin-pin'];
+  if (!pin || pin !== (process.env.ADMIN_PIN || '2526')) {
+    return res.status(403).json({ error: 'Ongeldige beheerderscode' });
+  }
+
+  try {
+    // Verzamel gerelateerde ids
+    const { data: projecten } = await supabase
+      .from('project').select('project_id').eq('klant_id', id);
+    const projectIds = (projecten || []).map(p => p.project_id);
+
+    const { data: facturen } = await supabase
+      .from('factuur').select('factuur_id').eq('klant_id', id);
+    const factuurIds = (facturen || []).map(f => f.factuur_id);
+
+    let urenIds = [];
+    if (projectIds.length > 0) {
+      const { data: uren } = await supabase
+        .from('urenregistratie').select('uren_id').in('project_id', projectIds);
+      urenIds = (uren || []).map(u => u.uren_id);
+    }
+
+    // Cascade in juiste volgorde (inclusief timesheet_feiten met bron_uren_id)
+    await supabase.from('timesheet_feiten').delete().eq('klant_id', id).then(() => {}).catch(() => {});
+    if (urenIds.length > 0) {
+      await supabase.from('timesheet_feiten').delete().in('bron_uren_id', urenIds).then(() => {}).catch(() => {});
+      await supabase.from('factuur_regelitem').delete().in('uren_id', urenIds);
+    }
+    if (factuurIds.length > 0) {
+      await supabase.from('factuur_regelitem').delete().in('factuur_id', factuurIds);
+    }
+    if (urenIds.length > 0) {
+      await supabase.from('urenregistratie').delete().in('uren_id', urenIds);
+    }
+    if (projectIds.length > 0) {
+      await supabase.from('contract').delete().in('project_id', projectIds);
+      await supabase.from('developer_project').delete().in('project_id', projectIds);
+    }
+    if (factuurIds.length > 0) {
+      await supabase.from('factuur').delete().in('factuur_id', factuurIds);
+    }
+    if (projectIds.length > 0) {
+      await supabase.from('project').delete().in('project_id', projectIds);
+    }
+
+    // Logo uit storage verwijderen indien aanwezig
+    const { data: klant } = await supabase
+      .from('klant').select('logo_url').eq('klant_id', id).single();
+    if (klant?.logo_url) {
+      const pad = klant.logo_url.split('/client-logos/')[1];
+      if (pad) await supabase.storage.from('client-logos').remove([pad]);
+    }
+
+    const { error } = await supabase.from('klant').delete().eq('klant_id', id);
+    if (error) throw error;
+
+    res.json({ ok: true, verwijderd: {
+      projecten: projectIds.length,
+      facturen: factuurIds.length,
+      uren: urenIds.length
+    }});
   } catch (err) {
-    console.error('[DELETE /api/clients/:id] Error:', err);
+    console.error('Klant delete fout:', err);
     res.status(500).json({ error: err.message });
   }
 });
