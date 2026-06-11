@@ -2126,9 +2126,18 @@ function normaliseerHeader(header) {
     }
   }
 
-  // 2. Indien geen exacte match, fuzzy/includes matching proberen
+  // 2. Indien geen exacte match, woord-gebaseerde matching proberen (word boundaries)
   for (const [standaard, synoniemen] of Object.entries(KOLOM_SYNONIEMEN)) {
-    if (synoniemen.some(s => schoon.includes(s) || s.includes(schoon))) {
+    if (synoniemen.some(s => {
+      // Match s als heel woord in schoon, of schoon als heel woord in s
+      const escapedS = s.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+      const escapedSchoon = schoon.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+      
+      const regexS = new RegExp('\\b' + escapedS + '\\b');
+      const regexSchoon = new RegExp('\\b' + escapedSchoon + '\\b');
+      
+      return regexS.test(schoon) || regexSchoon.test(s);
+    })) {
       return standaard;
     }
   }
