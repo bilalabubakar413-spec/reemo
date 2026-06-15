@@ -84,33 +84,20 @@
                     <div style="font-size:0.875rem;color:var(--white-40)">Sign in to your workspace</div>
                 </div>
 
-                <!-- Workspace selector -->
-                <div style="margin-bottom:1.75rem">
-                    <div style="font-size:0.625rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--white-30);margin-bottom:0.75rem">Select Workspace</div>
-                    <div class="login-ws-toggle">
-                        <button type="button" class="login-ws-btn active" id="ws-admin-btn">
-                            <i data-lucide="shield" style="width:16px;height:16px"></i>
-                            Admin
-                        </button>
-                        <button type="button" class="login-ws-btn" id="ws-dev-btn">
-                            <i data-lucide="code-2" style="width:16px;height:16px"></i>
-                            Developer
-                        </button>
-                    </div>
-                </div>
-
                 <form id="login-form" style="display:flex;flex-direction:column;gap:1rem">
                     <div>
                         <label class="login-field-label">Work Email</label>
-                        <input type="email" required value="admin@reemo.io" class="login-input" id="login-email" placeholder="you@company.io">
+                        <input type="email" required class="login-input" id="login-email" placeholder="you@company.io">
                     </div>
                     <div>
                         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.5rem">
                             <label class="login-field-label" style="margin-bottom:0">Password</label>
                             <button type="button" style="font-size:0.6875rem;font-weight:700;color:#60a5fa;background:none;border:none;cursor:pointer" id="forgot-password-btn">Forgot password?</button>
                         </div>
-                        <input type="password" required value="password" class="login-input" placeholder="••••••••">
+                        <input type="password" required id="login-password" class="login-input" placeholder="••••••••">
                     </div>
+
+                    <div id="login-error" style="display:none; color:#ef4444; font-size:0.75rem; font-weight: 500; text-align:center; padding:0.5rem; background:rgba(239,68,68,0.1); border:1px solid rgba(239,68,68,0.2); border-radius:0.5rem;"></div>
 
                     <button type="submit" class="login-submit-btn" id="login-submit-btn">
                         Enter Workspace

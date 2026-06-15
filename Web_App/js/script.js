@@ -247,8 +247,6 @@ const logoutBtn = document.getElementById('logout-btn');
 const navItems = document.querySelectorAll('.nav-item[data-target]');
 const screenContents = document.querySelectorAll('.screen-content');
 
-const wsAdminBtn = document.getElementById('ws-admin-btn');
-const wsDevBtn = document.getElementById('ws-dev-btn');
 const loginEmailInput = document.getElementById('login-email');
 const loginGlow = document.getElementById('login-glow');
 const loginLogoBox = document.getElementById('login-logo-box');
@@ -259,21 +257,14 @@ const navDevItems = document.getElementById('nav-dev-items');
 const userProfileAvatar = document.getElementById('user-profile-avatar');
 const userProfileName = document.getElementById('user-profile-name');
 
-let currentRole = 'admin';
 
 // --- Initialization ---
 document.addEventListener('DOMContentLoaded', async () => {
     // Initialize Lucide icons
     if (typeof lucide !== 'undefined') lucide.createIcons();
 
-    // Workspace Toggles
-    if (wsAdminBtn && wsDevBtn) {
-        wsAdminBtn.addEventListener('click', () => setLoginWorkspace('admin'));
-        wsDevBtn.addEventListener('click', () => setLoginWorkspace('developer'));
-    }
-
     // Setup Event Listeners
-    if (loginForm) loginForm.addEventListener('submit', (e) => handleLogin(e, currentRole));
+    if (loginForm) loginForm.addEventListener('submit', handleLogin);
     if (logoutBtn) logoutBtn.addEventListener('click', handleLogout);
     
     // Navigation
@@ -339,34 +330,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 // --- Authentication ---
-function setLoginWorkspace(role) {
-    currentRole = role;
-    if (role === 'admin') {
-        wsAdminBtn.classList.add('active');
-        wsDevBtn.classList.remove('active');
-        if (loginEmailInput) loginEmailInput.value = 'admin@reemo.io';
-        if (loginSubmitBtn) {
-            loginSubmitBtn.style.background = 'var(--blue-600)';
-            loginSubmitBtn.style.boxShadow = '0 0 24px rgba(37,99,235,0.3)';
-        }
-    } else {
-        wsDevBtn.classList.add('active');
-        wsAdminBtn.classList.remove('active');
-        if (loginEmailInput) loginEmailInput.value = 'developer@reemo.io';
-        if (loginSubmitBtn) {
-            loginSubmitBtn.style.background = '#059669';
-            loginSubmitBtn.style.boxShadow = '0 0 24px rgba(16,185,129,0.3)';
-        }
-    }
-}
-
-
-function handleLogin(e, role) {
-    e.preventDefault();
+function setupUserSession(user, role) {
     loginScreen.classList.add('hidden');
     appContainer.classList.remove('hidden');
 
-    const email = document.getElementById('login-email')?.value?.trim() || '';
+    const email = user?.email || '';
     const appTitle = document.getElementById('app-title');
     const logoBox = document.querySelector('.logo-box-small');
 
@@ -390,14 +358,46 @@ function handleLogin(e, role) {
         activeDeveloper = null;
         navDevItems.classList.add('hidden');
         navAdminItems.classList.remove('hidden');
-        userProfileAvatar.textContent = 'T';
+        userProfileAvatar.textContent = user?.user_metadata?.naam ? user.user_metadata.naam.slice(0,1).toUpperCase() : 'T';
         userProfileAvatar.className = 'avatar-small';
-        userProfileName.innerHTML = `<p class="text-sm font-medium truncate">Test</p><p class="text-[10px] text-white-40 truncate">Admin</p>`;
+        userProfileName.innerHTML = `<p class="text-sm font-medium truncate">${user?.user_metadata?.naam || 'Test'}</p><p class="text-[10px] text-white-40 truncate">Admin</p>`;
         if (appTitle) appTitle.textContent = 'Reemo Admin';
         // Blue logo + blue nav for admin portal
         if (logoBox) logoBox.classList.remove('dev-mode');
         document.body.classList.remove('dev-portal');
         navigateTo('dashboard');
+    }
+}
+
+async function handleLogin(e) {
+    e.preventDefault();
+    const email = document.getElementById('login-email')?.value?.trim() || '';
+    const password = document.getElementById('login-password')?.value || '';
+    const loginError = document.getElementById('login-error');
+
+    if (loginError) {
+        loginError.style.display = 'none';
+        loginError.textContent = '';
+    }
+
+    try {
+        const { data, error } = await sbClient.auth.signInWithPassword({
+            email: email,
+            password: password
+        });
+
+        if (error) throw error;
+
+        const user = data.user;
+        const role = user?.app_metadata?.role || 'developer';
+
+        setupUserSession(user, role);
+    } catch (err) {
+        console.error('Login error:', err);
+        if (loginError) {
+            loginError.textContent = err.message || 'Inloggen mislukt. Controleer je gegevens.';
+            loginError.style.display = 'block';
+        }
     }
 }
 
