@@ -4,6 +4,12 @@
 //  Seed data is only used as a fallback when the API is down.
 // ============================================================
 
+// Initialize Supabase Client
+const sbClient = supabase.createClient(
+    'https://ekldjmogkgucxdbftgmb.supabase.co',
+    'sb_publishable_s974HGAthUiBPrPUGS4nDw_xe4yyXd1'
+);
+
 function genId(p) { return p + Date.now() + Math.random().toString(36).slice(2,5); }
 
 // ── In-memory cache (populated by load* functions on page load) ───────────────
