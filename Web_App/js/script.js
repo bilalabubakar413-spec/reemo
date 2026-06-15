@@ -285,6 +285,16 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (label) label.textContent = `Week ${weekNr} — maximaal 40 uur`;
     });
 
+    // Check if there is an active session
+    let session = null;
+    try {
+        const { data, error } = await sbClient.auth.getSession();
+        if (error) throw error;
+        session = data.session;
+    } catch (err) {
+        console.error('Failed to get session:', err);
+    }
+
     // Load all data from Supabase (including projects for dropdowns)
     await Promise.all([loadClients(), loadDevelopers(), loadTimesheets(), loadInvoices(), loadProjects()]);
 
@@ -300,6 +310,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     updateInvoiceStats();
     updateTimesheetSummary();
     if (typeof renderOmzetTrendChart === 'function') renderOmzetTrendChart();
+
+    if (session && session.user) {
+        const role = session.user.app_metadata?.role || 'developer';
+        setupUserSession(session.user, role);
+    }
 
     // ── HTML Structure Guard ────────────────────────────────────────────────────
     // Detects if any .screen-content is nested inside another .screen-content,
@@ -402,7 +417,12 @@ async function handleLogin(e) {
 }
 
 
-function handleLogout() {
+async function handleLogout() {
+    try {
+        await sbClient.auth.signOut();
+    } catch (e) {
+        console.error('Failed to sign out:', e);
+    }
     appContainer.classList.add('hidden');
     loginScreen.classList.remove('hidden');
     // Reset to dashboard
