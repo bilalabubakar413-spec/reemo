@@ -6829,6 +6829,16 @@ async function evaluerenImpact() {
     '€' + Math.round(data.verlies).toLocaleString('nl-NL');
   document.getElementById('impact-cascade').textContent = data.cascade;
 
+  const recordsLabel = document.getElementById('dm-impact-records-label');
+  const recordsSub = document.getElementById('dm-impact-records-sub');
+  if (huidigeDMScope === 'cvs') {
+    if (recordsLabel) recordsLabel.textContent = 'BESTANDEN GEVONDEN';
+    if (recordsSub) recordsSub.textContent = 'CV-bestanden gevonden';
+  } else {
+    if (recordsLabel) recordsLabel.textContent = 'AANTAL RECORDS';
+    if (recordsSub) recordsSub.textContent = 'worden onherstelbaar gewist';
+  }
+
   // Update checkbox 2 tekst met het echte bedrag
   const check2Label = document.querySelector('label[for="check-2"], #check-2')?.closest('.dm-check-item');
   if (check2Label) {

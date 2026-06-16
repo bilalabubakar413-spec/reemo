@@ -1072,20 +1072,20 @@
                                     </button>
                                 </div>
 
-                                <!-- Criteria voor CV-scope -->
+                                 <!-- Criteria voor CV-scope -->
                                 <div id="dm-criteria-cvs" class="dm-criteria-card" style="display:none;">
-                                    <h4>CV-bestanden opschonen</h4>
-                                    <div class="dm-criteria-row" style="flex-direction:column; align-items:flex-start; gap:8px;">
-                                        <label style="display:flex; gap:8px; align-items:center; cursor:pointer;">
-                                            <input type="radio" name="cv-scope-keuze" value="kandidaten" checked style="accent-color:#EF4444;" />
+                                    <h4 style="margin-bottom:14px;">CV-bestanden opschonen</h4>
+                                    <div style="display:flex; flex-direction:column; gap:12px; margin-bottom:16px;">
+                                        <label style="display:flex; gap:10px; align-items:center; cursor:pointer; font-size:13px; color:var(--white-80); width:auto; font-weight:normal; margin:0;">
+                                            <input type="radio" name="cv-scope-keuze" value="kandidaten" checked style="accent-color:#EF4444; width:16px; height:16px; margin:0;" />
                                             <span>Alleen CV's van kandidaten (type = candidate)</span>
                                         </label>
-                                        <label style="display:flex; gap:8px; align-items:center; cursor:pointer;">
-                                            <input type="radio" name="cv-scope-keuze" value="alle" style="accent-color:#EF4444;" />
+                                        <label style="display:flex; gap:10px; align-items:center; cursor:pointer; font-size:13px; color:var(--white-80); width:auto; font-weight:normal; margin:0;">
+                                            <input type="radio" name="cv-scope-keuze" value="alle" style="accent-color:#EF4444; width:16px; height:16px; margin:0;" />
                                             <span>Alle CV's (kandidaten én actieve developers)</span>
                                         </label>
                                     </div>
-                                    <button class="btn-danger-eval" onclick="evaluerenImpact()" style="margin-top: 12px;">
+                                    <button class="btn-danger-eval" onclick="evaluerenImpact()">
                                         Evalueer & Preview Impact →
                                     </button>
                                 </div>
@@ -1112,9 +1112,9 @@
                                             <span class="dm-impact-sub" id="impact-target-sub">Rijselectie</span>
                                         </div>
                                         <div class="dm-impact-stat">
-                                            <span class="dm-impact-label">AANTAL RECORDS</span>
+                                            <span class="dm-impact-label" id="dm-impact-records-label">AANTAL RECORDS</span>
                                             <span class="dm-impact-value" id="impact-records">—</span>
-                                            <span class="dm-impact-sub">worden onherstelbaar gewist</span>
+                                            <span class="dm-impact-sub" id="dm-impact-records-sub">worden onherstelbaar gewist</span>
                                         </div>
                                         <div class="dm-impact-stat">
                                             <span class="dm-impact-label">GECALCULEERD VERLIES</span>
