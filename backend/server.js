@@ -1192,30 +1192,65 @@ app.delete('/api/clients/:id', async (req, res) => {
       urenIds = (uren || []).map(u => u.uren_id);
     }
 
-    // Cascade in juiste volgorde (inclusief timesheet_feiten met bron_uren_id)
-    await supabase.from('timesheet_feiten').delete().eq('klant_id', id).then(() => {}).catch(() => {});
-    if (urenIds.length > 0) {
-      await supabase.from('timesheet_feiten').delete().in('bron_uren_id', urenIds).then(() => {}).catch(() => {});
-      await supabase.from('factuur_regelitem').delete().in('uren_id', urenIds);
+    let contractIds = [];
+    if (projectIds.length > 0) {
+      const { data: contracten } = await supabase
+        .from('contract').select('contract_id').in('project_id', projectIds);
+      contractIds = (contracten || []).map(c => c.contract_id);
     }
+
+    // 1. factuur_regelitem (via factuur_id EN via uren_id)
     if (factuurIds.length > 0) {
       await supabase.from('factuur_regelitem').delete().in('factuur_id', factuurIds);
     }
     if (urenIds.length > 0) {
-      await supabase.from('urenregistratie').delete().in('uren_id', urenIds);
+      await supabase.from('factuur_regelitem').delete().in('uren_id', urenIds);
+    }
+
+    // 2. timesheet_feiten (via contract_id van de betrokken contracten, EN via project_id, EN via klant_id)
+    if (contractIds.length > 0) {
+      await supabase.from('timesheet_feiten').delete().in('contract_id', contractIds);
     }
     if (projectIds.length > 0) {
-      await supabase.from('contract').delete().in('project_id', projectIds);
-      await supabase.from('developer_project').delete().in('project_id', projectIds);
+      await supabase.from('timesheet_feiten').delete().in('project_id', projectIds);
     }
+    await supabase.from('timesheet_feiten').delete().eq('klant_id', id);
+
+    // 3. urenregistratie (zet eerst factuur_id op null waar nodig, daarna verwijderen via project_id)
+    if (projectIds.length > 0) {
+      await supabase.from('urenregistratie').update({ factuur_id: null }).in('project_id', projectIds);
+      await supabase.from('urenregistratie').delete().in('project_id', projectIds);
+    }
+
+    // 4. factuur (VÓÓR contract)
     if (factuurIds.length > 0) {
       await supabase.from('factuur').delete().in('factuur_id', factuurIds);
     }
-    if (projectIds.length > 0) {
-      await supabase.from('project').delete().in('project_id', projectIds);
+
+    // 5. contract (NA factuur)
+    if (contractIds.length > 0) {
+      await supabase.from('contract').delete().in('contract_id', contractIds);
     }
 
-    // Logo uit storage verwijderen indien aanwezig
+    // 6. developer_project (via project_id)
+    if (projectIds.length > 0) {
+      await supabase.from('developer_project').delete().in('project_id', projectIds);
+    }
+
+    // 7. project (via klant_id)
+    await supabase.from('project').delete().eq('klant_id', id);
+
+    // 8. dim_project / dim_klant (check eerst of er rijen zijn)
+    const { data: dimProjRows } = await supabase.from('dim_project').select('project_id').eq('klant_id', id);
+    if (dimProjRows && dimProjRows.length > 0) {
+      await supabase.from('dim_project').delete().eq('klant_id', id);
+    }
+    const { data: dimKlantRows } = await supabase.from('dim_klant').select('klant_id').eq('klant_id', id);
+    if (dimKlantRows && dimKlantRows.length > 0) {
+      await supabase.from('dim_klant').delete().eq('klant_id', id);
+    }
+
+    // 9. Logo uit storage verwijderen indien aanwezig
     const { data: klant } = await supabase
       .from('klant').select('logo_url').eq('klant_id', id).single();
     if (klant?.logo_url) {
@@ -1223,6 +1258,7 @@ app.delete('/api/clients/:id', async (req, res) => {
       if (pad) await supabase.storage.from('client-logos').remove([pad]);
     }
 
+    // 10. klant zelf
     const { error } = await supabase.from('klant').delete().eq('klant_id', id);
     if (error) throw error;
 
