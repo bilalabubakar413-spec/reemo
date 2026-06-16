@@ -2827,9 +2827,10 @@ app.post('/api/data-management/impact-analyse', async (req, res) => {
     }
 
     if (scope === 'cvs') {
-      const filter = req.body.cvKeuze === 'alle' ? {} : { type: 'candidate' };
       let query = supabase.from('developer').select('developer_id, cv_url').not('cv_url', 'is', null);
-      if (filter.type) query = query.eq('type', filter.type);
+      if (req.body.cvKeuze !== 'alle') {
+        query = query.or('type.eq.candidate,type.is.null');
+      }
       const { data: devs } = await query;
 
       return res.json({
@@ -3021,9 +3022,10 @@ app.post('/api/data-management/vernietig', async (req, res) => {
     }
 
     if (scope === 'cvs') {
-      const filter = req.body.cvKeuze === 'alle' ? {} : { type: 'candidate' };
       let query = supabase.from('developer').select('developer_id, cv_url').not('cv_url', 'is', null);
-      if (filter.type) query = query.eq('type', filter.type);
+      if (req.body.cvKeuze !== 'alle') {
+        query = query.or('type.eq.candidate,type.is.null');
+      }
       const { data: devs } = await query;
 
       let verwijderdeBestanden = 0;
