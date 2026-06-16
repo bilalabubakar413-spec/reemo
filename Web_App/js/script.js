@@ -6985,6 +6985,21 @@ async function bevestigVerwijderCV() {
   if (!_verwijderCVId) return;
   const keuze = document.querySelector('input[name="vcv-keuze"]:checked')?.value;
 
+  const isEchteDeveloper = !isNaN(parseInt(_verwijderCVId)) && String(_verwijderCVId).match(/^\d+$/);
+  if (!isEchteDeveloper) {
+    // Verwijder uit de lokale cvs/mock array
+    cvs = cvs.filter(c => String(c.id || c.developer_id) !== String(_verwijderCVId));
+    saveCVs();
+    sluitVerwijderCVModal();
+    showToast('CV verwijderd', 'success');
+    if (typeof loadCVDatabase === 'function') {
+      await loadCVDatabase();
+    } else {
+      renderCVDatabase();
+    }
+    return;
+  }
+
   let url, method;
   if (keuze === 'alleen-cv') {
     url = `/api/developers/${_verwijderCVId}/cv`;
