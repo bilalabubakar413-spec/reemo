@@ -2949,6 +2949,34 @@
   </div>
 </div>
 
+<!-- ===== CV PREVIEW MODAL ===== -->
+<div id="modal-cv-preview" class="modal-overlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.85); backdrop-filter:blur(6px); z-index:9999; align-items:center; justify-content:center; padding:1rem">
+  <div class="modal-card" style="max-width:900px; width:92%; height:88vh; display:flex; flex-direction:column; background:#0e0e0e; border:1px solid #1e1e1e; border-radius:1.25rem; box-shadow:0 32px 80px rgba(0,0,0,0.6); overflow:hidden;">
+    <div class="modal-header" style="border-bottom:1px solid #1e1e1e; padding:1.25rem 1.5rem; display:flex; justify-content:space-between; align-items:center; background:#0d0d0d;">
+      <h3 id="cvp-titel" style="color:white; margin:0; font-size:1.125rem; font-weight:800; display:flex; align-items:center; gap:8px;">
+        <i class="ti ti-file-cv"></i> <span id="cvp-naam">CV</span>
+      </h3>
+      <div style="display:flex; gap:8px; align-items:center;">
+        <button onclick="downloadHuidigeCV()" class="btn-outline" style="font-size:12px; padding:6px 12px; height:auto; display:flex; align-items:center; gap:6px;">
+          <i class="ti ti-download"></i> Download
+        </button>
+        <button onclick="sluitCVPreview()" class="modal-close" style="width:2rem; height:2rem; border-radius:50%; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1); color:var(--white-60); cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:1rem;">✕</button>
+      </div>
+    </div>
+    <div class="modal-body" style="flex:1; padding:0; overflow:hidden; position:relative; background:#080808;">
+      <div id="cvp-loading" style="display:flex; align-items:center; justify-content:center; height:100%; color:#64748B;">
+        CV wordt geladen...
+      </div>
+      <iframe id="cvp-frame" style="width:100%; height:100%; border:none; display:none; border-radius:0 0 12px 12px;"></iframe>
+      <div id="cvp-geen-preview" style="display:none; flex-direction:column; align-items:center; justify-content:center; height:100%; gap:12px; color:#94A3B8; padding:2rem; text-align:center;">
+        <i class="ti ti-file-text" style="font-size:48px; color:#475569;"></i>
+        <p>Dit bestandstype kan niet in de browser worden getoond.</p>
+        <button onclick="downloadHuidigeCV()" class="btn-primary active" style="width:auto; padding:8px 16px; font-size:13px; border-radius:8px;">Download om te bekijken</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>
 

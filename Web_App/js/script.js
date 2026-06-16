@@ -3488,7 +3488,7 @@ function renderCVDatabase(data) {
                 <div style="display:flex;justify-content:flex-end;gap:0.5rem;align-items:center">
                     ${isInactive ? `<button class="login-ws-btn active" style="font-size:0.625rem;padding:0.25rem 0.5rem;height:auto;flex:none" onclick="activateCVasDeveloper('${cv.developer_id || cv.id}')">ACTIEF</button>` : ''}
                     ${cv.cv_url ? `
-                    <button class="ts-action-btn view" title="View CV">
+                    <button class="ts-action-btn view" title="View CV" onclick="previewCV('${cv.developer_id || cv.id}', '${(cv.naam || cv.name || '').replace(/'/g, "\\'")}', '${cv.cv_url || ''}')">
                         <i data-lucide="eye" style="width:13px;height:13px"></i>
                     </button>
                     <button class="ts-action-btn view" title="Download CV" onclick="downloadCV('${cv.developer_id || cv.id}')">
@@ -3557,9 +3557,28 @@ function updateCVStats() {
     }
 }
 
-function downloadCV(cvId) {
+async function downloadCV(cvId) {
+    const isEchteDev = !isNaN(parseInt(cvId)) && String(cvId).match(/^\d+$/);
+    if (isEchteDev) {
+        try {
+            const data = await apiFetch(`/api/developers/${cvId}/cv-url`);
+            const signedUrl = data.url || data.data?.url;
+            if (signedUrl) {
+                const a = document.createElement('a');
+                a.href = signedUrl;
+                a.click();
+            } else {
+                showToast('⚠ CV-downloadlink niet beschikbaar');
+            }
+        } catch (e) {
+            console.error('Download error:', e);
+            showToast('⚠ Fout bij ophalen downloadlink: ' + e.message);
+        }
+        return;
+    }
+
     // Look up CV entry to find the server-saved filename
-    const cv = cvs.find(c => c.id === cvId);
+    const cv = cvs.find(c => String(c.id) === String(cvId));
     if (cv && cv.savedFilename) {
         // Download the original uploaded file from the server
         const a = document.createElement('a');
@@ -3568,7 +3587,7 @@ function downloadCV(cvId) {
         a.click();
     } else {
         // Fallback: no original file stored, generate simple text
-        const name = cv?.name || cvId;
+        const name = cv?.naam || cv?.name || cvId;
         const text = `CURRICULUM VITAE\n\nNaam: ${name}\nBeheerd door: Reemo B.V.\nDatum: ${new Date().toLocaleDateString('nl-NL')}\n\n[Origineel bestand niet beschikbaar — upload het CV opnieuw via de Upload knop]`;
         const blob = new Blob([text], { type: 'text/plain' });
         const url  = URL.createObjectURL(blob);
@@ -3579,18 +3598,49 @@ function downloadCV(cvId) {
     }
 }
 
-async function viewDeveloperCV(devId) {
-    try {
-        const data = await apiFetch(`/api/developers/${devId}/cv-url`);
-        if (data && data.url) {
-            window.open(data.url, '_blank');
-        } else {
-            showToast('⚠ CV niet beschikbaar');
-        }
-    } catch (e) {
-        console.error('Fout bij ophalen CV:', e);
-        showToast('⚠ CV niet beschikbaar');
+let _huidigeCVDevId = null;
+
+async function previewCV(devId, naam, cvUrl) {
+  _huidigeCVDevId = devId;
+  document.getElementById('cvp-naam').textContent = naam || 'CV';
+  document.getElementById('modal-cv-preview').style.display = 'flex';
+
+  // Reset states
+  document.getElementById('cvp-loading').style.display = 'flex';
+  document.getElementById('cvp-frame').style.display = 'none';
+  document.getElementById('cvp-geen-preview').style.display = 'none';
+
+  try {
+    // Haal signed URL op via bestaande endpoint
+    const res = await apiFetch(`/api/developers/${devId}/cv-url`);
+    const signedUrl = res.url || res.data?.url;
+    if (!signedUrl) throw new Error('Geen URL');
+
+    const isPdf = signedUrl.toLowerCase().includes('.pdf') || (cvUrl||'').toLowerCase().includes('.pdf');
+
+    document.getElementById('cvp-loading').style.display = 'none';
+    if (isPdf) {
+      const frame = document.getElementById('cvp-frame');
+      frame.src = signedUrl;
+      frame.style.display = 'block';
+    } else {
+      // Word/andere: geen inline preview
+      document.getElementById('cvp-geen-preview').style.display = 'flex';
     }
+  } catch (e) {
+    document.getElementById('cvp-loading').style.display = 'none';
+    document.getElementById('cvp-geen-preview').style.display = 'flex';
+  }
+}
+
+function sluitCVPreview() {
+  document.getElementById('modal-cv-preview').style.display = 'none';
+  document.getElementById('cvp-frame').src = '';
+  _huidigeCVDevId = null;
+}
+
+function downloadHuidigeCV() {
+  if (_huidigeCVDevId) downloadCV(_huidigeCVDevId);
 }
 
 function convertToReemo(id) {
