@@ -176,6 +176,9 @@ async function loadInvoices() {
         dateSent: formatDateString(r.factuurdatum || r.dateSent),
         paymentDeadline: formatDateString(r.vervaldatum || r.paymentDeadline)
     })) : (invoices.length ? invoices : _DEF_INV);
+    if (typeof updateInvoiceStats === 'function') {
+        updateInvoiceStats();
+    }
 }
 
 // Load projects (for dropdowns)
