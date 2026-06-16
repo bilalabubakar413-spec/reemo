@@ -5867,42 +5867,12 @@ async function saveParsedCVDatabase() {
 async function loadCVDatabase() {
     try {
         const res = await apiFetch('/api/developers/all');
-        
-        // Ensure all developers in the database list have a cv_url for the sparkles button
-        res.forEach(c => {
-            if (!c.cv_url) {
-                c.cv_url = 'uploads/' + (c.naam || c.name || 'cv').toLowerCase().replace(/\s+/g, '_') + '.pdf';
-            }
-        });
-        
-        // Merge with local storage CVs that might not be in the database (e.g. mock/seeded CVs)
-        const localCvs = _ls('reemo_cvs', _DEF_CVS);
-        const merged = [...res];
-        
-        localCvs.forEach(lc => {
-            // Check by id or name/email
-            const exists = merged.some(mc => 
-                (mc.id && lc.id && String(mc.id) === String(lc.id)) || 
-                (mc.email && lc.email && mc.email.toLowerCase() === lc.email.toLowerCase()) ||
-                (mc.naam && lc.name && mc.naam.toLowerCase() === lc.name.toLowerCase())
-            );
-            if (!exists) {
-                merged.push(lc);
-            }
-        });
-        
-        cvs = merged;
+        cvs = res || [];
         renderCVDatabase();
         updateCVStats();
     } catch (e) {
         console.error('Failed to load CV database:', e);
-        // Fallback to local storage if API fails
-        cvs = _ls('reemo_cvs', _DEF_CVS);
-        cvs.forEach(c => {
-            if (!c.cv_url) {
-                c.cv_url = 'uploads/' + (c.name || 'cv').toLowerCase().replace(/\s+/g, '_') + '.pdf';
-            }
-        });
+        cvs = [];
         renderCVDatabase();
         updateCVStats();
     }
