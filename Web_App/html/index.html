@@ -1012,6 +1012,15 @@
                                     <p>Gevaarlijk: Verwijdert het klantdossier, uren en omzetrecords.</p>
                                 </div>
 
+                                <div class="dm-scope-card" id="scope-cvs" onclick="selectDMScope('cvs')">
+                                    <div class="dm-scope-header">
+                                        <span class="dm-badge danger">CV'S</span>
+                                        <span class="dm-scope-tag">Bestanden</span>
+                                    </div>
+                                    <h4>CV-bestanden opschonen</h4>
+                                    <p>Verwijdert CV-bestanden uit de opslag. De developers/kandidaten blijven bestaan, alleen hun CV wordt losgekoppeld.</p>
+                                </div>
+
                                 <div class="dm-scope-card disabled" id="scope-reset" onclick="selectDMScope('reset')">
                                     <div class="dm-scope-header">
                                         <i class="ti ti-alert-triangle" style="color:#EF4444;"></i>
@@ -1059,6 +1068,24 @@
                                         <option value="">— Kies een klant —</option>
                                     </select>
                                     <button class="btn-danger-eval" onclick="evaluerenImpact()">
+                                        Evalueer & Preview Impact →
+                                    </button>
+                                </div>
+
+                                <!-- Criteria voor CV-scope -->
+                                <div id="dm-criteria-cvs" class="dm-criteria-card" style="display:none;">
+                                    <h4>CV-bestanden opschonen</h4>
+                                    <div class="dm-criteria-row" style="flex-direction:column; align-items:flex-start; gap:8px;">
+                                        <label style="display:flex; gap:8px; align-items:center; cursor:pointer;">
+                                            <input type="radio" name="cv-scope-keuze" value="kandidaten" checked style="accent-color:#EF4444;" />
+                                            <span>Alleen CV's van kandidaten (type = candidate)</span>
+                                        </label>
+                                        <label style="display:flex; gap:8px; align-items:center; cursor:pointer;">
+                                            <input type="radio" name="cv-scope-keuze" value="alle" style="accent-color:#EF4444;" />
+                                            <span>Alle CV's (kandidaten én actieve developers)</span>
+                                        </label>
+                                    </div>
+                                    <button class="btn-danger-eval" onclick="evaluerenImpact()" style="margin-top: 12px;">
                                         Evalueer & Preview Impact →
                                     </button>
                                 </div>
@@ -2884,6 +2911,40 @@
               class="btn-danger-final" style="width:auto; padding:9px 20px; font-size:13px; border-radius:8px;">
         Permanent verwijderen 🗑️
       </button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== VERWIJDER CV MODAL ===== -->
+<div id="modal-verwijder-cv" class="modal-overlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.85); backdrop-filter:blur(6px); z-index:9999; align-items:center; justify-content:center; padding:1rem">
+  <div class="modal-card" style="max-width:460px; width:90%; background:#0e0e0e; border:1px solid #1e1e1e; border-radius:1.25rem; box-shadow:0 32px 80px rgba(0,0,0,0.6); overflow:hidden;">
+    <div class="modal-header" style="border-bottom:1px solid #450A0A; padding:1.25rem 1.5rem; display:flex; justify-content:space-between; align-items:center; background:#0d0d0d;">
+      <h3 style="color:#EF4444; margin:0; font-size:1.125rem; font-weight:800; display:flex; align-items:center; gap:0.5rem;"><i class="ti ti-alert-triangle"></i> CV verwijderen</h3>
+      <button onclick="sluitVerwijderCVModal()" class="modal-close" style="width:2rem; height:2rem; border-radius:50%; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1); color:var(--white-60); cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:1rem;">✕</button>
+    </div>
+    <div class="modal-body" style="padding:1.5rem; display:flex; flex-direction:column; gap:12px;">
+      <p id="vcv-naam" style="font-size:15px; font-weight:600; color:white; margin:0;"></p>
+      <p style="color:#94A3B8; font-size:13px; margin:0;">Wat wil je verwijderen?</p>
+
+      <label class="vcv-optie">
+        <input type="radio" name="vcv-keuze" value="alleen-cv" checked />
+        <div>
+          <strong style="color:white; font-size:13px;">Alleen het CV-bestand</strong>
+          <p style="color:#64748B; font-size:11px; margin:4px 0 0 0;">De developer/kandidaat blijft bestaan, alleen het CV wordt verwijderd.</p>
+        </div>
+      </label>
+
+      <label class="vcv-optie">
+        <input type="radio" name="vcv-keuze" value="hele-kandidaat" />
+        <div>
+          <strong style="color:#FCA5A5; font-size:13px;">De volledige kandidaat</strong>
+          <p style="color:#64748B; font-size:11px; margin:4px 0 0 0;">Verwijdert de developer/kandidaat én het CV permanent.</p>
+        </div>
+      </label>
+    </div>
+    <div class="modal-footer" style="padding:1.25rem 1.5rem; border-top:1px solid #1e1e1e; background:#0d0d0d; display:flex; gap:10px; justify-content:flex-end;">
+      <button onclick="sluitVerwijderCVModal()" class="btn-outline">Annuleer</button>
+      <button onclick="bevestigVerwijderCV()" class="btn-danger-final active" style="width:auto; padding:9px 20px; font-size:13px; border-radius:8px;">Verwijderen</button>
     </div>
   </div>
 </div>

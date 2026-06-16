@@ -2286,3 +2286,11 @@ body.dev-portal .nav-item.active .nav-icon { color: #34d399; }
 .btn-contract:hover {
   background: rgba(59, 130, 246, 0.15);
 }
+
+.vcv-optie {
+  display: flex; gap: 10px; align-items: flex-start;
+  padding: 12px; border: 1px solid #334155; border-radius: 8px;
+  margin-bottom: 8px; cursor: pointer;
+}
+.vcv-optie:hover { border-color: #EF4444; }
+.vcv-optie input { margin-top: 3px; accent-color: #EF4444; }

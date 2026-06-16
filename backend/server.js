@@ -1437,6 +1437,31 @@ app.delete('/api/clients/:id/developers/:developerId', async (req, res) => {
   }
 });
 
+app.delete('/api/developers/:id/cv', async (req, res) => {
+  const id = parseInt(req.params.id);
+  try {
+    // Haal cv_url op
+    const { data: dev } = await supabase
+      .from('developer').select('cv_url').eq('developer_id', id).single();
+
+    // Verwijder bestand uit storage
+    if (dev?.cv_url) {
+      const pad = dev.cv_url.split('/developer-cvs/')[1];
+      if (pad) await supabase.storage.from('developer-cvs').remove([pad]);
+    }
+
+    // Zet cv_url op null (developer blijft bestaan)
+    const { error } = await supabase
+      .from('developer').update({ cv_url: null }).eq('developer_id', id);
+    if (error) throw error;
+
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('CV delete fout:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // ==============================================================================
 //  DEVELOPER DASHBOARD  →  /api/developers/:id/dashboard
 // ==============================================================================
@@ -2760,6 +2785,21 @@ app.post('/api/data-management/impact-analyse', async (req, res) => {
       });
     }
 
+    if (scope === 'cvs') {
+      const filter = req.body.cvKeuze === 'alle' ? {} : { type: 'candidate' };
+      let query = supabase.from('developer').select('developer_id, cv_url').not('cv_url', 'is', null);
+      if (filter.type) query = query.eq('type', filter.type);
+      const { data: devs } = await query;
+
+      return res.json({
+        target: "CV'S",
+        targetSub: req.body.cvKeuze === 'alle' ? 'Alle developers' : 'Alleen kandidaten',
+        aantalRecords: devs?.length || 0,
+        verlies: 0,
+        cascade: `${devs?.length || 0} CV-bestanden worden uit de opslag verwijderd. De developer-records zelf blijven volledig bestaan; alleen het cv_url veld wordt leeggemaakt.`
+      });
+    }
+
     if (scope === 'reset') {
       return res.status(403).json({ error: 'System Reset is uitgeschakeld door de beheerder' });
     }
@@ -2885,6 +2925,32 @@ app.post('/api/data-management/vernietig', async (req, res) => {
         facturen: factuurIds.length,
         klant: 1
       };
+    }
+
+    if (scope === 'cvs') {
+      const filter = req.body.cvKeuze === 'alle' ? {} : { type: 'candidate' };
+      let query = supabase.from('developer').select('developer_id, cv_url').not('cv_url', 'is', null);
+      if (filter.type) query = query.eq('type', filter.type);
+      const { data: devs } = await query;
+
+      let verwijderdeBestanden = 0;
+      for (const d of (devs || [])) {
+        if (d.cv_url) {
+          const pad = d.cv_url.split('/developer-cvs/')[1];
+          if (pad) {
+            await supabase.storage.from('developer-cvs').remove([pad]);
+            verwijderdeBestanden++;
+          }
+        }
+      }
+
+      // Zet alle cv_url velden op null
+      const ids = (devs || []).map(d => d.developer_id);
+      if (ids.length > 0) {
+        await supabase.from('developer').update({ cv_url: null }).in('developer_id', ids);
+      }
+
+      verwijderd = { cvBestanden: verwijderdeBestanden };
     }
 
     console.log(`[DATA-MANAGEMENT] Vernietiging uitgevoerd — scope: ${scope}`, verwijderd);

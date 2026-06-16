@@ -3494,6 +3494,11 @@ function renderCVDatabase(data) {
                     <button class="ts-action-btn view" title="Convert to Reemo format" onclick="openCvConverterModal({developer_naam: '${(cv.naam || cv.name || '').replace(/'/g, "\\'")}', cv_url: '${cv.cv_url || ''}', developer_id: '${cv.developer_id || cv.id}'})" style="color:#a78bfa">
                         <i class="ti ti-sparkles" style="font-size:13px"></i>
                     </button>` : ''}
+                    <button onclick="verwijderCV('${cv.developer_id || cv.id}', '${(cv.naam || cv.name || '').replace(/'/g, "\\'")}')" 
+                             title="Verwijder CV" 
+                             style="background:transparent; border:none; color:#EF4444; cursor:pointer; padding:4px; display:inline-flex; align-items:center; justify-content:center;">
+                        <i class="ti ti-trash" style="font-size:14px"></i>
+                    </button>
                 </div>
             </td>
         </tr>`;
@@ -6763,7 +6768,7 @@ function selectDMScope(scope) {
   document.getElementById(`scope-${scope}`)?.classList.add('selected');
 
   // Verberg alle criteria panelen
-  ['default','periode','klant','reset'].forEach(s => {
+  ['default','periode','klant','reset','cvs'].forEach(s => {
     const el = document.getElementById(`dm-criteria-${s}`);
     if (el) el.style.display = 'none';
   });
@@ -6783,6 +6788,9 @@ function selectDMScope(scope) {
     const klantEl = document.getElementById('dm-criteria-klant');
     if (klantEl) klantEl.style.display = 'block';
     laadKlantenDropdown();
+  } else if (scope === 'cvs') {
+    const cvsEl = document.getElementById('dm-criteria-cvs');
+    if (cvsEl) cvsEl.style.display = 'block';
   } else if (scope === 'reset') {
     const resetEl = document.getElementById('dm-criteria-reset');
     if (resetEl) resetEl.style.display = 'block';
@@ -6823,6 +6831,9 @@ async function evaluerenImpact() {
       showToast('Fout: Gelieve eerst de te verwijderen klant te selecteren.', 'error');
       return;
     }
+  }
+  if (huidigeDMScope === 'cvs') {
+    body.cvKeuze = document.querySelector('input[name="cv-scope-keuze"]:checked')?.value || 'kandidaten';
   }
 
   const res = await fetch('/api/data-management/impact-analyse', {
@@ -6906,6 +6917,10 @@ async function permanentVernietigen() {
     bevestiging
   };
 
+  if (huidigeDMScope === 'cvs') {
+    body.cvKeuze = document.querySelector('input[name="cv-scope-keuze"]:checked')?.value || 'kandidaten';
+  }
+
   const btn = document.getElementById('btn-permanent-vernietigen');
   btn.disabled = true;
   btn.textContent = 'Bezig met vernietigen...';
@@ -6932,7 +6947,7 @@ async function permanentVernietigen() {
   // Reset de hele sectie en refresh data
   document.getElementById('dm-impact-analyse').style.display = 'none';
   document.querySelectorAll('.dm-scope-card').forEach(c => c.classList.remove('selected'));
-  ['default','periode','klant','reset'].forEach(s => {
+  ['default','periode','klant','reset','cvs'].forEach(s => {
     const el = document.getElementById(`dm-criteria-${s}`);
     if (el) el.style.display = s === 'default' ? 'block' : 'none';
   });
@@ -6944,5 +6959,57 @@ async function permanentVernietigen() {
   // Refresh alle dashboards/lijsten zodat de verwijderde data verdwijnt
   if (typeof renderDashboardStats === 'function') renderDashboardStats();
   if (typeof loadClients === 'function') loadClients();
+  if (typeof loadDevelopers === 'function') loadDevelopers();
+  if (typeof loadCVDatabase === 'function') loadCVDatabase();
+}
+
+// === CV Deletion Logic ===
+let _verwijderCVId = null;
+
+function verwijderCV(devId, naam) {
+  _verwijderCVId = devId;
+  document.getElementById('vcv-naam').textContent = naam;
+  document.querySelector('input[name="vcv-keuze"][value="alleen-cv"]').checked = true;
+  document.getElementById('modal-verwijder-cv').style.display = 'flex';
+}
+
+function sluitVerwijderCVModal() {
+  document.getElementById('modal-verwijder-cv').style.display = 'none';
+  _verwijderCVId = null;
+}
+
+async function bevestigVerwijderCV() {
+  if (!_verwijderCVId) return;
+  const keuze = document.querySelector('input[name="vcv-keuze"]:checked')?.value;
+
+  let url, method;
+  if (keuze === 'alleen-cv') {
+    url = `/api/developers/${_verwijderCVId}/cv`;
+    method = 'DELETE';
+  } else {
+    url = `/api/developers/${_verwijderCVId}`;
+    method = 'DELETE';
+  }
+
+  const res = await fetch(url, { method });
+  const data = await res.json();
+
+  if (!res.ok) {
+    showToast(`Verwijderen mislukt: ${data.error || 'onbekende fout'}`, 'error');
+    return;
+  }
+
+  sluitVerwijderCVModal();
+  showToast(keuze === 'alleen-cv' ? 'CV verwijderd' : 'Kandidaat verwijderd', 'success');
+  
+  // Reload developers and CV database to update UI stats and tables
+  if (typeof loadDevelopers === 'function') {
+    await loadDevelopers();
+  }
+  if (typeof loadCVDatabase === 'function') {
+    await loadCVDatabase();
+  } else {
+    renderCVDatabase();
+  }
 }
 
