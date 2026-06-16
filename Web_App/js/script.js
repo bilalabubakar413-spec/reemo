@@ -3461,7 +3461,7 @@ function renderCVDatabase(data) {
 
         const statusHtml = cv.cv_url 
             ? `<span class="status-badge status-approved">Reemo Format</span>`
-            : `<span class="status-badge status-pending">Original</span>`;
+            : `<span class="status-badge" style="background:rgba(255,255,255,0.05);color:var(--white-30);border:1px solid rgba(255,255,255,0.08)">Geen CV geüpload</span>`;
 
         const skills = typeof cv.skills === 'string' ? cv.skills.split(',').map(s => s.trim()) : (cv.skills || []);
         const skillsHtml = skills.slice(0,4).map(s =>
@@ -3487,18 +3487,18 @@ function renderCVDatabase(data) {
             <td style="padding:0.875rem 1.25rem;text-align:right">
                 <div style="display:flex;justify-content:flex-end;gap:0.5rem;align-items:center">
                     ${isInactive ? `<button class="login-ws-btn active" style="font-size:0.625rem;padding:0.25rem 0.5rem;height:auto;flex:none" onclick="activateCVasDeveloper('${cv.developer_id || cv.id}')">ACTIEF</button>` : ''}
+                    ${cv.cv_url ? `
                     <button class="ts-action-btn view" title="View CV">
                         <i data-lucide="eye" style="width:13px;height:13px"></i>
                     </button>
                     <button class="ts-action-btn view" title="Download CV" onclick="downloadCV('${cv.developer_id || cv.id}')">
                         <i data-lucide="download" style="width:13px;height:13px"></i>
                     </button>
-                    ${cv.cv_url ? `
                     <button class="ts-action-btn view" title="Convert to Reemo format" onclick="openCvConverterModal({developer_naam: '${(cv.naam || cv.name || '').replace(/'/g, "\\'")}', cv_url: '${cv.cv_url || ''}', developer_id: '${cv.developer_id || cv.id}'})" style="color:#a78bfa">
                         <i class="ti ti-sparkles" style="font-size:13px"></i>
                     </button>` : ''}
-                    <button onclick="verwijderCV('${cv.developer_id || cv.id}', '${(cv.naam || cv.name || '').replace(/'/g, "\\'")}')" 
-                             title="Verwijder CV" 
+                    <button onclick="verwijderCV('${cv.developer_id || cv.id}', '${(cv.naam || cv.name || '').replace(/'/g, "\\'")}', ${cv.cv_url ? 'true' : 'false'})" 
+                             title="${cv.cv_url ? 'Verwijder CV' : 'Verwijder kandidaat'}" 
                              style="background:transparent; border:none; color:#EF4444; cursor:pointer; padding:4px; display:inline-flex; align-items:center; justify-content:center;">
                         <i class="ti ti-trash" style="font-size:14px"></i>
                     </button>
@@ -6939,10 +6939,21 @@ async function permanentVernietigen() {
 // === CV Deletion Logic ===
 let _verwijderCVId = null;
 
-function verwijderCV(devId, naam) {
+function verwijderCV(devId, naam, hasCV) {
   _verwijderCVId = devId;
   document.getElementById('vcv-naam').textContent = naam;
-  document.querySelector('input[name="vcv-keuze"][value="alleen-cv"]').checked = true;
+  
+  const alleenCvOptie = document.getElementById('vcv-optie-alleen-cv');
+  if (alleenCvOptie) {
+    alleenCvOptie.style.display = hasCV ? 'flex' : 'none';
+  }
+  
+  if (hasCV) {
+    document.querySelector('input[name="vcv-keuze"][value="alleen-cv"]').checked = true;
+  } else {
+    document.querySelector('input[name="vcv-keuze"][value="hele-kandidaat"]').checked = true;
+  }
+  
   document.getElementById('modal-verwijder-cv').style.display = 'flex';
 }
 
