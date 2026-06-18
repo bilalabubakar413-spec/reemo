@@ -25,6 +25,42 @@ const mammoth  = require('mammoth');
 const { parseCV } = require('./cvParser');
 
 
+// ===== AUTH (Fase 3a) — VERIFICATIE, NOG GEEN AFDWINGING =====
+const SUPABASE_ISSUER   = 'https://ekldjmogkgucxdbftgmb.supabase.co/auth/v1';
+const SUPABASE_JWKS_URL = 'https://ekldjmogkgucxdbftgmb.supabase.co/auth/v1/.well-known/jwks.json';
+
+let _JWKS = null;
+let _jwtVerify = null;
+async function initJose() {
+  if (_JWKS && _jwtVerify) return;
+  const { createRemoteJWKSet, jwtVerify } = await import('jose'); // dynamische import: werkt op elke Node-versie
+  _JWKS = createRemoteJWKSet(new URL(SUPABASE_JWKS_URL));
+  _jwtVerify = jwtVerify;
+}
+
+async function authVerify(req, res, next) {
+  const authHeader = req.headers['authorization'] || '';
+  const [scheme, token] = authHeader.split(' ');
+  if (scheme !== 'Bearer' || !token) {
+    console.log('[AUTH 3a] geen token op', req.originalUrl);
+    return next(); // 3a: NIET blokkeren
+  }
+  try {
+    await initJose();
+    const { payload } = await _jwtVerify(token, _JWKS, { issuer: SUPABASE_ISSUER });
+    const role = payload.app_metadata && payload.app_metadata.role;
+    req.authClaims = payload; // bewaren voor latere fases (3b/3c)
+    console.log('[AUTH 3a] OK:', payload.email, 'rol=', role, 'op', req.originalUrl);
+  } catch (e) {
+    console.log('[AUTH 3a] ONGELDIG token op', req.originalUrl, '-', e.message);
+  }
+  return next(); // 3a: ALTIJD doorlaten
+}
+
+app.use('/api', authVerify);
+// ===== EINDE AUTH 3a =====
+
+
 app.get('/api/debug-counts', async (req, res) => {
   try {
     const { count: klantCount, error: klantError } = await supabase
