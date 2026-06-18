@@ -779,9 +779,9 @@ app.delete('/api/developers/:id', async (req, res) => {
       console.error('Fetch developer cv error:', devFetchErr);
     }
     if (dev?.cv_url) {
-      const pad = dev.cv_url.split('/developer-cvs/')[1];
+      const pad = dev.cv_url.includes('/developer-cvs/') ? dev.cv_url.split('/developer-cvs/')[1] : dev.cv_url;
       if (pad) {
-        const { error: storageErr } = await supabase.storage.from('developer-cvs').remove([pad]);
+        const { error: storageErr } = await supabase.storage.from('cvs').remove([pad]);
         if (storageErr) console.error('Remove CV storage error:', storageErr);
       }
     }
@@ -1482,8 +1482,8 @@ app.delete('/api/developers/:id/cv', async (req, res) => {
 
     // Verwijder bestand uit storage
     if (dev?.cv_url) {
-      const pad = dev.cv_url.split('/developer-cvs/')[1];
-      if (pad) await supabase.storage.from('developer-cvs').remove([pad]);
+      const pad = dev.cv_url.includes('/developer-cvs/') ? dev.cv_url.split('/developer-cvs/')[1] : dev.cv_url;
+      if (pad) await supabase.storage.from('cvs').remove([pad]);
     }
 
     // Zet cv_url op null (developer blijft bestaan)
@@ -1679,18 +1679,13 @@ app.post('/api/cv-database/bulk-upload-single', storageUpload.single('cv'), asyn
     // Upload naar Supabase Storage
     const bestandsnaam = `${Date.now()}_${file.originalname.replace(/\s+/g, '_')}`;
     const { data: uploadData, error: uploadError } = await supabaseAdmin.storage
-      .from('developer-cvs')
+      .from('cvs')
       .upload(bestandsnaam, file.buffer, {
         contentType: file.mimetype,
         upsert: false
       });
 
     if (uploadError) throw uploadError;
-
-    // Haal publieke URL op
-    const { data: urlData } = supabaseAdmin.storage
-      .from('developer-cvs')
-      .getPublicUrl(bestandsnaam);
 
     // Zoek of developer al bestaat op basis van naam
     const naamDelen = naam.trim().split(/\s+/);
@@ -1706,10 +1701,10 @@ app.post('/api/cv-database/bulk-upload-single', storageUpload.single('cv'), asyn
       if (bestaande && bestaande.length > 0) {
         developerId = bestaande[0].developer_id;
 
-        // Update bestaande developer met nieuwe CV
+        // Update bestaande developer met nieuwe CV (store just the filename, not public URL)
         await supabase
           .from('developer')
-          .update({ cv_url: urlData.publicUrl })
+          .update({ cv_url: bestandsnaam })
           .eq('developer_id', developerId);
       }
     }
@@ -1720,7 +1715,7 @@ app.post('/api/cv-database/bulk-upload-single', storageUpload.single('cv'), asyn
         .from('developer')
         .insert({
           naam:       naam,
-          cv_url:     urlData.publicUrl,
+          cv_url:     bestandsnaam,
           type:       'candidate',
           aangemaakt_op: new Date().toISOString()
         })
@@ -1730,7 +1725,7 @@ app.post('/api/cv-database/bulk-upload-single', storageUpload.single('cv'), asyn
       developerId = nieuw?.developer_id;
     }
 
-    res.json({ ok: true, developer_id: developerId, cv_url: urlData.publicUrl });
+    res.json({ ok: true, developer_id: developerId, cv_url: bestandsnaam });
 
   } catch (err) {
     console.error('Bulk upload fout:', err);
@@ -3031,9 +3026,9 @@ app.post('/api/data-management/vernietig', async (req, res) => {
       let verwijderdeBestanden = 0;
       for (const d of (devs || [])) {
         if (d.cv_url) {
-          const pad = d.cv_url.split('/developer-cvs/')[1];
+          const pad = d.cv_url.includes('/developer-cvs/') ? d.cv_url.split('/developer-cvs/')[1] : d.cv_url;
           if (pad) {
-            await supabase.storage.from('developer-cvs').remove([pad]);
+            await supabase.storage.from('cvs').remove([pad]);
             verwijderdeBestanden++;
           }
         }
