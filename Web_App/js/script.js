@@ -3601,6 +3601,7 @@ async function downloadCV(cvId) {
 let _huidigeCVDevId = null;
 
 async function previewCV(devId, naam, cvUrl) {
+  console.log('previewCV clicked for developer:', devId, naam, cvUrl);
   _huidigeCVDevId = devId;
   document.getElementById('cvp-naam').textContent = naam || 'CV';
   document.getElementById('modal-cv-preview').style.display = 'flex';
@@ -3628,6 +3629,7 @@ async function previewCV(devId, naam, cvUrl) {
       document.getElementById('cvp-geen-preview').style.display = 'flex';
     }
   } catch (e) {
+    console.error('Failed to preview CV:', e);
     document.getElementById('cvp-loading').style.display = 'none';
     document.getElementById('cvp-geen-preview').style.display = 'flex';
   }
