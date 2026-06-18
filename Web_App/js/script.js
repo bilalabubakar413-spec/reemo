@@ -941,16 +941,10 @@ async function saveInlineCapacity() {
     }
 
     try {
-        const res = await fetch(`/api/developers/${devId}`, {
+        await apiFetch(`/api/developers/${devId}`, {
             method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ weekcapaciteit: nieuweCapaciteit })
         });
-
-        if (!res.ok) {
-            showToast('Could not save capacity. Try again.', 'error');
-            return;
-        }
 
         showToast('Capacity updated', 'success');
         window._isEditingCapacity = false;
@@ -2280,19 +2274,13 @@ async function bevestigVerwijderKlant() {
   btn.disabled = true;
   btn.textContent = 'Bezig met verwijderen...';
 
-  const res = await fetch(`/api/clients/${_verwijderKlantId}`, {
-    method: 'DELETE',
-    headers: { 'Content-Type': 'application/json', 'x-admin-pin': pin }
-  });
-  const data = await res.json();
+  try {
+    const data = await apiFetch(`/api/clients/${_verwijderKlantId}`, {
+      method: 'DELETE',
+      headers: { 'x-admin-pin': pin }
+    });
 
-  btn.textContent = 'Permanent verwijderen 🗑️';
-
-  if (!res.ok) {
-    showToast(`Verwijderen mislukt: ${data.error || 'onbekende fout'}`, 'error');
-    btn.disabled = false;
-    return;
-  }
+    btn.textContent = 'Permanent verwijderen 🗑️';
 
   sluitVerwijderKlantModal();
   const v = data.verwijderd;
@@ -2300,6 +2288,11 @@ async function bevestigVerwijderKlant() {
   await loadClients();
   renderClientsGrid();
   if (typeof renderDashboardStats === 'function') renderDashboardStats();
+  } catch (err) {
+    btn.textContent = 'Permanent verwijderen 🗑️';
+    showToast(`Verwijderen mislukt: ${err.message || 'onbekende fout'}`, 'error');
+    btn.disabled = false;
+  }
 }
 
 function applyClientFilter() {
@@ -3223,22 +3216,22 @@ async function bevestigVerwijderDeveloper() {
   btn.disabled = true;
   btn.textContent = 'Bezig...';
 
-  const res = await fetch(`/api/developers/${_verwijderDevId}`, { method: 'DELETE' });
-  const data = await res.json();
+  try {
+    await apiFetch(`/api/developers/${_verwijderDevId}`, { method: 'DELETE' });
 
-  btn.disabled = false;
-  btn.textContent = 'Permanent verwijderen';
-
-  if (!res.ok) {
-    showToast(`Verwijderen mislukt: ${data.error || 'onbekende fout'}`, 'error');
-    return;
-  }
+    btn.disabled = false;
+    btn.textContent = 'Permanent verwijderen';
 
   sluitVerwijderDevModal();
   showToast('Developer is verwijderd', 'success');
   await loadDevelopers();
   if (typeof renderDevelopersGrid === 'function') renderDevelopersGrid();
   if (typeof renderDashboardStats === 'function') renderDashboardStats();
+  } catch (err) {
+    btn.disabled = false;
+    btn.textContent = 'Permanent verwijderen';
+    showToast(`Verwijderen mislukt: ${err.message || 'onbekende fout'}`, 'error');
+  }
 }
 
 // Per-session status overrides
@@ -3751,13 +3744,10 @@ async function confirmMarkeerBetaald(invId) {
     if (modal) modal.remove();
 
     try {
-        const resp = await fetch(`${API_BASE}/api/facturen/${invId}/markeer-betaald`, {
+        await apiFetch(`/api/facturen/${invId}/markeer-betaald`, {
             method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ betalingsdatum: datum })
         });
-        const json = await resp.json();
-        if (!resp.ok || !json.ok) throw new Error(json.error || 'Onbekende fout');
 
         showToast(`✓ Factuur #${invId} gemarkeerd als betaald`, 'success');
 
@@ -3839,8 +3829,7 @@ async function submitCreateInvoice() {
 // ===== SLIMME FACTUUR GENERATIE =====
 async function loadFactuurAanbeveling() {
     try {
-        const res = await fetch('/api/facturen/klaar-om-te-genereren');
-        const data = await res.json();
+        const data = await apiFetch('/api/facturen/klaar-om-te-genereren');
         const maanden = data.maanden;
 
         const btn = document.getElementById('btn-genereer-facturen');
@@ -3935,19 +3924,10 @@ async function genereerFacturen() {
     if (label) label.textContent = 'Bezig met genereren...';
 
     try {
-        const res = await fetch('/api/facturen/genereer-maand', {
+        const data = await apiFetch('/api/facturen/genereer-maand', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ maand })
         });
-        const data = await res.json();
-
-        if (!res.ok || !data.ok) {
-            showToast(`⚠ Fout: ${data.error || 'Onbekende fout'}`, 'error');
-            if (btn) btn.disabled = false;
-            if (label) label.textContent = `Genereer facturen ${formatMaand(maand)}`;
-            return;
-        }
 
         const resultaten = data.data?.resultaten || data.resultaten || [];
         const aantalNieuw = resultaten.length || 0;
@@ -5085,16 +5065,10 @@ function downloadDevCV() {
 
 async function saveSkills(devId, updatedSkills) {
   try {
-    const res = await fetch(`/api/developers/${devId}`, {
+    await apiFetch(`/api/developers/${devId}`, {
       method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ skills: updatedSkills })
     });
-
-    if (!res.ok) {
-      showToast('Skills opslaan mislukt. Probeer opnieuw.', 'error');
-      return false;
-    }
 
     showToast('Skills bijgewerkt', 'success');
     return true;
@@ -6475,13 +6449,7 @@ async function startDMPreview(files, geforceerdType) {
   showToast('Bestanden worden geanalyseerd...', 'info');
 
   try {
-    const res = await fetch('/api/data-management/preview', { method: 'POST', body: formData });
-    const data = await res.json();
-
-    if (!res.ok) {
-      showToast(data.error || 'Preview mislukt', 'error');
-      return;
-    }
+    const data = await apiFetch('/api/data-management/preview', { method: 'POST', body: formData });
 
     window._dmPendingFiles = files;
     window._dmPendingType  = geforceerdType;
@@ -6668,13 +6636,7 @@ async function bevestigDMImport() {
   showToast('Importeren is gestart...', 'info');
 
   try {
-    const res = await fetch('/api/data-management/import', { method: 'POST', body: formData });
-    const data = await res.json();
-
-    if (!res.ok) {
-      showToast(data.error || 'Import mislukt', 'error');
-      return;
-    }
+    const data = await apiFetch('/api/data-management/import', { method: 'POST', body: formData });
 
     // Close preview and pin modals
     closeModal('modal-dm-preview');
@@ -6861,57 +6823,54 @@ async function evaluerenImpact() {
     body.cvKeuze = document.querySelector('input[name="cv-scope-keuze"]:checked')?.value || 'kandidaten';
   }
 
-  const res = await fetch('/api/data-management/impact-analyse', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body)
-  });
-  const data = await res.json();
+  try {
+    const data = await apiFetch('/api/data-management/impact-analyse', {
+      method: 'POST',
+      body: JSON.stringify(body)
+    });
 
-  if (!res.ok) {
-    showToast(data.error || 'Impact analyse mislukt', 'error');
-    return;
+    // Vul de echte data in
+    document.getElementById('impact-target').textContent = data.target;
+    document.getElementById('impact-target-sub').textContent = data.targetSub;
+    document.getElementById('impact-records').textContent = data.aantalRecords;
+    document.getElementById('impact-verlies').textContent =
+      '€' + Math.round(data.verlies).toLocaleString('nl-NL');
+    document.getElementById('impact-cascade').textContent = data.cascade;
+
+    const recordsLabel = document.getElementById('dm-impact-records-label');
+    const recordsSub = document.getElementById('dm-impact-records-sub');
+    if (huidigeDMScope === 'cvs') {
+      if (recordsLabel) recordsLabel.textContent = 'BESTANDEN GEVONDEN';
+      if (recordsSub) recordsSub.textContent = 'CV-bestanden gevonden';
+    } else {
+      if (recordsLabel) recordsLabel.textContent = 'AANTAL RECORDS';
+      if (recordsSub) recordsSub.textContent = 'worden onherstelbaar gewist';
+    }
+
+    // Update checkbox 2 tekst met het echte bedrag
+    const check2Label = document.querySelector('label[for="check-2"], #check-2')?.closest('.dm-check-item');
+    if (check2Label) {
+      check2Label.innerHTML = `<input type="checkbox" id="check-2" onchange="updateVernietigKnop()" />
+        Ik heb de gecalculeerde impactwaarde van €${Math.round(data.verlies).toLocaleString('nl-NL')} gecontroleerd en ga akkoord.`;
+    }
+
+    // Bewaar voor de vernietig-stap
+    window._dmImpactData = body;
+
+    document.getElementById('dm-impact-analyse').style.display = 'block';
+
+    // Reset checks/PIN
+    ['check-1','check-2','check-3'].forEach(id => {
+      const el = document.getElementById(id); if (el) el.checked = false;
+    });
+    ['pin-1','pin-2','pin-3','pin-4'].forEach(id => {
+      const el = document.getElementById(id); if (el) el.value = '';
+    });
+    const c = document.getElementById('dm-confirm-text'); if (c) c.value = '';
+    updateVernietigKnop();
+  } catch (err) {
+    showToast(err.message || 'Impact analyse mislukt', 'error');
   }
-
-  // Vul de echte data in
-  document.getElementById('impact-target').textContent = data.target;
-  document.getElementById('impact-target-sub').textContent = data.targetSub;
-  document.getElementById('impact-records').textContent = data.aantalRecords;
-  document.getElementById('impact-verlies').textContent =
-    '€' + Math.round(data.verlies).toLocaleString('nl-NL');
-  document.getElementById('impact-cascade').textContent = data.cascade;
-
-  const recordsLabel = document.getElementById('dm-impact-records-label');
-  const recordsSub = document.getElementById('dm-impact-records-sub');
-  if (huidigeDMScope === 'cvs') {
-    if (recordsLabel) recordsLabel.textContent = 'BESTANDEN GEVONDEN';
-    if (recordsSub) recordsSub.textContent = 'CV-bestanden gevonden';
-  } else {
-    if (recordsLabel) recordsLabel.textContent = 'AANTAL RECORDS';
-    if (recordsSub) recordsSub.textContent = 'worden onherstelbaar gewist';
-  }
-
-  // Update checkbox 2 tekst met het echte bedrag
-  const check2Label = document.querySelector('label[for="check-2"], #check-2')?.closest('.dm-check-item');
-  if (check2Label) {
-    check2Label.innerHTML = `<input type="checkbox" id="check-2" onchange="updateVernietigKnop()" />
-      Ik heb de gecalculeerde impactwaarde van €${Math.round(data.verlies).toLocaleString('nl-NL')} gecontroleerd en ga akkoord.`;
-  }
-
-  // Bewaar voor de vernietig-stap
-  window._dmImpactData = body;
-
-  document.getElementById('dm-impact-analyse').style.display = 'block';
-
-  // Reset checks/PIN
-  ['check-1','check-2','check-3'].forEach(id => {
-    const el = document.getElementById(id); if (el) el.checked = false;
-  });
-  ['pin-1','pin-2','pin-3','pin-4'].forEach(id => {
-    const el = document.getElementById(id); if (el) el.value = '';
-  });
-  const c = document.getElementById('dm-confirm-text'); if (c) c.value = '';
-  updateVernietigKnop();
 }
 
 function movePinFocus(current, nextId) {
@@ -6960,19 +6919,11 @@ async function permanentVernietigen() {
   btn.disabled = true;
   btn.textContent = 'Bezig met vernietigen...';
 
-  const res = await fetch('/api/data-management/vernietig', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body)
-  });
-  const data = await res.json();
-
-  if (!res.ok) {
-    showToast(data.error || 'Vernietiging mislukt', 'error');
-    btn.disabled = false;
-    btn.textContent = 'Permanent Vernietigen 🗑️';
-    return;
-  }
+  try {
+    const data = await apiFetch('/api/data-management/vernietig', {
+      method: 'POST',
+      body: JSON.stringify(body)
+    });
 
   // Toon resultaat
   const samenvatting = Object.entries(data.verwijderd)
@@ -6996,6 +6947,11 @@ async function permanentVernietigen() {
   if (typeof loadClients === 'function') loadClients();
   if (typeof loadDevelopers === 'function') loadDevelopers();
   if (typeof loadCVDatabase === 'function') loadCVDatabase();
+  } catch (err) {
+    showToast(err.message || 'Vernietiging mislukt', 'error');
+    btn.disabled = false;
+    btn.textContent = 'Permanent Vernietigen 🗑️';
+  }
 }
 
 // === CV Deletion Logic ===
@@ -7108,13 +7064,7 @@ async function bevestigVerwijderCV() {
   btn.textContent = 'Bezig...';
 
   try {
-    const res = await fetch(url, { method });
-    const data = await res.json();
-
-    if (!res.ok) {
-      showToast(`Verwijderen mislukt: ${data.error || 'onbekende fout'}`, 'error');
-      return;
-    }
+    await apiFetch(url, { method });
 
     sluitVerwijderCVModal();
     showToast(_verwijderKeuze === 'alleen-cv' ? 'CV-bestand succesvol verwijderd' : 'Kandidaat succesvol permanent verwijderd', 'success');
