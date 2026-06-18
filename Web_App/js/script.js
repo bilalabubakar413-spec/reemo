@@ -85,11 +85,26 @@ const FK_ERRORS = {
     'duplicate key value':             'Er bestaat al een record met deze gegevens.',
 };
 async function apiFetch(path, options = {}) {
+    const headers = {
+        'Content-Type': 'application/json',
+        ...(options.headers || {})
+    };
+
+    try {
+        const { data } = await sbClient.auth.getSession();
+        const token = data?.session?.access_token;
+        if (token) {
+            headers['Authorization'] = 'Bearer ' + token;
+        }
+    } catch (e) {
+        console.warn('[API Auth Token Fetch Error]', e);
+    }
+
     try {
         const r = await fetch(path, {
-            headers: { 'Content-Type': 'application/json' },
             cache: 'no-store',
-            ...options
+            ...options,
+            headers
         });
         const json = await r.json();
         if (!r.ok || !json.ok) {
