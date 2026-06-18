@@ -2854,6 +2854,7 @@
       </button>
     </div>
   </div>
+</div>
 <!-- ===== CUSTOMER DELETE CONFIRMATION MODAL ===== -->
 <div id="modal-verwijder-klant" class="modal-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);backdrop-filter:blur(6px);z-index:9999;align-items:center;justify-content:center;padding:1rem">
   <div class="modal-card" style="background:#0a0a0a; border:1px solid #1e1e1e; border-radius:1rem; width:100%; max-width:560px; box-shadow:0 25px 50px -12px rgba(0,0,0,0.5); overflow:hidden;">
@@ -2918,33 +2919,42 @@
 <!-- ===== VERWIJDER CV MODAL ===== -->
 <div id="modal-verwijder-cv" class="modal-overlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.85); backdrop-filter:blur(6px); z-index:9999; align-items:center; justify-content:center; padding:1rem">
   <div class="modal-card" style="max-width:460px; width:90%; background:#0e0e0e; border:1px solid #1e1e1e; border-radius:1.25rem; box-shadow:0 32px 80px rgba(0,0,0,0.6); overflow:hidden;">
-    <div class="modal-header" style="border-bottom:1px solid #450A0A; padding:1.25rem 1.5rem; display:flex; justify-content:space-between; align-items:center; background:#0d0d0d;">
-      <h3 style="color:#EF4444; margin:0; font-size:1.125rem; font-weight:800; display:flex; align-items:center; gap:0.5rem;"><i class="ti ti-alert-triangle"></i> CV verwijderen</h3>
+    <div class="modal-header" id="vcv-header" style="border-bottom:1px solid #450A0A; padding:1.25rem 1.5rem; display:flex; justify-content:space-between; align-items:center; background:#0d0d0d;">
+      <h3 id="vcv-title" style="color:#EF4444; margin:0; font-size:1.125rem; font-weight:800; display:flex; align-items:center; gap:0.5rem;"><i class="ti ti-alert-triangle"></i> CV verwijderen</h3>
       <button onclick="sluitVerwijderCVModal()" class="modal-close" style="width:2rem; height:2rem; border-radius:50%; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1); color:var(--white-60); cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:1rem;">✕</button>
     </div>
-    <div class="modal-body" style="padding:1.5rem; display:flex; flex-direction:column; gap:12px;">
-      <p id="vcv-naam" style="font-size:15px; font-weight:600; color:white; margin:0;"></p>
-      <p style="color:#94A3B8; font-size:13px; margin:0;">Wat wil je verwijderen?</p>
-
-      <label id="vcv-optie-alleen-cv" class="vcv-optie">
-        <input type="radio" name="vcv-keuze" value="alleen-cv" checked />
-        <div>
-          <strong style="color:white; font-size:13px;">Alleen het CV-bestand</strong>
-          <p style="color:#64748B; font-size:11px; margin:4px 0 0 0;">De developer/kandidaat blijft bestaan, alleen het CV wordt verwijderd.</p>
-        </div>
-      </label>
-
-      <label class="vcv-optie">
-        <input type="radio" name="vcv-keuze" value="hele-kandidaat" />
-        <div>
-          <strong style="color:#FCA5A5; font-size:13px;">De volledige kandidaat</strong>
-          <p style="color:#64748B; font-size:11px; margin:4px 0 0 0;">Verwijdert de developer/kandidaat én het CV permanent.</p>
-        </div>
-      </label>
+    
+    <!-- Geval A: Kandidaat (Niet actief) -->
+    <div id="vcv-body-kandidaat" style="padding:1.5rem; display:none; flex-direction:column; gap:12px;">
+      <p style="font-size:15px; font-weight:600; color:white; margin:0;">Kandidaat permanent verwijderen</p>
+      <p style="color:#94A3B8; font-size:13px; margin:0; line-height:1.5;">
+        Weet je zeker dat je <strong id="vcv-naam-kandidaat" style="color:white;"></strong> volledig wilt verwijderen? Dit verwijdert de kandidaat en het CV-bestand permanent.
+      </p>
     </div>
+
+    <!-- Geval B: Actieve Developer -->
+    <div id="vcv-body-developer" style="padding:1.5rem; display:none; flex-direction:column; gap:12px;">
+      <div style="background:rgba(245,158,11,0.06); border:1px solid rgba(245,158,11,0.2); border-radius:0.75rem; padding:1rem; display:flex; gap:0.75rem; align-items:flex-start;">
+        <i class="ti ti-alert-circle" style="color:#f59e0b; font-size:20px; flex-shrink:0; margin-top:2px;"></i>
+        <div>
+          <strong style="color:#f59e0b; font-size:13px; display:block; margin-bottom:4px;">Actieve developer gedetecteerd</strong>
+          <p id="vcv-tekst-developer" style="color:#E2E8F0; font-size:12px; margin:0; line-height:1.5;"></p>
+        </div>
+      </div>
+      <p style="color:#94A3B8; font-size:12px; margin:0; line-height:1.5;">
+        Wil je deze developer volledig verwijderen? Doe dit dan via de <a href="#" onclick="sluitVerwijderCVModal(); navigateTo('developers'); return false;" style="color:#60a5fa; text-decoration:underline; font-weight:600;">Developers pagina</a>.
+      </p>
+    </div>
+
+    <!-- Loading State -->
+    <div id="vcv-body-loading" style="padding:2.5rem; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px; color:#64748B;">
+      <i class="ti ti-loader animate-spin" style="font-size:28px; color:#64748B;"></i>
+      <span style="font-size:13px;">Status controleren...</span>
+    </div>
+
     <div class="modal-footer" style="padding:1.25rem 1.5rem; border-top:1px solid #1e1e1e; background:#0d0d0d; display:flex; gap:10px; justify-content:flex-end;">
       <button onclick="sluitVerwijderCVModal()" class="btn-outline">Annuleer</button>
-      <button onclick="bevestigVerwijderCV()" class="btn-danger-final active" style="width:auto; padding:9px 20px; font-size:13px; border-radius:8px;">Verwijderen</button>
+      <button id="vcv-confirm-btn" onclick="bevestigVerwijderCV()" class="btn-danger-final active" style="width:auto; padding:9px 20px; font-size:13px; border-radius:8px; display:none;">Verwijderen</button>
     </div>
   </div>
 </div>

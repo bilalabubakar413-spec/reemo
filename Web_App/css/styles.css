@@ -2294,3 +2294,13 @@ body.dev-portal .nav-item.active .nav-icon { color: #34d399; }
 }
 .vcv-optie:hover { border-color: #EF4444; }
 .vcv-optie input { margin-top: 3px; accent-color: #EF4444; }
+
+/* Spin utility */
+.animate-spin {
+  animation: spin 1s linear infinite;
+  display: inline-block;
+}
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}

@@ -665,19 +665,34 @@ app.patch('/api/developers/:id/skills', async (req, res) => {
 
 app.get('/api/developers/:id/check-actief', async (req, res) => {
   const { id } = req.params;
+  const devId = parseInt(id, 10);
+  if (isNaN(devId)) {
+    return res.status(400).json({ error: 'Ongeldige developer ID' });
+  }
   try {
-    const { data: contracten } = await supabase
-      .from('contract')
-      .select('contract_id, project_id, project:project_id(projectnaam, klant:klant_id(naam))')
-      .eq('developer_id', id)
-      .eq('status', 'actief');
+    const [contracten, urenCountResult] = await Promise.all([
+      q(`
+        SELECT c.contract_id, c.project_id, c.status, p.projectnaam, k.naam AS klant_naam
+        FROM contract c
+        LEFT JOIN project p ON c.project_id = p.project_id
+        LEFT JOIN klant k ON c.klant_id = k.klant_id
+        WHERE c.developer_id = $1
+      `, [devId]),
+      q('SELECT COUNT(*)::int FROM urenregistratie WHERE developer_id = $1', [devId])
+    ]);
+
+    const aantalUren = urenCountResult[0]?.count || 0;
+    const aantalContracten = contracten.length;
+    const isActief = aantalContracten > 0 || aantalUren > 0;
 
     res.json({
-      actief: contracten && contracten.length > 0,
-      aantalProjecten: contracten?.length || 0,
-      projecten: (contracten || []).map(c => ({
-        projectnaam: c.project?.projectnaam || 'Onbekend project',
-        klantnaam:   c.project?.klant?.naam  || 'Onbekende klant'
+      actief: isActief,
+      aantalProjecten: contracten.filter(c => c.status === 'actief').length,
+      aantalContracten: aantalContracten,
+      aantalUren: aantalUren,
+      projecten: contracten.map(c => ({
+        projectnaam: c.projectnaam || 'Onbekend project',
+        klantnaam:   c.klant_naam  || 'Onbekende klant'
       }))
     });
   } catch (err) {

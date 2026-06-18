@@ -3437,7 +3437,10 @@ async function refreshTimesheetsSilent(btnElement = null) {
 function renderCVDatabase(data) {
     const tbody = document.getElementById('cvs-body');
     if (!tbody) return;
-    const rows = data || cvs;
+    let rows = data || cvs;
+
+    // Filter to only show developers with an actual CV
+    rows = rows.filter(cv => cv.cv_url && cv.cv_url.trim() !== '');
 
     if (rows.length === 0) {
         tbody.innerHTML = `<tr><td colspan="6" style="padding:3rem;text-align:center;color:var(--white-30);font-size:0.875rem">
@@ -7000,33 +7003,84 @@ async function permanentVernietigen() {
 
 // === CV Deletion Logic ===
 let _verwijderCVId = null;
+let _verwijderKeuze = null; // 'alleen-cv' or 'hele-kandidaat'
 
-function verwijderCV(devId, naam, hasCV) {
+async function verwijderCV(devId, naam, hasCV) {
   _verwijderCVId = devId;
-  document.getElementById('vcv-naam').textContent = naam;
-  
-  const alleenCvOptie = document.getElementById('vcv-optie-alleen-cv');
-  if (alleenCvOptie) {
-    alleenCvOptie.style.display = hasCV ? 'flex' : 'none';
+
+  const isEchteDeveloper = !isNaN(parseInt(_verwijderCVId)) && String(_verwijderCVId).match(/^\d+$/);
+  if (!isEchteDeveloper) {
+    // Mock-CV (oude local-storage rommel): direct modal tonen met kandidaat-tekst
+    document.getElementById('vcv-body-loading').style.display = 'none';
+    document.getElementById('vcv-body-developer').style.display = 'none';
+    
+    document.getElementById('vcv-naam-kandidaat').textContent = naam;
+    document.getElementById('vcv-body-kandidaat').style.display = 'flex';
+    
+    const confirmBtn = document.getElementById('vcv-confirm-btn');
+    confirmBtn.textContent = 'Permanent verwijderen';
+    confirmBtn.style.display = 'block';
+    
+    _verwijderKeuze = 'hele-kandidaat';
+    document.getElementById('modal-verwijder-cv').style.display = 'flex';
+    return;
   }
+
+  // Echte developer: status controleren
+  document.getElementById('vcv-body-kandidaat').style.display = 'none';
+  document.getElementById('vcv-body-developer').style.display = 'none';
+  document.getElementById('vcv-confirm-btn').style.display = 'none';
   
-  if (hasCV) {
-    document.querySelector('input[name="vcv-keuze"][value="alleen-cv"]').checked = true;
-  } else {
-    document.querySelector('input[name="vcv-keuze"][value="hele-kandidaat"]').checked = true;
-  }
-  
+  document.getElementById('vcv-body-loading').style.display = 'flex';
   document.getElementById('modal-verwijder-cv').style.display = 'flex';
+
+  try {
+    const res = await fetch(`/api/developers/${devId}/check-actief`);
+    const data = await res.json();
+
+    document.getElementById('vcv-body-loading').style.display = 'none';
+
+    if (data.actief) {
+      // GEVAL B — actief (developer met contracten/uren)
+      const projectCount = data.aantalContracten || 0;
+      const hoursCount = data.aantalUren || 0;
+      document.getElementById('vcv-tekst-developer').innerHTML = 
+        `<strong>${naam}</strong> is actief op <strong>${projectCount}</strong> project(en) met <strong>${hoursCount}</strong> urenregistratie(s).<br><br>Daarom wordt alleen het CV-bestand verwijderd, niet de developer zelf.`;
+      
+      document.getElementById('vcv-body-developer').style.display = 'flex';
+      
+      const confirmBtn = document.getElementById('vcv-confirm-btn');
+      confirmBtn.textContent = 'Alleen CV verwijderen';
+      confirmBtn.style.display = 'block';
+      
+      _verwijderKeuze = 'alleen-cv';
+    } else {
+      // GEVAL A — niet actief (kandidaat)
+      document.getElementById('vcv-naam-kandidaat').textContent = naam;
+      document.getElementById('vcv-body-kandidaat').style.display = 'flex';
+      
+      const confirmBtn = document.getElementById('vcv-confirm-btn');
+      confirmBtn.textContent = 'Permanent verwijderen';
+      confirmBtn.style.display = 'block';
+      
+      _verwijderKeuze = 'hele-kandidaat';
+    }
+  } catch (err) {
+    console.error('Fout bij controleren actief-status:', err);
+    document.getElementById('vcv-body-loading').style.display = 'none';
+    showToast('Fout bij ophalen developer status', 'error');
+    sluitVerwijderCVModal();
+  }
 }
 
 function sluitVerwijderCVModal() {
   document.getElementById('modal-verwijder-cv').style.display = 'none';
   _verwijderCVId = null;
+  _verwijderKeuze = null;
 }
 
 async function bevestigVerwijderCV() {
   if (!_verwijderCVId) return;
-  const keuze = document.querySelector('input[name="vcv-keuze"]:checked')?.value;
 
   const isEchteDeveloper = !isNaN(parseInt(_verwijderCVId)) && String(_verwijderCVId).match(/^\d+$/);
   if (!isEchteDeveloper) {
@@ -7044,7 +7098,7 @@ async function bevestigVerwijderCV() {
   }
 
   let url, method;
-  if (keuze === 'alleen-cv') {
+  if (_verwijderKeuze === 'alleen-cv') {
     url = `/api/developers/${_verwijderCVId}/cv`;
     method = 'DELETE';
   } else {
@@ -7052,25 +7106,38 @@ async function bevestigVerwijderCV() {
     method = 'DELETE';
   }
 
-  const res = await fetch(url, { method });
-  const data = await res.json();
+  const btn = document.getElementById('vcv-confirm-btn');
+  const originalText = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = 'Bezig...';
 
-  if (!res.ok) {
-    showToast(`Verwijderen mislukt: ${data.error || 'onbekende fout'}`, 'error');
-    return;
-  }
+  try {
+    const res = await fetch(url, { method });
+    const data = await res.json();
 
-  sluitVerwijderCVModal();
-  showToast(keuze === 'alleen-cv' ? 'CV verwijderd' : 'Kandidaat verwijderd', 'success');
-  
-  // Reload developers and CV database to update UI stats and tables
-  if (typeof loadDevelopers === 'function') {
-    await loadDevelopers();
-  }
-  if (typeof loadCVDatabase === 'function') {
-    await loadCVDatabase();
-  } else {
-    renderCVDatabase();
+    if (!res.ok) {
+      showToast(`Verwijderen mislukt: ${data.error || 'onbekende fout'}`, 'error');
+      return;
+    }
+
+    sluitVerwijderCVModal();
+    showToast(_verwijderKeuze === 'alleen-cv' ? 'CV-bestand succesvol verwijderd' : 'Kandidaat succesvol permanent verwijderd', 'success');
+    
+    // Reload developers and CV database to update UI stats and tables
+    if (typeof loadDevelopers === 'function') {
+      await loadDevelopers();
+    }
+    if (typeof loadCVDatabase === 'function') {
+      await loadCVDatabase();
+    } else {
+      renderCVDatabase();
+    }
+  } catch (err) {
+    console.error('Verwijder CV error:', err);
+    showToast('Er is een fout opgetreden bij het verwijderen', 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = originalText;
   }
 }
 
