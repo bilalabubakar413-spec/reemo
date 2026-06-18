@@ -86,9 +86,11 @@ const FK_ERRORS = {
 };
 async function apiFetch(path, options = {}) {
     const headers = {
-        'Content-Type': 'application/json',
         ...(options.headers || {})
     };
+    if (!(options.body instanceof FormData) && !headers['Content-Type'] && !headers['content-type']) {
+        headers['Content-Type'] = 'application/json';
+    }
 
     try {
         const { data } = await sbClient.auth.getSession();
@@ -107,7 +109,7 @@ async function apiFetch(path, options = {}) {
             headers
         });
         const json = await r.json();
-        if (!r.ok || !json.ok) {
+        if (!r.ok || json.ok === false) {
             const raw = (json.error || r.statusText || '').toLowerCase();
             const dutch = Object.entries(FK_ERRORS).find(([k]) => raw.includes(k))?.[1]
                 || json.error || 'Onbekende fout — probeer het opnieuw.';
