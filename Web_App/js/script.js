@@ -1790,10 +1790,7 @@ function setFunnelPeriode(periode, knop) {
 
 async function renderCashflowFunnel() {
   try {
-    const res = await fetch(`/api/dashboard/cashflow?periode=${huidigeFunnelPeriode}`);
-    if (!res.ok) throw new Error('Cashflow endpoint niet bereikbaar');
-    const json = await res.json();
-    const data = json.data || json;
+    const data = await apiFetch(`/api/dashboard/cashflow?periode=${huidigeFunnelPeriode}`);
 
     const mtd    = data.mtd    || {};
     const totaal = data.totaal || {};
@@ -1897,8 +1894,7 @@ async function renderOmzetTrendChart() {
   const kwartaal = document.getElementById('chart-quarter-select')?.value || 'all';
 
   try {
-    const res  = await fetch(`/api/dashboard/omzet-trend?jaar=${jaar}&kwartaal=${kwartaal}`);
-    const data = await res.json();
+    const data = await apiFetch(`/api/dashboard/omzet-trend?jaar=${jaar}&kwartaal=${kwartaal}`);
 
     // Update titel dynamisch
     const periodeLabels = {
@@ -2219,8 +2215,7 @@ let _verwijderKlantId = null;
 async function verwijderKlant(klantId, naam) {
   _verwijderKlantId = klantId;
 
-  const res = await fetch(`/api/clients/${klantId}/check-actief`);
-  const data = await res.json();
+  const data = await apiFetch(`/api/clients/${klantId}/check-actief`);
 
   document.getElementById('vk-naam').textContent =
     `Weet je zeker dat je ${naam} wilt verwijderen?`;
@@ -3196,8 +3191,7 @@ async function verwijderDeveloper(devId, naam) {
   _verwijderDevId = devId;
 
   // Haal actief-status op
-  const res = await fetch(`/api/developers/${devId}/check-actief`);
-  const data = await res.json();
+  const data = await apiFetch(`/api/developers/${devId}/check-actief`);
 
   // Vul de modal
   document.getElementById('vd-naam').textContent =
@@ -5154,11 +5148,9 @@ async function removeDevSkill(devId, skillToRemove) {
 
 async function downloadDeveloperCV(devId) {
   try {
-    const res = await fetch(`/api/developers/${devId}/cv-url`);
-    const data = await res.json();
-
+    const data = await apiFetch(`/api/developers/${devId}/cv-url`);
     const url = data.url || (data.data && data.data.url);
-    if (!res.ok || !url) {
+    if (!url) {
       showToast('CV niet beschikbaar. Upload eerst een CV via My Documents.', 'error');
       return;
     }
@@ -6226,19 +6218,7 @@ async function loadClientContracts(clientId) {
     `;
 
     try {
-        const response = await fetch(`/api/clients/${clientId}/contracts`);
-        const result = await response.json();
-        
-        if (!result.ok || !result.data) {
-            container.innerHTML = `
-                <div style="text-align:center;padding:2rem;color:var(--white-40);font-size:0.8125rem">
-                    Fout bij het laden van contracten.
-                </div>
-            `;
-            return;
-        }
-
-        const contracts = result.data;
+        const contracts = await apiFetch(`/api/clients/${clientId}/contracts`);
         if (contracts.length === 0) {
             container.innerHTML = `
                 <div style="text-align:center;padding:2rem;color:var(--white-40);font-size:0.8125rem">
@@ -7052,8 +7032,7 @@ async function verwijderCV(devId, naam, hasCV) {
   document.getElementById('modal-verwijder-cv').style.display = 'flex';
 
   try {
-    const res = await fetch(`/api/developers/${devId}/check-actief`);
-    const data = await res.json();
+    const data = await apiFetch(`/api/developers/${devId}/check-actief`);
 
     document.getElementById('vcv-body-loading').style.display = 'none';
 
