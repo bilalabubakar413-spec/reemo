@@ -720,7 +720,7 @@ app.patch('/api/developers/:id', async (req, res) => {
   if (req.authRole === 'developer' && (!req.myDeveloperId || String(id) !== String(req.myDeveloperId))) {
     return res.status(403).json({ ok: false, error: 'Geen toegang tot deze gegevens' });
   }
-  const { cv_url, naam, email, rol, uurtarief, weekcapaciteit, beschikbaarheid, skills } = req.body;
+  const { cv_url, naam, email, rol, uurtarief, weekcapaciteit, beschikbaarheid, skills, type, status } = req.body;
   console.log(`[PATCH /api/developers/${id}] Body:`, req.body);
   try {
 
@@ -736,6 +736,8 @@ app.patch('/api/developers/:id', async (req, res) => {
     if (weekcapaciteit !== undefined){ fields.push(`weekcapaciteit=$${i++}`);values.push(parseInt(weekcapaciteit)); }
     if (beschikbaarheid !== undefined){ fields.push(`beschikbaarheid=$${i++}`); values.push(beschikbaarheid); }
     if (skills !== undefined)         { fields.push(`skills=$${i++}`);        values.push(JSON.stringify(skills || [])); }
+    if (type !== undefined)           { fields.push(`type=$${i++}`);          values.push(type); }
+    if (status !== undefined)         { fields.push(`status=$${i++}`);        values.push(status); }
 
     if (fields.length === 0) return res.status(400).json({ ok: false, error: 'Geen velden om bij te werken' });
 

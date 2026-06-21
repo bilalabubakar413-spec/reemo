@@ -168,7 +168,9 @@ async function loadDevelopers() {
             firstProjectId: r.first_project_id,
             firstClientId: r.first_klant_id,
             skills: parsedSkills,
-            cv_url: r.cv_url
+            cv_url: r.cv_url,
+            type: r.type,
+            status: r.status
         };
     }) : (developers.length ? developers : _DEF_DEVS);
 }
@@ -3102,7 +3104,9 @@ function renderDevelopersGrid() {
     const container = document.getElementById('developers-grid');
     if (!container) return;
 
-    if (developers.length === 0) {
+    const visibleDevs = developers.filter(d => d.type !== 'candidate');
+
+    if (visibleDevs.length === 0) {
         container.innerHTML = `
         <div style="grid-column:1/-1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:4rem 2rem;text-align:center;background:var(--surface);border:1px solid var(--white-5);border-radius:1rem;backdrop-filter:blur(8px)">
             <div style="width:3.5rem;height:3.5rem;border-radius:1rem;background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.15);display:flex;align-items:center;justify-content:center;margin-bottom:1rem">
@@ -3118,7 +3122,7 @@ function renderDevelopersGrid() {
         return;
     }
     
-    container.innerHTML = developers.map((dev, i) => {
+    container.innerHTML = visibleDevs.map((dev, i) => {
         const devName = dev.name || dev.naam || '?';
         const devRole = dev.role || dev.rol || '—';
         const devRate = dev.hourlyRate || parseFloat(dev.uurtarief) || 0;
@@ -3505,7 +3509,7 @@ function renderCVDatabase(data) {
     };
 
     tbody.innerHTML = rows.map((cv, i) => {
-        const isInactive = cv.status === 'candidate';
+        const isInactive = cv.type === 'candidate';
         const avatarBg  = isFemale(cv.naam || cv.name)
             ? 'background:rgba(236,72,153,0.12);border:1px solid rgba(236,72,153,0.25);color:#f9a8d4'
             : 'background:rgba(37,99,235,0.12);border:1px solid rgba(37,99,235,0.25);color:#60a5fa';
@@ -5946,50 +5950,51 @@ async function loadCVDatabase() {
 
 // Activate an inactive CV as a developer directly from the CV Database table
 async function activateCVasDeveloper(cvId) {
-    const cv = cvs.find(c => c.id === cvId);
+    const cv = cvs.find(c => String(c.developer_id || c.id) === String(cvId));
     if (!cv) return;
     if (!cv.email) {
         showToast('⚠ E-mailadres ontbreekt — open het CV opnieuw via Upload CV en vul het e-mail in.');
         return;
     }
+    const devDbId = cv.developer_id || cv.id;
     try {
         let result;
         try {
-            result = await apiFetch('/api/developers', {
-                method: 'POST',
+            result = await apiFetch(`/api/developers/${devDbId}`, {
+                method: 'PATCH',
                 body: JSON.stringify({
                     naam: cv.naam || cv.name, email: cv.email,
                     rol: cv.rol || cv.role || null, type: 'ZZP',
-                    uurtarief: cv.rate || null, weekcapaciteit: 40,
+                    uurtarief: cv.rate || cv.uurtarief || null, weekcapaciteit: 40,
                     status: 'active'
                 })
             });
         } catch(apiErr) {
-            console.warn('[API] Mocking developer activation.');
-            result = { upserted: false };
+            console.warn('[API] Mocking developer activation.', apiErr);
+            result = { developer_id: devDbId, upserted: true };
             
-            const genId = prefix => prefix + Math.random().toString(36).substring(2, 9);
-            const existingDevIdx = developers.findIndex(d => d.email === cv.email);
+            const existingDevIdx = developers.findIndex(d => String(d.id) === String(devDbId) || d.email === cv.email);
             
             if (existingDevIdx >= 0) {
-                result = { upserted: true };
                 developers[existingDevIdx] = {
                     ...developers[existingDevIdx],
-                    naam: cv.name, name: cv.name, role: cv.role, rol: cv.role,
-                    hourlyRate: cv.rate, uurtarief: cv.rate
+                    naam: cv.naam || cv.name, name: cv.naam || cv.name, role: cv.rol || cv.role, rol: cv.rol || cv.role,
+                    hourlyRate: cv.rate || cv.uurtarief || 0, uurtarief: cv.rate || cv.uurtarief || 0,
+                    type: 'ZZP', status: 'active'
                 };
             } else {
                 developers.unshift({
-                    id: genId('d'), naam: cv.name, name: cv.name,
-                    email: cv.email, role: cv.role, rol: cv.role,
-                    hourlyRate: cv.rate, uurtarief: cv.rate,
+                    id: devDbId, naam: cv.naam || cv.name, name: cv.naam || cv.name,
+                    email: cv.email, role: cv.rol || cv.role, rol: cv.rol || cv.role,
+                    hourlyRate: cv.rate || cv.uurtarief || 0, uurtarief: cv.rate || cv.uurtarief || 0,
                     weekcapaciteit: 40,
-                    hoursThisWeek: 0, activeProjects: 0
+                    hoursThisWeek: 0, activeProjects: 0,
+                    type: 'ZZP', status: 'active'
                 });
             }
         }
-        const developer_id = result?.developer_id || result?.data?.developer_id || result?.id;
-        const isUpdate = result?.upserted || false;
+        const developer_id = result?.developer_id || result?.data?.developer_id || result?.id || devDbId;
+        const isUpdate = true;
 
         // If we have a file in memory from a recent upload, upload it now
         if (_cvFile && developer_id) {
@@ -6010,15 +6015,13 @@ async function activateCVasDeveloper(cvId) {
         }
 
         // Mark CV as active in local store
-        const idx = cvs.findIndex(c => c.id === cvId);
-        if (idx >= 0) cvs[idx] = { ...cv, active: true };
+        const idx = cvs.findIndex(c => String(c.developer_id || c.id) === String(cvId));
+        if (idx >= 0) cvs[idx] = { ...cv, type: 'ZZP', status: 'active', active: true };
         saveCVs();
         renderCVDatabase();
         await loadDevelopers();
         renderDashboardStats();
-        showToast(isUpdate
-            ? `✓ Developer "${cv.name}" bijgewerkt.`
-            : `✓ ${cv.name} geactiveerd als developer!`);
+        showToast(`✓ ${cv.naam || cv.name} geactiveerd als developer!`);
     } catch (e) {
         showToast(`⚠ ${e.message}`);
     }
