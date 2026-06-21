@@ -5441,18 +5441,13 @@ async function startBulkUpload() {
       formData.append('cv', file);
       formData.append('naam', file.name.replace(/\.[^/.]+$/, '').replace(/_/g, ' '));
 
-      const res = await fetch('/api/cv-database/bulk-upload-single', {
+      await apiFetch('/api/cv-database/bulk-upload-single', {
         method: 'POST',
         body: formData
       });
 
-      if (res.ok) {
-        resultaten.geslaagd++;
-        markBulkFileStatus(file.name, 'success');
-      } else {
-        resultaten.mislukt++;
-        markBulkFileStatus(file.name, 'error');
-      }
+      resultaten.geslaagd++;
+      markBulkFileStatus(file.name, 'success');
     } catch (err) {
       resultaten.mislukt++;
       markBulkFileStatus(file.name, 'error');
@@ -5564,19 +5559,17 @@ async function uploadAndParseCV(file) {
         const formData = new FormData();
         formData.append('cv', file);
 
-        let res, json;
+        let data;
         try {
-            res = await fetch('/api/cv/parse', { method: 'POST', body: formData });
-            json = await res.json();
+            data = await apiFetch('/api/cv/parse', { method: 'POST', body: formData });
         } catch (apiErr) {
-            console.warn('[API] /api/cv/parse failed, using mock data.');
-            // Simulate network delay for realistic prototype feel
-            await new Promise(r => setTimeout(r, 1200));
-            
-            const cleanName = file.name.replace(/\.[^/.]+$/, "").replace(/[_-]/g, " ");
-            json = {
-                ok: true,
-                data: {
+            if (apiErr instanceof TypeError || apiErr.message.includes('fetch')) {
+                console.warn('[API] /api/cv/parse failed (network error), using mock data.');
+                // Simulate network delay for realistic prototype feel
+                await new Promise(r => setTimeout(r, 1200));
+                
+                const cleanName = file.name.replace(/\.[^/.]+$/, "").replace(/[_-]/g, " ");
+                data = {
                     name: cleanName || 'Jane Doe',
                     role: 'Fullstack Developer',
                     email: (cleanName.split(' ')[0] || 'dev').toLowerCase() + '@reemo.io',
@@ -5587,21 +5580,14 @@ async function uploadAndParseCV(file) {
                     skills: ['JavaScript', 'React', 'Node.js', 'PostgreSQL'],
                     savedFilename: file.name,
                     originalName: file.name
-                }
-            };
-            res = { ok: true };
+                };
+            } else {
+                throw apiErr;
+            }
         }
 
         $('cv-parsing').style.display = 'none';
-
-        if (!res.ok || !json.ok) {
-            $('cv-parse-error-msg').textContent = json.error || 'Onbekende fout bij het lezen van het CV.';
-            $('cv-parse-error').style.display = 'block';
-            $('cv-upload-zone').style.display = 'block';
-            return;
-        }
-
-        showCVParseResult(json.data, file.name);
+        showCVParseResult(data, file.name);
 
     } catch (e) {
         $('cv-parsing').style.display = 'none';
@@ -5744,29 +5730,28 @@ async function saveParsedCV() {
             formData.append('developer_id', developer_id);
 
             try {
-                const storageRes = await fetch('/api/storage/upload', {
+                const storageData = await apiFetch('/api/storage/upload', {
                     method: 'POST',
                     body: formData
                 });
-                const storageJson = await storageRes.json();
-                console.log('5. Upload resultaat:', storageJson);
+                const filePath = storageData?.filePath || storageData?.data?.filePath;
 
-                if (storageJson.ok) {
+                if (filePath) {
                     console.log('[DEBUG] saveParsedCV - Updating cv_url via PATCH');
                     await fetch(`/api/developers/${developer_id}`, {
                         method: 'PATCH',
                         headers: {'Content-Type': 'application/json'},
-                        body: JSON.stringify({ cv_url: storageJson.data.filePath })
+                        body: JSON.stringify({ cv_url: filePath })
                     });
                     console.log('[DEBUG] saveParsedCV - PATCH successful');
                     showToast('CV succesvol geüpload!', 'success');
                 } else {
-                    console.error('Upload mislukt:', storageJson.error);
+                    console.error('Upload mislukt: geen filePath ontvangen');
                     showToast('Developer opgeslagen maar CV upload mislukt', 'warning');
                 }
             } catch (storageErr) {
                 console.error('Netwerkfout bij storage upload:', storageErr);
-                showToast('Fout bij verbinden met storage', 'error');
+                showToast('Fout bij verbinden met storage: ' + storageErr.message, 'error');
             }
         }
         
@@ -5853,13 +5838,13 @@ async function saveParsedCVDatabase() {
             formData.append('bucket', 'cvs');
             formData.append('developer_id', developer_id);
             try {
-                const storageRes = await fetch('/api/storage/upload', { method: 'POST', body: formData });
-                const storageJson = await storageRes.json();
-                if (storageJson.ok) {
+                const storageData = await apiFetch('/api/storage/upload', { method: 'POST', body: formData });
+                const filePath = storageData?.filePath || storageData?.data?.filePath;
+                if (filePath) {
                     await fetch(`/api/developers/${developer_id}`, {
                         method: 'PATCH',
                         headers: {'Content-Type': 'application/json'},
-                        body: JSON.stringify({ cv_url: storageJson.data.filePath })
+                        body: JSON.stringify({ cv_url: filePath })
                     });
                 }
             } catch (err) { console.error('Storage upload failed:', err); }
@@ -5970,13 +5955,13 @@ async function activateCVasDeveloper(cvId) {
             formData.append('bucket', 'cvs');
             formData.append('developer_id', developer_id);
             try {
-                const storageRes = await fetch('/api/storage/upload', { method: 'POST', body: formData });
-                const storageJson = await storageRes.json();
-                if (storageJson.ok) {
+                const storageData = await apiFetch('/api/storage/upload', { method: 'POST', body: formData });
+                const filePath = storageData?.filePath || storageData?.data?.filePath;
+                if (filePath) {
                     await fetch(`/api/developers/${developer_id}`, {
                         method: 'PATCH',
                         headers: {'Content-Type': 'application/json'},
-                        body: JSON.stringify({ cv_url: storageJson.data.filePath })
+                        body: JSON.stringify({ cv_url: filePath })
                     });
                 }
             } catch (err) { console.error('Storage upload failed during activation:', err); }
@@ -6073,41 +6058,36 @@ async function handleLogoUpload(event) {
     formData.append('logo', file);
 
     try {
-        const response = await fetch(`/api/clients/${clientId}/logo`, {
+        await apiFetch(`/api/clients/${clientId}/logo`, {
             method: 'POST',
             body: formData
         });
-        const result = await response.json();
-        if (result.ok) {
-            await loadClients();
-            renderClientsGrid();
+        await loadClients();
+        renderClientsGrid();
 
-            // Refresh client detail page hero if active
-            if (_currentClientId == clientId) {
-                const updated = clients.find(c => c.id == clientId);
-                if (updated) {
-                    const initials = getInitials(updated.naam);
-                    const logoEl = document.getElementById('detail-client-logo');
-                    if (logoEl) {
-                        logoEl.innerHTML = `
-                            ${updated.logo_url
-                                ? `<img src="${updated.logo_url}" alt="${updated.naam}" style="width:100%; height:100%; object-fit:cover;" />`
-                                : `<span>${initials}</span>`
-                            }
-                            <div class="avatar-overlay">
-                                <i class="ti ti-camera"></i>
-                            </div>
-                        `;
-                        logoEl.className = `client-detail-logo client-avatar ${updated.logo_url ? 'has-image' : ''}`;
-                    }
+        // Refresh client detail page hero if active
+        if (_currentClientId == clientId) {
+            const updated = clients.find(c => c.id == clientId);
+            if (updated) {
+                const initials = getInitials(updated.naam);
+                const logoEl = document.getElementById('detail-client-logo');
+                if (logoEl) {
+                    logoEl.innerHTML = `
+                        ${updated.logo_url
+                            ? `<img src="${updated.logo_url}" alt="${updated.naam}" style="width:100%; height:100%; object-fit:cover;" />`
+                            : `<span>${initials}</span>`
+                        }
+                        <div class="avatar-overlay">
+                            <i class="ti ti-camera"></i>
+                        </div>
+                    `;
+                    logoEl.className = `client-detail-logo client-avatar ${updated.logo_url ? 'has-image' : ''}`;
                 }
             }
-        } else {
-            alert('Uploaden mislukt: ' + (result.error || 'onbekende fout'));
         }
     } catch (e) {
         console.error('Error uploading logo:', e);
-        alert('Fout tijdens uploaden van logo.');
+        alert('Fout tijdens uploaden van logo: ' + e.message);
     }
 }
 
@@ -6117,40 +6097,35 @@ async function removeLogo(clientId) {
     document.querySelectorAll('.client-logo-dropdown').forEach(el => el.remove());
 
     try {
-        const response = await fetch(`/api/clients/${clientId}/logo`, {
+        await apiFetch(`/api/clients/${clientId}/logo`, {
             method: 'DELETE'
         });
-        const result = await response.json();
-        if (result.ok) {
-            await loadClients();
-            renderClientsGrid();
+        await loadClients();
+        renderClientsGrid();
 
-            // Refresh client detail page hero if active
-            if (_currentClientId == clientId) {
-                const updated = clients.find(c => c.id == clientId);
-                if (updated) {
-                    const initials = getInitials(updated.naam);
-                    const logoEl = document.getElementById('detail-client-logo');
-                    if (logoEl) {
-                        logoEl.innerHTML = `
-                            ${updated.logo_url
-                                ? `<img src="${updated.logo_url}" alt="${updated.naam}" style="width:100%; height:100%; object-fit:cover;" />`
-                                : `<span>${initials}</span>`
-                            }
-                            <div class="avatar-overlay">
-                                <i class="ti ti-camera"></i>
-                            </div>
-                        `;
-                        logoEl.className = `client-detail-logo client-avatar ${updated.logo_url ? 'has-image' : ''}`;
-                    }
+        // Refresh client detail page hero if active
+        if (_currentClientId == clientId) {
+            const updated = clients.find(c => c.id == clientId);
+            if (updated) {
+                const initials = getInitials(updated.naam);
+                const logoEl = document.getElementById('detail-client-logo');
+                if (logoEl) {
+                    logoEl.innerHTML = `
+                        ${updated.logo_url
+                            ? `<img src="${updated.logo_url}" alt="${updated.naam}" style="width:100%; height:100%; object-fit:cover;" />`
+                            : `<span>${initials}</span>`
+                        }
+                        <div class="avatar-overlay">
+                            <i class="ti ti-camera"></i>
+                        </div>
+                    `;
+                    logoEl.className = `client-detail-logo client-avatar ${updated.logo_url ? 'has-image' : ''}`;
                 }
             }
-        } else {
-            alert('Verwijderen mislukt: ' + (result.error || 'onbekende fout'));
         }
     } catch (e) {
         console.error('Error removing logo:', e);
-        alert('Fout tijdens verwijderen van logo.');
+        alert('Fout tijdens verwijderen van logo: ' + e.message);
     }
 }
 
