@@ -624,7 +624,25 @@ function navigateTo(targetScreenId) {
 }
 
 // ── Toegangsbeheer ───────────────────────────────────────────────────────────
+let toegangAllUsers = []; // Stores all fetched user objects
+let toegangActiveFilter = 'all'; // Current role filter: 'all', 'admin', 'developer'
+
+function setToegangFilter(filterVal, btnEl) {
+    toegangActiveFilter = filterVal;
+    const container = document.getElementById('toegang-role-filter');
+    if (container) {
+        container.querySelectorAll('.segment-btn').forEach(btn => btn.classList.remove('active'));
+    }
+    if (btnEl) btnEl.classList.add('active');
+    renderToegangTable();
+}
+
+function filterToegangList() {
+    renderToegangTable();
+}
+
 async function loadToegangsbeheer() {
+    const statsContainer = document.getElementById('toegang-stats');
     const listContainer = document.getElementById('toegang-list');
     if (!listContainer) return;
 
@@ -632,69 +650,129 @@ async function loadToegangsbeheer() {
 
     try {
         const users = await apiFetch('/api/admin/users');
-        if (!users || users.length === 0) {
-            listContainer.innerHTML = `<tr><td colspan="4" style="padding:3rem;text-align:center;color:var(--white-30);font-size:0.875rem">Geen gebruikers gevonden</td></tr>`;
-            return;
+        toegangAllUsers = users || [];
+
+        // 1. Calculate stats
+        const adminCount = toegangAllUsers.filter(u => u.role === 'admin').length;
+        const devCount = toegangAllUsers.filter(u => u.role === 'developer').length;
+        const totalCount = toegangAllUsers.length;
+
+        // 2. Render KPI cards
+        if (statsContainer) {
+            const statsData = [
+                { label: 'Admins', value: adminCount, icon: 'shield', accent: '#3b82f6', bg: 'rgba(37,99,235,0.08)', border: 'rgba(37,99,235,0.18)', glow: 'rgba(59,130,246,0.15)' },
+                { label: 'Developers', value: devCount, icon: 'user-circle', accent: '#10b981', bg: 'rgba(16,185,129,0.08)', border: 'rgba(16,185,129,0.18)', glow: 'rgba(16,185,129,0.15)' },
+                { label: 'Totaal accounts', value: totalCount, icon: 'users', accent: '#f59e0b', bg: 'rgba(245,158,11,0.08)', border: 'rgba(245,158,11,0.18)', glow: 'rgba(245,158,11,0.15)' }
+            ];
+            statsContainer.innerHTML = statsData.map((s, i) => `
+                <div style="position:relative;overflow:hidden;padding:1.25rem 1.375rem;background:#0d0d0d;border:1px solid ${s.border};border-radius:0.875rem;cursor:default;box-shadow:0 0 0 1px rgba(255,255,255,0.03), 0 4px 24px ${s.glow};">
+                    <div style="position:absolute;top:-30px;right:-20px;width:100px;height:100px;border-radius:50%;background:radial-gradient(circle,${s.glow} 0%,transparent 70%);pointer-events:none"></div>
+                    <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:1rem">
+                        <div style="width:2.5rem;height:2.5rem;border-radius:0.75rem;background:${s.bg};border:1px solid ${s.border};display:flex;align-items:center;justify-content:center;flex-shrink:0">
+                            <i data-lucide="${s.icon}" style="width:16px;height:16px;color:${s.accent}"></i>
+                        </div>
+                    </div>
+                    <div style="margin-bottom:0.375rem">
+                        <div style="font-size:1.875rem;font-weight:900;color:var(--white);letter-spacing:-0.02em;line-height:1">${s.value}</div>
+                    </div>
+                    <div style="font-size:0.75rem;font-weight:600;color:var(--white-50);letter-spacing:0.02em;text-transform:uppercase">${s.label}</div>
+                </div>
+            `).join('');
         }
 
-        listContainer.innerHTML = users.map(user => {
-            const role = user.role || 'developer';
-            const isSuperAdmin = user.is_super_admin === true;
-            const devName = user.developer_naam || '—';
-            
-            // Badge style for roles
-            const badgeClass = role === 'admin' ? 'status-badge active' : 'status-badge candidate'; // active is green/blue, candidate is grey
-            const badgeText = role === 'admin' ? 'Admin' : 'Developer';
-
-            // Action button or locked icon
-            let actionHtml = '';
-            if (isSuperAdmin) {
-                actionHtml = `
-                    <div style="display:inline-flex;align-items:center;gap:0.375rem;color:var(--white-40);font-size:0.75rem;padding:0.375rem 0.75rem;background:rgba(255,255,255,0.05);border-radius:0.375rem">
-                        <i data-lucide="lock" style="width:12px;height:12px"></i> Beveiligd
-                    </div>
-                `;
-            } else {
-                if (role === 'admin') {
-                    actionHtml = `
-                        <button class="ts-action-btn remind" title="Admin-rechten intrekken" onclick="setUserRole('${user.id}', 'developer')"
-                            style="display:inline-flex;align-items:center;gap:0.25rem;padding:0.375rem 0.75rem;border-radius:0.375rem;border:1px solid rgba(239,68,68,0.35);background:rgba(239,68,68,0.08);color:#f87171;cursor:pointer;font-size:0.75rem;font-weight:700;white-space:nowrap;transition:background 0.15s"
-                            onmouseenter="this.style.background='rgba(239,68,68,0.18)'" onmouseleave="this.style.background='rgba(239,68,68,0.08)'">
-                            <i data-lucide="shield-off" style="width:12px;height:12px"></i> Rechten intrekken
-                        </button>
-                    `;
-                } else {
-                    actionHtml = `
-                        <button class="ts-action-btn view" title="Maak admin" onclick="setUserRole('${user.id}', 'admin')"
-                            style="display:inline-flex;align-items:center;gap:0.25rem;padding:0.375rem 0.75rem;border-radius:0.375rem;border:1px solid rgba(34,197,94,0.35);background:rgba(34,197,94,0.08);color:#4ade80;cursor:pointer;font-size:0.75rem;font-weight:700;white-space:nowrap;transition:background 0.15s"
-                            onmouseenter="this.style.background='rgba(34,197,94,0.18)'" onmouseleave="this.style.background='rgba(34,197,94,0.08)'">
-                            <i data-lucide="shield" style="width:12px;height:12px"></i> Maak admin
-                        </button>
-                    `;
-                }
-            }
-
-            return `
-            <tr class="ts-row">
-                <td style="padding:0.875rem 1.25rem">
-                    <span style="font-weight:700;color:var(--white);font-size:0.875rem">${user.email}</span>
-                </td>
-                <td style="padding:0.875rem 1.25rem;color:var(--white-40);font-size:0.8125rem">${devName}</td>
-                <td style="padding:0.875rem 1.25rem">
-                    <span class="${badgeClass}">${badgeText}</span>
-                </td>
-                <td style="padding:0.875rem 1.25rem;text-align:right">
-                    ${actionHtml}
-                </td>
-            </tr>
-            `;
-        }).join('');
-
-        if (typeof lucide !== 'undefined') lucide.createIcons();
+        // 3. Render table
+        renderToegangTable();
     } catch (e) {
         console.error('Failed to load toegangsbeheer accounts:', e);
         listContainer.innerHTML = `<tr><td colspan="4" style="padding:3rem;text-align:center;color:#ef4444;font-size:0.875rem">Fout bij laden van gebruikers: ${e.message}</td></tr>`;
     }
+}
+
+function renderToegangTable() {
+    const listContainer = document.getElementById('toegang-list');
+    if (!listContainer) return;
+
+    const searchQuery = (document.getElementById('toegang-search')?.value || '').toLowerCase().trim();
+    
+    let filtered = toegangAllUsers;
+
+    // Apply role filter
+    if (toegangActiveFilter !== 'all') {
+        filtered = filtered.filter(u => u.role === toegangActiveFilter);
+    }
+
+    // Apply search query filter
+    if (searchQuery) {
+        filtered = filtered.filter(u => {
+            const emailMatch = (u.email || '').toLowerCase().includes(searchQuery);
+            const devMatch = (u.developer_naam || '').toLowerCase().includes(searchQuery);
+            return emailMatch || devMatch;
+        });
+    }
+
+    if (filtered.length === 0) {
+        listContainer.innerHTML = `<tr><td colspan="4" style="padding:3rem;text-align:center;color:var(--white-30);font-size:0.875rem">Geen gebruikers gevonden</td></tr>`;
+        return;
+    }
+
+    listContainer.innerHTML = filtered.map(user => {
+        const role = user.role || 'developer';
+        const isSuperAdmin = user.is_super_admin === true;
+        const devName = user.developer_naam || '—';
+        
+        const badgeClass = role === 'admin' ? 'status-badge active' : 'status-badge candidate';
+        const badgeText = role === 'admin' ? 'Admin' : 'Developer';
+
+        let actionHtml = '';
+        if (isSuperAdmin) {
+            actionHtml = `
+                <div style="display:inline-flex;align-items:center;gap:0.375rem;color:var(--white-40);font-size:0.75rem;padding:0.375rem 0.75rem;background:rgba(255,255,255,0.05);border-radius:0.375rem">
+                    <i data-lucide="lock" style="width:12px;height:12px"></i> Beveiligd
+                </div>
+            `;
+        } else {
+            const toggleBtn = role === 'admin' ? `
+                <button class="ts-action-btn remind" title="Admin-rechten intrekken" onclick="setUserRole('${user.id}', 'developer')"
+                    style="display:inline-flex;align-items:center;gap:0.25rem;padding:0.375rem 0.75rem;border-radius:0.375rem;border:1px solid rgba(239,68,68,0.35);background:rgba(239,68,68,0.08);color:#f87171;cursor:pointer;font-size:0.75rem;font-weight:700;white-space:nowrap;transition:background 0.15s"
+                    onmouseenter="this.style.background='rgba(239,68,68,0.18)'" onmouseleave="this.style.background='rgba(239,68,68,0.08)'">
+                    <i data-lucide="shield-off" style="width:12px;height:12px"></i> Rechten intrekken
+                </button>
+            ` : `
+                <button class="ts-action-btn view" title="Maak admin" onclick="setUserRole('${user.id}', 'admin')"
+                    style="display:inline-flex;align-items:center;gap:0.25rem;padding:0.375rem 0.75rem;border-radius:0.375rem;border:1px solid rgba(34,197,94,0.35555555555555557);background:rgba(34,197,94,0.08);color:#4ade80;cursor:pointer;font-size:0.75rem;font-weight:700;white-space:nowrap;transition:background 0.15s"
+                    onmouseenter="this.style.background='rgba(34,197,94,0.18)'" onmouseleave="this.style.background='rgba(34,197,94,0.08)'">
+                    <i data-lucide="shield" style="width:12px;height:12px"></i> Maak admin
+                </button>
+            `;
+            
+            const deleteBtn = `
+                <button class="ts-action-btn delete" title="Account verwijderen" onclick="deleteUser('${user.id}', '${user.email}')"
+                    style="display:inline-flex;align-items:center;justify-content:center;width:2.25rem;height:2.25rem;border-radius:0.375rem;border:1px solid rgba(239,68,68,0.3);background:rgba(239,68,68,0.05);color:#f87171;cursor:pointer;transition:background 0.15s"
+                    onmouseenter="this.style.background='rgba(239,68,68,0.15)'" onmouseleave="this.style.background='rgba(239,68,68,0.05)'">
+                    <i data-lucide="trash-2" style="width:14px;height:14px"></i>
+                </button>
+            `;
+            
+            actionHtml = `<div style="display:flex;align-items:center;justify-content:flex-end;gap:0.5rem">${toggleBtn}${deleteBtn}</div>`;
+        }
+
+        return `
+        <tr class="ts-row">
+            <td style="padding:0.875rem 1.25rem">
+                <span style="font-weight:700;color:var(--white);font-size:0.875rem">${user.email}</span>
+            </td>
+            <td style="padding:0.875rem 1.25rem;color:var(--white-40);font-size:0.8125rem">${devName}</td>
+            <td style="padding:0.875rem 1.25rem">
+                <span class="${badgeClass}">${badgeText}</span>
+            </td>
+            <td style="padding:0.875rem 1.25rem;text-align:right">
+                ${actionHtml}
+            </td>
+        </tr>
+        `;
+    }).join('');
+
+    if (typeof lucide !== 'undefined') lucide.createIcons();
 }
 
 async function setUserRole(userId, role) {
@@ -709,6 +787,34 @@ async function setUserRole(userId, role) {
         console.error('Failed to update user role:', e);
         showToast(`⚠ Fout bij bijwerken: ${e.message}`);
     }
+}
+
+function deleteUser(id, email) {
+    const modal = document.getElementById('modal-verwijder-user');
+    const emailEl = document.getElementById('vu-email');
+    const confirmBtn = document.getElementById('vu-bevestig-btn');
+    if (!modal || !emailEl || !confirmBtn) return;
+
+    emailEl.textContent = email;
+    openModal('modal-verwijder-user');
+
+    // Set up the click handler for deletion
+    confirmBtn.onclick = async () => {
+        confirmBtn.disabled = true;
+        confirmBtn.innerHTML = '<span class="spinner-small"></span> Verwijderen...';
+        try {
+            await apiFetch(`/api/admin/users/${id}`, { method: 'DELETE' });
+            showToast('✓ Account succesvol verwijderd');
+            closeModal('modal-verwijder-user');
+            loadToegangsbeheer();
+        } catch (e) {
+            console.error('Failed to delete user:', e);
+            showToast(`⚠ Fout bij verwijderen: ${e.message}`);
+        } finally {
+            confirmBtn.disabled = false;
+            confirmBtn.innerHTML = 'Permanent verwijderen';
+        }
+    };
 }
 
 async function loadDevDashboard() {
