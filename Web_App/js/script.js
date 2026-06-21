@@ -5841,9 +5841,8 @@ async function saveParsedCVDatabase() {
                 const storageData = await apiFetch('/api/storage/upload', { method: 'POST', body: formData });
                 const filePath = storageData?.filePath || storageData?.data?.filePath;
                 if (filePath) {
-                    await fetch(`/api/developers/${developer_id}`, {
+                    await apiFetch(`/api/developers/${developer_id}`, {
                         method: 'PATCH',
-                        headers: {'Content-Type': 'application/json'},
                         body: JSON.stringify({ cv_url: filePath })
                     });
                 }
@@ -5958,9 +5957,8 @@ async function activateCVasDeveloper(cvId) {
                 const storageData = await apiFetch('/api/storage/upload', { method: 'POST', body: formData });
                 const filePath = storageData?.filePath || storageData?.data?.filePath;
                 if (filePath) {
-                    await fetch(`/api/developers/${developer_id}`, {
+                    await apiFetch(`/api/developers/${developer_id}`, {
                         method: 'PATCH',
-                        headers: {'Content-Type': 'application/json'},
                         body: JSON.stringify({ cv_url: filePath })
                     });
                 }
