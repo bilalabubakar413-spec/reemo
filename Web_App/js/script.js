@@ -5655,7 +5655,11 @@ function showCVParseResult(data, filename) {
     _cvOriginalName  = data.originalName  || filename;
 
     // Fill editable fields
-    $('cv-r-name').value    = data.name        || '';
+    let finalName = (data.name || '').trim();
+    if (!finalName || ['naam', 'name'].includes(finalName.toLowerCase())) {
+        finalName = 'Onbekende kandidaat';
+    }
+    $('cv-r-name').value    = finalName;
     $('cv-r-role').value    = data.role        || '';
     $('cv-r-email').value   = data.email       || '';
     $('cv-r-phone').value   = data.phone       || '';
@@ -5866,9 +5870,9 @@ async function saveParsedCVDatabase() {
             result = await apiFetch('/api/developers', {
                 method: 'POST',
                 body: JSON.stringify({
-                    naam, email, rol, type: 'ZZP',
+                    naam, email, rol, type: 'candidate',
                     uurtarief: rate, weekcapaciteit: weekcap,
-                    status: 'candidate',
+                    status: 'active',
                     skills: _cvParsedSkills.join(',')
                 })
             });
