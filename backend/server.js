@@ -58,7 +58,37 @@ async function authVerify(req, res, next) {
     const { payload } = await _jwtVerify(token, _JWKS, { issuer: SUPABASE_ISSUER });
     req.authClaims = payload;
     req.authRole = payload.app_metadata && payload.app_metadata.role;
-    return next();
+
+    if (req.authRole === 'admin') return next();
+
+    if (req.authRole === 'developer') {
+      // Uitsluiten van admin-only paths om false-positives te vermijden
+      if (req.path === '/developers' || req.path === '/developers/all') {
+        console.log('[AUTH 3c] developer GEWEIGERD op', req.method, req.originalUrl);
+        return res.status(403).json({ ok: false, error: 'Geen toegang' });
+      }
+
+      const DEVELOPER_ALLOWED = [
+        { method: 'GET',    re: /^\/developers\/[^/]+\/dashboard$/ },
+        { method: 'GET',    re: /^\/developers\/[^/]+$/ },
+        { method: 'PATCH',  re: /^\/developers\/[^/]+$/ },
+        { method: 'PATCH',  re: /^\/developers\/[^/]+\/skills$/ },
+        { method: 'GET',    re: /^\/developers\/[^/]+\/cv-url$/ },
+        { method: 'GET',    re: /^\/timesheets$/ },
+        { method: 'POST',   re: /^\/timesheets$/ },
+        { method: 'DELETE', re: /^\/timesheets\/[^/]+$/ },
+      ];
+
+      const ok = DEVELOPER_ALLOWED.some(r => r.method === req.method && r.re.test(req.path));
+      if (ok) return next();
+
+      console.log('[AUTH 3c] developer GEWEIGERD op', req.method, req.originalUrl);
+      return res.status(403).json({ ok: false, error: 'Geen toegang' });
+    }
+
+    // onbekende/ontbrekende rol
+    console.log('[AUTH 3c] onbekende rol GEWEIGERD op', req.originalUrl);
+    return res.status(403).json({ ok: false, error: 'Geen toegang' });
   } catch (e) {
     console.log('[AUTH 3b] GEWEIGERD (ongeldig token) op', req.originalUrl, '-', e.message);
     return res.status(401).json({ ok: false, error: 'Sessie ongeldig of verlopen' });
