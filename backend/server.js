@@ -39,22 +39,30 @@ async function initJose() {
 }
 
 async function authVerify(req, res, next) {
+  if (req.method === 'OPTIONS') return next();
+
+  // req.path is ZONDER /api ervoor (want gemount op /api)
+  const PUBLIC_PATHS = ['/health'];
+  const PUBLIC_PREFIXES = ['/data-management/template/'];
+  if (PUBLIC_PATHS.includes(req.path)) return next();
+  if (PUBLIC_PREFIXES.some(p => req.path.startsWith(p))) return next();
+
   const authHeader = req.headers['authorization'] || '';
   const [scheme, token] = authHeader.split(' ');
   if (scheme !== 'Bearer' || !token) {
-    console.log('[AUTH 3a] geen token op', req.originalUrl);
-    return next(); // 3a: NIET blokkeren
+    console.log('[AUTH 3b] GEWEIGERD (geen token) op', req.originalUrl);
+    return res.status(401).json({ ok: false, error: 'Niet ingelogd' });
   }
   try {
     await initJose();
     const { payload } = await _jwtVerify(token, _JWKS, { issuer: SUPABASE_ISSUER });
-    const role = payload.app_metadata && payload.app_metadata.role;
-    req.authClaims = payload; // bewaren voor latere fases (3b/3c)
-    console.log('[AUTH 3a] OK:', payload.email, 'rol=', role, 'op', req.originalUrl);
+    req.authClaims = payload;
+    req.authRole = payload.app_metadata && payload.app_metadata.role;
+    return next();
   } catch (e) {
-    console.log('[AUTH 3a] ONGELDIG token op', req.originalUrl, '-', e.message);
+    console.log('[AUTH 3b] GEWEIGERD (ongeldig token) op', req.originalUrl, '-', e.message);
+    return res.status(401).json({ ok: false, error: 'Sessie ongeldig of verlopen' });
   }
-  return next(); // 3a: ALTIJD doorlaten
 }
 
 app.use('/api', authVerify);
