@@ -618,6 +618,97 @@ function navigateTo(targetScreenId) {
     if (targetScreenId === 'data-management') {
         initDataManagement();
     }
+    if (targetScreenId === 'toegangsbeheer') {
+        loadToegangsbeheer();
+    }
+}
+
+// ── Toegangsbeheer ───────────────────────────────────────────────────────────
+async function loadToegangsbeheer() {
+    const listContainer = document.getElementById('toegang-list');
+    if (!listContainer) return;
+
+    listContainer.innerHTML = `<tr><td colspan="4" style="padding:3rem;text-align:center;color:var(--white-30);font-size:0.875rem"><span class="spinner-small"></span> Gebruikers laden...</td></tr>`;
+
+    try {
+        const users = await apiFetch('/api/admin/users');
+        if (!users || users.length === 0) {
+            listContainer.innerHTML = `<tr><td colspan="4" style="padding:3rem;text-align:center;color:var(--white-30);font-size:0.875rem">Geen gebruikers gevonden</td></tr>`;
+            return;
+        }
+
+        listContainer.innerHTML = users.map(user => {
+            const role = user.role || 'developer';
+            const isSuperAdmin = user.is_super_admin === true;
+            const devName = user.developer_naam || '—';
+            
+            // Badge style for roles
+            const badgeClass = role === 'admin' ? 'status-badge active' : 'status-badge candidate'; // active is green/blue, candidate is grey
+            const badgeText = role === 'admin' ? 'Admin' : 'Developer';
+
+            // Action button or locked icon
+            let actionHtml = '';
+            if (isSuperAdmin) {
+                actionHtml = `
+                    <div style="display:inline-flex;align-items:center;gap:0.375rem;color:var(--white-40);font-size:0.75rem;padding:0.375rem 0.75rem;background:rgba(255,255,255,0.05);border-radius:0.375rem">
+                        <i data-lucide="lock" style="width:12px;height:12px"></i> Beveiligd
+                    </div>
+                `;
+            } else {
+                if (role === 'admin') {
+                    actionHtml = `
+                        <button class="ts-action-btn remind" title="Admin-rechten intrekken" onclick="setUserRole('${user.id}', 'developer')"
+                            style="display:inline-flex;align-items:center;gap:0.25rem;padding:0.375rem 0.75rem;border-radius:0.375rem;border:1px solid rgba(239,68,68,0.35);background:rgba(239,68,68,0.08);color:#f87171;cursor:pointer;font-size:0.75rem;font-weight:700;white-space:nowrap;transition:background 0.15s"
+                            onmouseenter="this.style.background='rgba(239,68,68,0.18)'" onmouseleave="this.style.background='rgba(239,68,68,0.08)'">
+                            <i data-lucide="shield-off" style="width:12px;height:12px"></i> Rechten intrekken
+                        </button>
+                    `;
+                } else {
+                    actionHtml = `
+                        <button class="ts-action-btn view" title="Maak admin" onclick="setUserRole('${user.id}', 'admin')"
+                            style="display:inline-flex;align-items:center;gap:0.25rem;padding:0.375rem 0.75rem;border-radius:0.375rem;border:1px solid rgba(34,197,94,0.35);background:rgba(34,197,94,0.08);color:#4ade80;cursor:pointer;font-size:0.75rem;font-weight:700;white-space:nowrap;transition:background 0.15s"
+                            onmouseenter="this.style.background='rgba(34,197,94,0.18)'" onmouseleave="this.style.background='rgba(34,197,94,0.08)'">
+                            <i data-lucide="shield" style="width:12px;height:12px"></i> Maak admin
+                        </button>
+                    `;
+                }
+            }
+
+            return `
+            <tr class="ts-row">
+                <td style="padding:0.875rem 1.25rem">
+                    <span style="font-weight:700;color:var(--white);font-size:0.875rem">${user.email}</span>
+                </td>
+                <td style="padding:0.875rem 1.25rem;color:var(--white-40);font-size:0.8125rem">${devName}</td>
+                <td style="padding:0.875rem 1.25rem">
+                    <span class="${badgeClass}">${badgeText}</span>
+                </td>
+                <td style="padding:0.875rem 1.25rem;text-align:right">
+                    ${actionHtml}
+                </td>
+            </tr>
+            `;
+        }).join('');
+
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+    } catch (e) {
+        console.error('Failed to load toegangsbeheer accounts:', e);
+        listContainer.innerHTML = `<tr><td colspan="4" style="padding:3rem;text-align:center;color:#ef4444;font-size:0.875rem">Fout bij laden van gebruikers: ${e.message}</td></tr>`;
+    }
+}
+
+async function setUserRole(userId, role) {
+    try {
+        await apiFetch(`/api/admin/users/${userId}/role`, {
+            method: 'POST',
+            body: JSON.stringify({ role })
+        });
+        showToast('✓ Rol succesvol bijgewerkt');
+        loadToegangsbeheer();
+    } catch (e) {
+        console.error('Failed to update user role:', e);
+        showToast(`⚠ Fout bij bijwerken: ${e.message}`);
+    }
 }
 
 async function loadDevDashboard() {
