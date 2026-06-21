@@ -5948,6 +5948,83 @@ async function loadCVDatabase() {
     }
 }
 
+function askEmailModal(naam) {
+    return new Promise((resolve) => {
+        const modal = document.getElementById('modal-promote-email');
+        const input = document.getElementById('mpe-email');
+        const confirmBtn = document.getElementById('mpe-confirm-btn');
+        const errorText = document.getElementById('mpe-error');
+        const nameSpan = document.getElementById('mpe-naam');
+
+        if (!modal || !input) {
+            console.warn('Promote modal not found, falling back to window.prompt.');
+            const fallback = window.prompt(`Vul een e-mailadres in voor ${naam} om te promoveren naar developer:`);
+            resolve(fallback ? fallback.trim() : null);
+            return;
+        }
+
+        nameSpan.textContent = `Vul een e-mailadres in voor ${naam} om te promoveren naar developer:`;
+        input.value = '';
+        errorText.style.display = 'none';
+        errorText.textContent = '';
+
+        openModal('modal-promote-email');
+        setTimeout(() => input.focus(), 50);
+
+        function cleanup() {
+            closeModal('modal-promote-email');
+            confirmBtn.onclick = null;
+            input.onkeydown = null;
+            modal.removeEventListener('click', overlayClickHandler);
+        }
+
+        confirmBtn.onclick = () => {
+            const val = input.value.trim();
+            if (!val) {
+                errorText.textContent = 'E-mailadres is verplicht.';
+                errorText.style.display = 'block';
+                return;
+            }
+            if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(val)) {
+                errorText.textContent = 'Ongeldig e-mailadres.';
+                errorText.style.display = 'block';
+                return;
+            }
+            cleanup();
+            resolve(val);
+        };
+
+        // Esc or Enter handler
+        input.onkeydown = (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                confirmBtn.click();
+            } else if (e.key === 'Escape') {
+                e.preventDefault();
+                cleanup();
+                resolve(null);
+            }
+        };
+
+        const overlayClickHandler = (e) => {
+            if (e.target === modal) {
+                cleanup();
+                resolve(null);
+            }
+        };
+        modal.addEventListener('click', overlayClickHandler);
+
+        // Cancel buttons
+        const cancels = modal.querySelectorAll('.btn-outline, .modal-close');
+        cancels.forEach(btn => {
+            btn.onclick = () => {
+                cleanup();
+                resolve(null);
+            };
+        });
+    });
+}
+
 // Activate an inactive CV as a developer directly from the CV Database table
 async function activateCVasDeveloper(cvId) {
     const cv = cvs.find(c => String(c.developer_id || c.id) === String(cvId));
@@ -5955,14 +6032,8 @@ async function activateCVasDeveloper(cvId) {
     
     let email = cv.email;
     if (!email) {
-        email = window.prompt(`Vul een e-mailadres in voor ${cv.naam || cv.name} om te promoveren naar developer:`);
-        if (!email) return; // gebruiker annuleerde
-        email = email.trim();
-        // simpele validatie: moet een @ en een punt erna bevatten
-        if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
-            showToast('⚠ Ongeldig e-mailadres.');
-            return;
-        }
+        email = await askEmailModal(cv.naam || cv.name);
+        if (!email) return; // geannuleerd
     }
 
     const devDbId = cv.developer_id || cv.id;
