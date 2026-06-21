@@ -906,10 +906,14 @@ app.delete('/api/developers/:id', async (req, res) => {
       console.error('Fetch developer cv error:', devFetchErr);
     }
     if (dev?.cv_url) {
-      const pad = dev.cv_url.includes('/developer-cvs/') ? dev.cv_url.split('/developer-cvs/')[1] : dev.cv_url;
-      if (pad) {
-        const { error: storageErr } = await supabase.storage.from('cvs').remove([pad]);
-        if (storageErr) console.error('Remove CV storage error:', storageErr);
+      try {
+        const bestandsnaam = dev.cv_url.split('/').pop();
+        if (bestandsnaam && bestandsnaam.trim() !== '') {
+          const { error: storageErr } = await supabase.storage.from('cvs').remove([bestandsnaam]);
+          if (storageErr) console.error('Remove CV storage error:', storageErr);
+        }
+      } catch (err) {
+        console.error('Failed to remove CV from storage during developer deletion:', err);
       }
     }
 
@@ -1650,8 +1654,15 @@ app.delete('/api/developers/:id/cv', async (req, res) => {
 
     // Verwijder bestand uit storage
     if (dev?.cv_url) {
-      const pad = dev.cv_url.includes('/developer-cvs/') ? dev.cv_url.split('/developer-cvs/')[1] : dev.cv_url;
-      if (pad) await supabase.storage.from('cvs').remove([pad]);
+      try {
+        const bestandsnaam = dev.cv_url.split('/').pop();
+        if (bestandsnaam && bestandsnaam.trim() !== '') {
+          const { error: storageErr } = await supabase.storage.from('cvs').remove([bestandsnaam]);
+          if (storageErr) console.error('Remove CV storage error:', storageErr);
+        }
+      } catch (err) {
+        console.error('Failed to remove CV from storage during CV deletion:', err);
+      }
     }
 
     // Zet cv_url op null (developer blijft bestaan)
