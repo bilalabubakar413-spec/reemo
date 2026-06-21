@@ -333,7 +333,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     if (session && session.user) {
         const role = session.user.app_metadata?.role || 'developer';
-        setupUserSession(session.user, role);
+        await setupUserSession(session.user, role);
     }
 
     // ── HTML Structure Guard ────────────────────────────────────────────────────
@@ -365,7 +365,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 // --- Authentication ---
-function setupUserSession(user, role) {
+async function setupUserSession(user, role) {
     loginScreen.classList.add('hidden');
     appContainer.classList.remove('hidden');
 
@@ -373,16 +373,41 @@ function setupUserSession(user, role) {
     const appTitle = document.getElementById('app-title');
     const logoBox = document.querySelector('.logo-box-small');
 
+    window._devNotLinked = false;
+
     if (role === 'developer') {
-        activeDeveloper = developers.find(d => d.email?.toLowerCase() === email.toLowerCase()) || developers.find(d => d.id === 11) || developers[0] || null;
-        
+        try {
+            const meData = await apiFetch('/api/developers/me');
+            if (meData) {
+                activeDeveloper = {
+                    ...meData,
+                    id: meData.developer_id, // Map developer_id to id for the portal functions
+                    name: meData.naam,
+                    role: meData.rol,
+                    hourlyRate: parseFloat(meData.uurtarief) || 0
+                };
+            } else {
+                throw new Error('Geen developer-profiel gevonden');
+            }
+        } catch (err) {
+            console.error('Fout bij ophalen van /api/developers/me:', err);
+            activeDeveloper = null;
+            window._devNotLinked = true;
+            showToast('Je account is nog niet gekoppeld aan een developer-profiel. Neem contact op met de beheerder.', 'error');
+        }
+
         navAdminItems.classList.add('hidden');
         navDevItems.classList.remove('hidden');
         
         const initials = activeDeveloper?.naam ? activeDeveloper.naam.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() : 'D';
         userProfileAvatar.textContent = initials;
-        userProfileAvatar.className = 'w-8 h-8 rounded-full bg-emerald-900 text-emerald-400 font-bold flex items-center justify-center shrink-0';
-        userProfileName.innerHTML = `<p class="text-sm font-medium truncate">${activeDeveloper?.naam || 'Developer'}</p><p class="text-[10px] text-emerald-500 truncate">${activeDeveloper?.role || activeDeveloper?.rol || 'Developer'}</p>`;
+        if (window._devNotLinked) {
+            userProfileAvatar.className = 'w-8 h-8 rounded-full bg-red-950 text-red-400 font-bold flex items-center justify-center shrink-0';
+            userProfileName.innerHTML = `<p class="text-sm font-medium truncate">Niet gekoppeld</p><p class="text-[10px] text-red-500 truncate">Contact beheerder</p>`;
+        } else {
+            userProfileAvatar.className = 'w-8 h-8 rounded-full bg-emerald-900 text-emerald-400 font-bold flex items-center justify-center shrink-0';
+            userProfileName.innerHTML = `<p class="text-sm font-medium truncate">${activeDeveloper?.naam || 'Developer'}</p><p class="text-[10px] text-emerald-500 truncate">${activeDeveloper?.role || activeDeveloper?.rol || 'Developer'}</p>`;
+        }
         
         if (appTitle) appTitle.textContent = 'Reemo Developer';
         // Green logo + green nav for developer portal
@@ -426,7 +451,7 @@ async function handleLogin(e) {
         const user = data.user;
         const role = user?.app_metadata?.role || 'developer';
 
-        setupUserSession(user, role);
+        await setupUserSession(user, role);
     } catch (err) {
         console.error('Login error:', err);
         if (loginError) {
@@ -466,6 +491,25 @@ function navigateTo(targetScreenId) {
             screen.classList.add('active');
         }
     });
+
+    if (window._devNotLinked && targetScreenId.startsWith('dev-')) {
+        const screen = document.getElementById(`screen-${targetScreenId}`);
+        if (screen) {
+            screen.innerHTML = `
+                <div style="padding:4rem 2rem; text-align:center; max-width:500px; margin:0 auto">
+                    <div style="width:4rem; height:4rem; border-radius:50%; background:rgba(239,68,68,0.1); color:#ef4444; display:flex; align-items:center; justify-content:center; margin:0 auto 1.5rem">
+                        <i data-lucide="alert-triangle" style="width:24px; height:24px"></i>
+                    </div>
+                    <h2 style="font-size:1.25rem; font-weight:700; color:var(--white); margin-bottom:1rem">Account niet gekoppeld</h2>
+                    <p style="color:var(--white-50); font-size:0.875rem; line-height:1.6">
+                        Je account is nog niet gekoppeld aan een developer-profiel. Neem contact op met de beheerder.
+                    </p>
+                </div>
+            `;
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+        }
+        return;
+    }
 
     // Screen-specific init
     if (targetScreenId === 'clients') {
