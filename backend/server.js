@@ -513,6 +513,23 @@ app.get('/api/developers/all', async (req, res) => {
   } catch (e) { res.status(500).json({ ok: false, error: e.message }); }
 });
 
+// GET current logged-in developer profile (Fase 3c-2)
+app.get('/api/developers/me', async (req, res) => {
+  const authUserId = req.authClaims?.sub;
+  if (!authUserId) {
+    return res.status(401).json({ ok: false, error: 'Geen geldige sessie gevonden' });
+  }
+  try {
+    const rows = await q('SELECT * FROM developer WHERE auth_user_id = $1', [authUserId]);
+    if (!rows.length) {
+      return res.status(404).json({ ok: false, error: 'Geen gekoppelde developer gevonden voor dit account' });
+    }
+    res.json({ ok: true, data: rows[0] });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
 // GET single with full detail (projects, hours, cv)
 app.get('/api/developers/:id', async (req, res) => {
   const { id } = req.params;
