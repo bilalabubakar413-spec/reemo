@@ -1307,7 +1307,7 @@ function renderDevProfilePage(dev, projecten, uren, cv) {
                     <div class="profile-hero-badges">
                         <span style="background:rgba(37,99,235,0.1);color:#60a5fa;border:1px solid rgba(37,99,235,0.2);padding:0.25rem 0.75rem;border-radius:9999px;font-size:0.6875rem;font-weight:700">${dev.type || 'ZZP'}</span>
                         <span style="font-size:0.6875rem;color:var(--white-40);display:flex;align-items:center;gap:0.35rem">
-                            <i data-lucide="mail" style="width:11px;height:11px"></i> ${dev.email}
+                            <i data-lucide="mail" style="width:11px;height:11px"></i> ${dev.email || '—'}
                         </span>
 
                         <!-- Beschikbaarheid toggle -->
@@ -1406,7 +1406,7 @@ function renderDevProfilePage(dev, projecten, uren, cv) {
                                     </div>
                                     <span class="profile-info-key" style="margin:0;padding:0;color:var(--white-40);text-transform:none;letter-spacing:normal">E-mailadres</span>
                                 </div>
-                                <span class="profile-info-val">${dev.email}</span>
+                                <span class="profile-info-val">${dev.email || '—'}</span>
                             </div>
                         </div>
                     </div>

@@ -1861,26 +1861,30 @@ app.post('/api/cv-database/bulk-upload-single', storageUpload.single('cv'), asyn
     let developerId = null;
 
     if (naamDelen.length >= 2) {
-      const { data: bestaande } = await supabase
+      const { data: bestaande, error: bestaandeError } = await supabase
         .from('developer')
         .select('developer_id')
         .ilike('naam', `%${naam}%`)
         .limit(1);
 
+      if (bestaandeError) throw bestaandeError;
+
       if (bestaande && bestaande.length > 0) {
         developerId = bestaande[0].developer_id;
 
         // Update bestaande developer met nieuwe CV (store just the filename, not public URL)
-        await supabase
+        const { error: updateError } = await supabase
           .from('developer')
           .update({ cv_url: bestandsnaam })
           .eq('developer_id', developerId);
+
+        if (updateError) throw updateError;
       }
     }
 
     // Als developer niet bestaat: maak nieuwe aan
     if (!developerId) {
-      const { data: nieuw } = await supabase
+      const { data: nieuw, error: insertError } = await supabase
         .from('developer')
         .insert({
           naam:       naam,
@@ -1891,14 +1895,19 @@ app.post('/api/cv-database/bulk-upload-single', storageUpload.single('cv'), asyn
         .select('developer_id')
         .single();
 
+      if (insertError) throw insertError;
       developerId = nieuw?.developer_id;
+    }
+
+    if (!developerId) {
+      return res.status(500).json({ ok: false, error: 'Developer row could not be created/found' });
     }
 
     res.json({ ok: true, developer_id: developerId, cv_url: bestandsnaam });
 
   } catch (err) {
     console.error('Bulk upload fout:', err);
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ ok: false, error: err.message });
   }
 });
 
