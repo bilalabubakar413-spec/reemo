@@ -62,6 +62,13 @@ async function authVerify(req, res, next) {
     if (req.authRole === 'admin') return next();
 
     if (req.authRole === 'developer') {
+      try {
+        const rows = await q('SELECT developer_id FROM developer WHERE auth_user_id = $1', [req.authClaims.sub]);
+        req.myDeveloperId = rows.length ? rows[0].developer_id : null;
+      } catch (e) {
+        req.myDeveloperId = null;
+      }
+
       // Uitsluiten van admin-only paths om false-positives te vermijden
       if (req.path === '/developers' || req.path === '/developers/all') {
         console.log('[AUTH 3c] developer GEWEIGERD op', req.method, req.originalUrl);
@@ -533,6 +540,9 @@ app.get('/api/developers/me', async (req, res) => {
 // GET single with full detail (projects, hours, cv)
 app.get('/api/developers/:id', async (req, res) => {
   const { id } = req.params;
+  if (req.authRole === 'developer' && (!req.myDeveloperId || String(id) !== String(req.myDeveloperId))) {
+    return res.status(403).json({ ok: false, error: 'Geen toegang tot deze gegevens' });
+  }
   try {
     const dev = await q('SELECT * FROM developer WHERE developer_id=$1', [id]);
     if (!dev.length) return res.status(404).json({ ok: false, error: 'Developer niet gevonden' });
@@ -573,6 +583,9 @@ app.get('/api/developers/:id', async (req, res) => {
 // GET – Get signed URL for developer CV
 app.get('/api/developers/:id/cv-url', async (req, res) => {
   const { id } = req.params;
+  if (req.authRole === 'developer' && (!req.myDeveloperId || String(id) !== String(req.myDeveloperId))) {
+    return res.status(403).json({ ok: false, error: 'Geen toegang tot deze gegevens' });
+  }
   try {
     const devRows = await q('SELECT cv_url FROM developer WHERE developer_id = $1', [id]);
     if (!devRows.length || !devRows[0].cv_url) {
@@ -704,6 +717,9 @@ app.post('/api/developers', async (req, res) => {
 // PATCH – update developer fields including beschikbaarheid and weekcapaciteit
 app.patch('/api/developers/:id', async (req, res) => {
   const { id } = req.params;
+  if (req.authRole === 'developer' && (!req.myDeveloperId || String(id) !== String(req.myDeveloperId))) {
+    return res.status(403).json({ ok: false, error: 'Geen toegang tot deze gegevens' });
+  }
   const { cv_url, naam, email, rol, uurtarief, weekcapaciteit, beschikbaarheid, skills } = req.body;
   console.log(`[PATCH /api/developers/${id}] Body:`, req.body);
   try {
@@ -739,6 +755,9 @@ app.patch('/api/developers/:id', async (req, res) => {
 
 app.patch('/api/developers/:id/skills', async (req, res) => {
   const { id } = req.params;
+  if (req.authRole === 'developer' && (!req.myDeveloperId || String(id) !== String(req.myDeveloperId))) {
+    return res.status(403).json({ ok: false, error: 'Geen toegang tot deze gegevens' });
+  }
   const { skills } = req.body;
   try {
     const skillsJson = JSON.stringify(skills || []);
@@ -914,6 +933,32 @@ app.delete('/api/developers/:id', async (req, res) => {
 // GET all  (joined with developer & project/klant for display)
 app.get('/api/timesheets', async (req, res) => {
   try {
+    if (req.authRole === 'developer') {
+      if (!req.myDeveloperId) {
+        return res.json({ ok: true, data: [] });
+      }
+      const rows = await q(`
+        SELECT
+          u.uren_id        AS id,
+          d.developer_id   AS "developer_id",
+          d.naam           AS "developerName",
+          k.naam           AS "clientName",
+          p.projectnaam    AS "projectName",
+          u.datum          AS date,
+          u.aantal_uren    AS "hoursWorked",
+          u.bedrag,
+          u.omschrijving   AS description,
+          u.status
+        FROM urenregistratie u
+        JOIN developer d ON d.developer_id = u.developer_id
+        LEFT JOIN project  p ON p.project_id  = u.project_id
+        LEFT JOIN klant    k ON k.klant_id    = p.klant_id
+        WHERE u.developer_id = $1
+        ORDER BY u.datum DESC
+      `, [req.myDeveloperId]);
+      return res.json({ ok: true, data: rows });
+    }
+
     const rows = await q(`
       SELECT
         u.uren_id        AS id,
@@ -939,6 +984,12 @@ app.get('/api/timesheets', async (req, res) => {
 // POST – log hours (auto-lookup actief contract op basis van developer+project+datum)
 app.post('/api/timesheets', async (req, res) => {
   console.log('TIMESHEET BODY:', JSON.stringify(req.body, null, 2));
+  if (req.authRole === 'developer') {
+    if (!req.myDeveloperId) {
+      return res.status(403).json({ ok: false, error: 'Geen toegang tot deze gegevens' });
+    }
+    req.body.developer_id = req.myDeveloperId;
+  }
   const { developer_id, project_id, datum, aantal_uren, omschrijving } = req.body;
 
   if (!developer_id || !project_id || !datum || !aantal_uren) {
@@ -1070,6 +1121,15 @@ app.patch('/api/timesheets', async (req, res) => {
 app.delete('/api/timesheets/:id', async (req, res) => {
   const { id } = req.params;
   try {
+    if (req.authRole === 'developer') {
+      if (!req.myDeveloperId) {
+        return res.status(403).json({ ok: false, error: 'Geen toegang tot deze gegevens' });
+      }
+      const ts = await q('SELECT developer_id FROM urenregistratie WHERE uren_id = $1', [id]);
+      if (!ts.length || String(ts[0].developer_id) !== String(req.myDeveloperId)) {
+        return res.status(403).json({ ok: false, error: 'Geen toegang tot deze gegevens' });
+      }
+    }
     await q('DELETE FROM urenregistratie WHERE uren_id=$1', [id]);
     res.json({ ok: true });
   } catch (e) { res.status(500).json({ ok: false, error: e.message }); }
@@ -1609,6 +1669,9 @@ app.delete('/api/developers/:id/cv', async (req, res) => {
 // ==============================================================================
 app.get('/api/developers/:id/dashboard', async (req, res) => {
   const { id } = req.params;
+  if (req.authRole === 'developer' && (!req.myDeveloperId || String(id) !== String(req.myDeveloperId))) {
+    return res.status(403).json({ ok: false, error: 'Geen toegang tot deze gegevens' });
+  }
   try {
     // 1. Fetch all active contracts
     const contracts = await q(`
