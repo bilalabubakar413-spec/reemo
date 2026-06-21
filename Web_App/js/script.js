@@ -5952,10 +5952,19 @@ async function loadCVDatabase() {
 async function activateCVasDeveloper(cvId) {
     const cv = cvs.find(c => String(c.developer_id || c.id) === String(cvId));
     if (!cv) return;
-    if (!cv.email) {
-        showToast('⚠ E-mailadres ontbreekt — open het CV opnieuw via Upload CV en vul het e-mail in.');
-        return;
+    
+    let email = cv.email;
+    if (!email) {
+        email = window.prompt(`Vul een e-mailadres in voor ${cv.naam || cv.name} om te promoveren naar developer:`);
+        if (!email) return; // gebruiker annuleerde
+        email = email.trim();
+        // simpele validatie: moet een @ en een punt erna bevatten
+        if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
+            showToast('⚠ Ongeldig e-mailadres.');
+            return;
+        }
     }
+
     const devDbId = cv.developer_id || cv.id;
     try {
         let result;
@@ -5963,7 +5972,7 @@ async function activateCVasDeveloper(cvId) {
             result = await apiFetch(`/api/developers/${devDbId}`, {
                 method: 'PATCH',
                 body: JSON.stringify({
-                    naam: cv.naam || cv.name, email: cv.email,
+                    naam: cv.naam || cv.name, email: email,
                     rol: cv.rol || cv.role || null, type: 'ZZP',
                     uurtarief: cv.rate || cv.uurtarief || null, weekcapaciteit: 40,
                     status: 'active'
@@ -5973,19 +5982,19 @@ async function activateCVasDeveloper(cvId) {
             console.warn('[API] Mocking developer activation.', apiErr);
             result = { developer_id: devDbId, upserted: true };
             
-            const existingDevIdx = developers.findIndex(d => String(d.id) === String(devDbId) || d.email === cv.email);
+            const existingDevIdx = developers.findIndex(d => String(d.id) === String(devDbId) || d.email === email);
             
             if (existingDevIdx >= 0) {
                 developers[existingDevIdx] = {
                     ...developers[existingDevIdx],
                     naam: cv.naam || cv.name, name: cv.naam || cv.name, role: cv.rol || cv.role, rol: cv.rol || cv.role,
                     hourlyRate: cv.rate || cv.uurtarief || 0, uurtarief: cv.rate || cv.uurtarief || 0,
-                    type: 'ZZP', status: 'active'
+                    type: 'ZZP', status: 'active', email: email
                 };
             } else {
                 developers.unshift({
                     id: devDbId, naam: cv.naam || cv.name, name: cv.naam || cv.name,
-                    email: cv.email, role: cv.rol || cv.role, rol: cv.rol || cv.role,
+                    email: email, role: cv.rol || cv.role, rol: cv.rol || cv.role,
                     hourlyRate: cv.rate || cv.uurtarief || 0, uurtarief: cv.rate || cv.uurtarief || 0,
                     weekcapaciteit: 40,
                     hoursThisWeek: 0, activeProjects: 0,
@@ -6016,7 +6025,7 @@ async function activateCVasDeveloper(cvId) {
 
         // Mark CV as active in local store
         const idx = cvs.findIndex(c => String(c.developer_id || c.id) === String(cvId));
-        if (idx >= 0) cvs[idx] = { ...cv, type: 'ZZP', status: 'active', active: true };
+        if (idx >= 0) cvs[idx] = { ...cv, email: email, type: 'ZZP', status: 'active', active: true };
         saveCVs();
         renderCVDatabase();
         await loadDevelopers();
