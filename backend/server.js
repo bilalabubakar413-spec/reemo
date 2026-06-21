@@ -17,6 +17,9 @@ const supabaseAdmin = supabase; // Unified client for storage operations
 const app  = express();
 const PORT = process.env.PORT || 3000;
 
+// ===== SUPER-ADMIN WAARBORG =====
+const SUPER_ADMIN_EMAIL = 'bilalabubakar413@gmail.com';
+
 const multer   = require('multer');
 const { parse } = require('csv-parse/sync');
 const XLSX = require('xlsx');
@@ -104,6 +107,84 @@ async function authVerify(req, res, next) {
 
 app.use('/api', authVerify);
 // ===== EINDE AUTH 3a =====
+
+
+// ===== ADMIN ACCESS MANAGEMENT ENDPOINTS =====
+
+// GET /api/admin/users - List all auth users and link them to developers (admin-only)
+app.get('/api/admin/users', async (req, res) => {
+  if (req.authRole !== 'admin') {
+    return res.status(403).json({ ok: false, error: 'Admin-rechten vereist' });
+  }
+
+  try {
+    // 1. Fetch Supabase Auth users (first page, default 50 users is enough)
+    const { data: { users }, error: usersError } = await supabase.auth.admin.listUsers();
+    if (usersError) {
+      throw usersError;
+    }
+
+    // 2. Fetch all developer details for mapping
+    const devRows = await q('SELECT developer_id, naam, email, auth_user_id FROM developer');
+
+    // 3. Map auth users to their corresponding developer details
+    const mappedUsers = users.map(user => {
+      const matchingDev = devRows.find(d => d.auth_user_id && String(d.auth_user_id) === String(user.id));
+      return {
+        id: user.id,
+        email: user.email,
+        role: user.app_metadata?.role || '—',
+        is_super_admin: user.email === SUPER_ADMIN_EMAIL,
+        developer_naam: matchingDev ? matchingDev.naam : null
+      };
+    });
+
+    res.json({ ok: true, data: mappedUsers });
+  } catch (e) {
+    console.error('[GET /api/admin/users]', e.message);
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
+// POST /api/admin/users/:id/role - Update user role (admin-only, with super-admin protection)
+app.post('/api/admin/users/:id/role', async (req, res) => {
+  if (req.authRole !== 'admin') {
+    return res.status(403).json({ ok: false, error: 'Admin-rechten vereist' });
+  }
+
+  const { id } = req.params;
+  const { role } = req.body;
+
+  if (role !== 'admin' && role !== 'developer') {
+    return res.status(400).json({ ok: false, error: 'Ongeldige rol opgegeven' });
+  }
+
+  try {
+    // 1. Fetch target user to check email before modifying
+    const { data: { user }, error: userError } = await supabase.auth.admin.getUserById(id);
+    if (userError || !user) {
+      return res.status(404).json({ ok: false, error: 'Gebruiker niet gevonden' });
+    }
+
+    // 2. Safeguard check: prevent changing the super-admin's role
+    if (user.email === SUPER_ADMIN_EMAIL) {
+      return res.status(403).json({ ok: false, error: 'Dit account is beveiligd en kan niet gewijzigd worden' });
+    }
+
+    // 3. Update the user role in Supabase auth metadata
+    const { error: updateError } = await supabase.auth.admin.updateUserById(id, {
+      app_metadata: { role }
+    });
+    if (updateError) {
+      throw updateError;
+    }
+
+    res.json({ ok: true });
+  } catch (e) {
+    console.error(`[POST /api/admin/users/${id}/role]`, e.message);
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
 
 
 app.get('/api/debug-counts', async (req, res) => {
