@@ -187,6 +187,49 @@ app.post('/api/admin/users/:id/role', async (req, res) => {
 });
 
 
+// DELETE /api/admin/users/:id - Delete an auth user account (admin-only, with protection)
+app.delete('/api/admin/users/:id', async (req, res) => {
+  if (req.authRole !== 'admin') {
+    return res.status(403).json({ ok: false, error: 'Admin-rechten vereist' });
+  }
+
+  const { id } = req.params;
+
+  try {
+    // 1. Fetch target user to check email before deleting
+    const { data: { user }, error: userError } = await supabase.auth.admin.getUserById(id);
+    if (userError || !user) {
+      return res.status(404).json({ ok: false, error: 'Gebruiker niet gevonden' });
+    }
+
+    // Safeguard 1: prevent deleting the super-admin account
+    if (user.email === SUPER_ADMIN_EMAIL) {
+      return res.status(403).json({ ok: false, error: 'Dit account is beveiligd en kan niet verwijderd worden' });
+    }
+
+    // Safeguard 2: prevent self-deletion
+    const loggedInUid = req.authClaims?.sub;
+    if (id === loggedInUid) {
+      return res.status(403).json({ ok: false, error: 'Je kunt je eigen account niet verwijderen' });
+    }
+
+    // 2. Unlink the auth account from the developer table in PostgreSQL
+    await q('UPDATE developer SET auth_user_id = NULL WHERE auth_user_id = $1', [id]);
+
+    // 3. Delete the auth account from Supabase Auth
+    const { error: deleteError } = await supabase.auth.admin.deleteUser(id);
+    if (deleteError) {
+      throw deleteError;
+    }
+
+    res.json({ ok: true });
+  } catch (e) {
+    console.error(`[DELETE /api/admin/users/${id}]`, e.message);
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
+
 app.get('/api/debug-counts', async (req, res) => {
   try {
     const { count: klantCount, error: klantError } = await supabase
