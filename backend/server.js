@@ -673,13 +673,25 @@ app.post('/api/test-storage', storageUpload.single('file'), async (req, res) => 
 });
 
 
-// POST – create or update (check-first, no UNIQUE constraint required)
 app.post('/api/developers', async (req, res) => {
-  const { naam, email, type, rol, uurtarief, weekcapaciteit, status, skills } = req.body;
-  if (!naam || !email) return res.status(400).json({ ok: false, error: 'naam en email zijn verplicht' });
+  const { naam, type, rol, uurtarief, weekcapaciteit, status, skills } = req.body;
+  let { email } = req.body;
+
+  // Convert empty/whitespace string to null, or trim if valid string
+  if (typeof email === 'string') {
+    const trimmed = email.trim();
+    email = trimmed === '' ? null : trimmed;
+  } else if (!email) {
+    email = null;
+  }
+
+  if (!naam || (!email && type !== 'candidate')) {
+    return res.status(400).json({ ok: false, error: 'naam en email zijn verplicht' });
+  }
+
   try {
     // Check if developer with this email already exists
-    const existing = await q('SELECT developer_id FROM developer WHERE email = $1', [email]);
+    const existing = email ? await q('SELECT developer_id FROM developer WHERE email = $1', [email]) : [];
 
     let rows;
     let wasUpdated = false;

@@ -5859,7 +5859,7 @@ async function saveParsedCVDatabase() {
     const email = document.getElementById('cv-r-email')?.value.trim() || null;
     const weekcap = parseInt(document.getElementById('cv-r-weekcap')?.value) || 40;
 
-    if (!naam || !email) { showToast('⚠ Naam en Email zijn verplicht.'); return; }
+    if (!naam) { showToast('⚠ Naam is verplicht.'); return; }
 
     const btn = document.querySelector('[onclick="saveParsedCVDatabase()"]');
     if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spinner-small"></span> Bezig...'; }
@@ -5878,10 +5878,10 @@ async function saveParsedCVDatabase() {
             });
         } catch (apiErr) {
             console.warn('[API] Mocking candidate save.');
-            result = { id: genId('d') };
+            result = { developer_id: genId('d') };
         }
 
-        const developer_id = result?.developer_id || result?.data?.developer_id || result?.id;
+        const developer_id = result?.developer_id;
 
         // Upload file to storage if exists
         if (_cvFile && developer_id) {
@@ -5902,24 +5902,26 @@ async function saveParsedCVDatabase() {
         }
 
         // Also save/update in local CV database list
-        const existingIdx = cvs.findIndex(c => c.email === email);
-        const cvEntry = {
-            id: existingIdx >= 0 ? cvs[existingIdx].id : genId('cv'),
-            developer_id: developer_id || genId('d'),
-            naam: naam,
-            name: naam,
-            email: email,
-            rol: rol,
-            role: rol,
-            rate: rate,
-            skills: _cvParsedSkills,
-            uploadDate: new Date().toISOString().slice(0, 10),
-            status: 'ORIGINAL',
-            cv_url: _cvSavedFilename ? 'uploads/' + _cvSavedFilename : (_cvFile ? 'uploads/' + _cvFile.name : ('uploads/' + (naam || 'cv').toLowerCase().replace(/\s+/g, '_') + '.pdf'))
-        };
-        if (existingIdx >= 0) cvs[existingIdx] = cvEntry;
-        else cvs.unshift(cvEntry);
-        saveCVs();
+        if (developer_id) {
+            const existingIdx = cvs.findIndex(c => String(c.developer_id || c.id) === String(developer_id));
+            const cvEntry = {
+                id: existingIdx >= 0 ? cvs[existingIdx].id : genId('cv'),
+                developer_id: developer_id,
+                naam: naam,
+                name: naam,
+                email: email,
+                rol: rol,
+                role: rol,
+                rate: rate,
+                skills: _cvParsedSkills,
+                uploadDate: new Date().toISOString().slice(0, 10),
+                status: 'ORIGINAL',
+                cv_url: _cvSavedFilename ? 'uploads/' + _cvSavedFilename : (_cvFile ? 'uploads/' + _cvFile.name : ('uploads/' + (naam || 'cv').toLowerCase().replace(/\s+/g, '_') + '.pdf'))
+            };
+            if (existingIdx >= 0) cvs[existingIdx] = cvEntry;
+            else cvs.unshift(cvEntry);
+            saveCVs();
+        }
 
         closeModal('modal-cv-upload');
         resetCVUpload();
