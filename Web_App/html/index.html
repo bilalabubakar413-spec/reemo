@@ -1008,6 +1008,43 @@
                             </div>
                         </div>
                     </div>
+
+                    <div style="max-width: 500px; margin-top: 1.5rem;">
+                        <div class="dashboard-card" style="padding: 24px;">
+                            <h3 style="font-size: 16px; font-weight: 700; color: #fff; margin: 0 0 8px 0; display: flex; align-items: center; gap: 8px;">
+                                <i data-lucide="lock" style="width:18px;height:18px;color:var(--white-70)"></i> Wachtwoord wijzigen
+                            </h3>
+                            <p style="font-size: 12px; color: var(--white-40); margin: 0 0 20px 0; line-height: 1.5;">
+                                Wijzig het wachtwoord van je eigen account.
+                            </p>
+
+                            <div style="display: flex; flex-direction: column; gap: 16px;">
+                                <div>
+                                    <label style="display: block; font-size: 11px; font-weight: 600; color: var(--white-60); margin-bottom: 6px;">Huidig wachtwoord</label>
+                                    <input type="password" id="pw-current" class="filter-input" style="width:100%" placeholder="••••••••">
+                                </div>
+
+                                <div>
+                                    <label style="display: block; font-size: 11px; font-weight: 600; color: var(--white-60); margin-bottom: 6px;">Nieuw wachtwoord</label>
+                                    <input type="password" id="pw-new" class="filter-input" style="width:100%" placeholder="••••••••">
+                                </div>
+
+                                <div>
+                                    <label style="display: block; font-size: 11px; font-weight: 600; color: var(--white-60); margin-bottom: 6px;">Nieuw wachtwoord bevestigen</label>
+                                    <input type="password" id="pw-confirm" class="filter-input" style="width:100%" placeholder="••••••••">
+                                </div>
+
+                                <div id="pw-error" style="display: none; background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.2); border-radius: 8px; padding: 10px 12px; font-size: 12px; color: #f87171;">
+                                </div>
+
+                                <div style="margin-top: 8px;">
+                                    <button id="pw-save" class="btn-blue" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                                        <i data-lucide="key-round" style="width:14px;height:14px"></i> Wachtwoord wijzigen
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
 

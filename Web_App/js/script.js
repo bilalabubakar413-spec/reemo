@@ -325,6 +325,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (setPasswordForm) setPasswordForm.addEventListener('submit', handleSetPassword);
     if (logoutBtn) logoutBtn.addEventListener('click', handleLogout);
     document.getElementById('pin-save')?.addEventListener('click', handlePinChange);
+    document.getElementById('pw-save')?.addEventListener('click', handlePasswordChange);
     
     // Navigation
     navItems.forEach(item => {
@@ -647,6 +648,97 @@ async function handlePinChange() {
     }
 }
 
+async function handlePasswordChange() {
+    const pwCurrent = document.getElementById('pw-current')?.value || '';
+    const pwNew = document.getElementById('pw-new')?.value || '';
+    const pwConfirm = document.getElementById('pw-confirm')?.value || '';
+    const pwError = document.getElementById('pw-error');
+    const pwSaveBtn = document.getElementById('pw-save');
+
+    if (pwError) {
+        pwError.style.display = 'none';
+        pwError.textContent = '';
+    }
+
+    if (!pwCurrent || !pwNew || !pwConfirm) {
+        if (pwError) {
+            pwError.textContent = 'Huidig wachtwoord, nieuw wachtwoord en bevestiging zijn verplicht.';
+            pwError.style.display = 'block';
+        }
+        return;
+    }
+
+    if (pwNew.length < 8) {
+        if (pwError) {
+            pwError.textContent = 'Het nieuwe wachtwoord moet minimaal 8 tekens zijn.';
+            pwError.style.display = 'block';
+        }
+        return;
+    }
+
+    if (pwNew !== pwConfirm) {
+        if (pwError) {
+            pwError.textContent = 'Het nieuwe wachtwoord en bevestiging komen niet overeen.';
+            pwError.style.display = 'block';
+        }
+        return;
+    }
+
+    const originalHtml = pwSaveBtn ? pwSaveBtn.innerHTML : '';
+    if (pwSaveBtn) {
+        pwSaveBtn.disabled = true;
+        pwSaveBtn.innerHTML = 'Bezig...';
+    }
+
+    try {
+        const { data: userData, error: userErr } = await sbClient.auth.getUser();
+        if (userErr || !userData?.user?.email) {
+            throw new Error(userErr?.message || 'Geen ingelogde gebruiker gevonden.');
+        }
+
+        const email = userData.user.email;
+
+        // Verify current password by signing in
+        const { error: signInErr } = await sbClient.auth.signInWithPassword({
+            email: email,
+            password: pwCurrent
+        });
+
+        if (signInErr) {
+            if (pwError) {
+                pwError.textContent = 'Huidig wachtwoord is onjuist.';
+                pwError.style.display = 'block';
+            }
+            return;
+        }
+
+        // Update password
+        const { error: updErr } = await sbClient.auth.updateUser({ password: pwNew });
+        if (updErr) {
+            throw updErr;
+        }
+
+        showToast('✓ Wachtwoord gewijzigd', 'success');
+
+        // Clear fields
+        const c = document.getElementById('pw-current'); if (c) c.value = '';
+        const n = document.getElementById('pw-new'); if (n) n.value = '';
+        const cf = document.getElementById('pw-confirm'); if (cf) cf.value = '';
+
+    } catch (err) {
+        console.error('[handlePasswordChange]', err.message);
+        if (pwError) {
+            pwError.textContent = err.message || 'Fout bij het wijzigen van het wachtwoord.';
+            pwError.style.display = 'block';
+        }
+    } finally {
+        if (pwSaveBtn) {
+            pwSaveBtn.disabled = false;
+            pwSaveBtn.innerHTML = originalHtml;
+        }
+    }
+}
+
 // --- Navigation ---
 function navigateTo(targetScreenId) {
     // Update Sidebar
@@ -803,6 +895,18 @@ function navigateTo(targetScreenId) {
         if (pinError) {
             pinError.style.display = 'none';
             pinError.textContent = '';
+        }
+
+        const pwCurrent = document.getElementById('pw-current');
+        const pwNew = document.getElementById('pw-new');
+        const pwConfirm = document.getElementById('pw-confirm');
+        const pwError = document.getElementById('pw-error');
+        if (pwCurrent) pwCurrent.value = '';
+        if (pwNew) pwNew.value = '';
+        if (pwConfirm) pwConfirm.value = '';
+        if (pwError) {
+            pwError.style.display = 'none';
+            pwError.textContent = '';
         }
         if (typeof lucide !== 'undefined') lucide.createIcons();
     }
