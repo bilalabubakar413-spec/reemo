@@ -325,6 +325,40 @@ app.delete('/api/admin/users/:id', async (req, res) => {
   }
 });
 
+// POST /api/admin/pin - Update admin PIN (admin-only)
+app.post('/api/admin/pin', async (req, res) => {
+  if (req.authRole !== 'admin') {
+    return res.status(403).json({ ok: false, error: 'Admin-rechten vereist' });
+  }
+
+  const { currentPin, newPin } = req.body || {};
+
+  if (!currentPin || !newPin) {
+    return res.status(400).json({ ok: false, error: 'Huidige en nieuwe PIN zijn verplicht' });
+  }
+
+  if (!/^\d{4}$/.test(newPin)) {
+    return res.status(400).json({ ok: false, error: 'De PIN moet uit 4 cijfers bestaan' });
+  }
+
+  try {
+    const huidig = await getAdminPin();
+    if (currentPin !== huidig) {
+      return res.status(403).json({ ok: false, error: 'Huidige PIN is onjuist' });
+    }
+
+    await q(
+      "INSERT INTO app_settings (key, value, updated_at) VALUES ('admin_pin', $1, now()) ON CONFLICT (key) DO UPDATE SET value = $1, updated_at = now()",
+      [newPin]
+    );
+
+    res.json({ ok: true });
+  } catch (e) {
+    console.error('[POST /api/admin/pin]', e.message);
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
 
 // ── Multer – storage configurations ──────────────────────
 const fs      = require('fs');
