@@ -322,8 +322,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     const isInviteOrRecovery = window.location.pathname === '/set-password' || 
                                window.location.hash.includes('type=invite') || 
-                               window.location.hash.includes('type=recovery') ||
-                               window.location.hash.includes('access_token=');
+                               window.location.hash.includes('type=recovery');
+
 
     if (isInviteOrRecovery) {
         if (setPasswordScreen) setPasswordScreen.classList.remove('hidden');
@@ -453,6 +453,8 @@ async function setupUserSession(user, role) {
         document.body.classList.remove('dev-portal');
         navigateTo('dashboard');
     }
+}
+
 async function handleSetPassword(e) {
     e.preventDefault();
     const spError = document.getElementById('sp-error');
