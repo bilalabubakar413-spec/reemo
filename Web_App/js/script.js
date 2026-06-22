@@ -281,6 +281,39 @@ const navDevItems = document.getElementById('nav-dev-items');
 const userProfileAvatar = document.getElementById('user-profile-avatar');
 const userProfileName = document.getElementById('user-profile-name');
 
+async function loadAndRenderAllData() {
+    // Load all data from Supabase (including projects for dropdowns)
+    try {
+        await Promise.all([
+            loadClients(),
+            loadDevelopers(),
+            loadTimesheets(),
+            loadInvoices(),
+            loadProjects()
+        ]);
+    } catch (e) {
+        console.error('Fout bij het laden van data:', e);
+    }
+
+    // Render everything
+    try { renderDashboardStats(); } catch (e) { console.error(e); }
+    try { renderDashboardTimesheets(); } catch (e) { console.error(e); }
+    try { renderClientsGrid(); } catch (e) { console.error(e); }
+    try { renderDevelopersGrid(); } catch (e) { console.error(e); }
+    try { renderTimesheetsTable(); } catch (e) { console.error(e); }
+    try { renderInvoicesTable(); } catch (e) { console.error(e); }
+    try { renderCVDatabase(); } catch (e) { console.error(e); }
+    try { updateCVStats(); } catch (e) { console.error(e); }
+    try { updateInvoiceStats(); } catch (e) { console.error(e); }
+    try { updateTimesheetSummary(); } catch (e) { console.error(e); }
+    try {
+        if (typeof renderOmzetTrendChart === 'function') {
+            await renderOmzetTrendChart();
+        }
+    } catch (e) {
+        console.error(e);
+    }
+}
 
 // --- Initialization ---
 document.addEventListener('DOMContentLoaded', async () => {
@@ -340,25 +373,13 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (spSubmit) spSubmit.disabled = true;
         }
     } else {
-        // Load all data from Supabase (including projects for dropdowns)
-        await Promise.all([loadClients(), loadDevelopers(), loadTimesheets(), loadInvoices(), loadProjects()]);
-
-        // Render everything
-        renderDashboardStats();
-        renderDashboardTimesheets();
-        renderClientsGrid();
-        renderDevelopersGrid();
-        renderTimesheetsTable();
-        renderInvoicesTable();
-        renderCVDatabase();
-        updateCVStats();
-        updateInvoiceStats();
-        updateTimesheetSummary();
-        if (typeof renderOmzetTrendChart === 'function') renderOmzetTrendChart();
-
         if (session && session.user) {
             const role = session.user.app_metadata?.role || 'developer';
             await setupUserSession(session.user, role);
+            await loadAndRenderAllData();
+        } else {
+            if (loginScreen) loginScreen.classList.remove('hidden');
+            if (appContainer) appContainer.classList.add('hidden');
         }
     }
 
@@ -533,6 +554,7 @@ async function handleLogin(e) {
         const role = user?.app_metadata?.role || 'developer';
 
         await setupUserSession(user, role);
+        await loadAndRenderAllData();
     } catch (err) {
         console.error('Login error:', err);
         if (loginError) {
