@@ -1051,6 +1051,15 @@ function renderToegangTable() {
                 </button>
             `;
             
+            // Reset button - Only for non-super-admin accounts
+            const resetBtn = `
+                <button onclick="stuurResetLink('${user.email.replace(/'/g, "\\'")}', this)" title="Reset-link sturen"
+                    style="display:inline-flex;align-items:center;justify-content:center;width:2.375rem;height:2.375rem;border-radius:0.5rem;border:1px solid rgba(99,102,241,0.25);background:rgba(99,102,241,0.04);color:#a5b4fc;cursor:pointer;transition:all 0.15s;flex-shrink:0"
+                    onmouseenter="this.style.background='rgba(99,102,241,0.15)';this.style.borderColor='rgba(99,102,241,0.5)'" onmouseleave="this.style.background='rgba(99,102,241,0.04)';this.style.borderColor='rgba(99,102,241,0.25)'">
+                    <i data-lucide="key-round" style="width:14px;height:14px"></i>
+                </button>
+            `;
+            
             const deleteBtn = `
                 <button onclick="deleteUser('${user.id}', '${user.email.replace(/'/g, "\\'")}')" title="Account verwijderen"
                     style="display:inline-flex;align-items:center;justify-content:center;width:2.375rem;height:2.375rem;border-radius:0.5rem;border:1px solid rgba(239,68,68,0.25);background:rgba(239,68,68,0.04);color:#f87171;cursor:pointer;transition:all 0.15s;flex-shrink:0"
@@ -1059,7 +1068,7 @@ function renderToegangTable() {
                 </button>
             `;
             
-            actionHtml = `<div style="display:flex;align-items:center;gap:0.5rem">${toggleBtn}${deleteBtn}</div>`;
+            actionHtml = `<div style="display:flex;align-items:center;gap:0.5rem">${toggleBtn}${resetBtn}${deleteBtn}</div>`;
         }
 
         return `
@@ -1099,6 +1108,34 @@ async function setUserRole(userId, role) {
     } catch (e) {
         console.error('Failed to update user role:', e);
         showToast(`⚠ Fout bij bijwerken: ${e.message}`);
+    }
+}
+
+async function stuurResetLink(email, btn) {
+    if (!email) return;
+    
+    if (!confirm(`Reset-link sturen naar ${email}?`)) return;
+
+    const originalHtml = btn ? btn.innerHTML : '';
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<div class="spinner" style="width:13px;height:13px;border:2px solid rgba(255,255,255,0.3);border-top-color:#fff;border-radius:50%;animation:spin 1s linear infinite;margin:0 auto"></div>';
+    }
+
+    try {
+        await apiFetch('/api/admin/users/reset-link', {
+            method: 'POST',
+            body: JSON.stringify({ email })
+        });
+        showToast(`✓ Reset-link verstuurd naar ${email}`, 'success');
+    } catch (err) {
+        console.error('[stuurResetLink]', err.message);
+        showToast(err.message || 'Fout bij het versturen van de reset-link.', 'error');
+    } finally {
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = originalHtml;
+        }
     }
 }
 
