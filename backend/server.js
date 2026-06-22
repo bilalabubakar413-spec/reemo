@@ -109,6 +109,44 @@ app.use('/api', authVerify);
 // ===== EINDE AUTH 3a =====
 
 
+
+
+app.get('/api/debug-counts', async (req, res) => {
+  try {
+    const { count: klantCount, error: klantError } = await supabase
+      .from('klant')
+      .select('*', { count: 'exact', head: true });
+    
+    const { count: devCount, error: devError } = await supabase
+      .from('developer')
+      .select('*', { count: 'exact', head: true });
+    
+    if (klantError || devError) throw (klantError || devError);
+
+    res.json({ klanten: klantCount, developers: devCount });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+
+
+// ── Middleware ─────────────────────────────────────────────────────────────────
+app.use(express.json());
+app.use((req, res, next) => {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PATCH,PUT,DELETE,OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  // Prevent browser caching for EVERYTHING (local dev)
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
+  res.setHeader('Surrogate-Control', 'no-store');
+  if (req.method === 'OPTIONS') return res.sendStatus(204);
+  next();
+});
+
+
 // ===== ADMIN ACCESS MANAGEMENT ENDPOINTS =====
 
 // GET /api/admin/users - List all auth users and link them to developers (admin-only)
@@ -153,7 +191,7 @@ app.post('/api/admin/users/:id/role', async (req, res) => {
   }
 
   const { id } = req.params;
-  const { role } = req.body;
+  const { role } = req.body || {};
 
   if (role !== 'admin' && role !== 'developer') {
     return res.status(400).json({ ok: false, error: 'Ongeldige rol opgegeven' });
@@ -227,42 +265,6 @@ app.delete('/api/admin/users/:id', async (req, res) => {
     console.error(`[DELETE /api/admin/users/${id}]`, e.message);
     res.status(500).json({ ok: false, error: e.message });
   }
-});
-
-
-app.get('/api/debug-counts', async (req, res) => {
-  try {
-    const { count: klantCount, error: klantError } = await supabase
-      .from('klant')
-      .select('*', { count: 'exact', head: true });
-    
-    const { count: devCount, error: devError } = await supabase
-      .from('developer')
-      .select('*', { count: 'exact', head: true });
-    
-    if (klantError || devError) throw (klantError || devError);
-
-    res.json({ klanten: klantCount, developers: devCount });
-  } catch (e) {
-    res.status(500).json({ error: e.message });
-  }
-});
-
-
-
-// ── Middleware ─────────────────────────────────────────────────────────────────
-app.use(express.json());
-app.use((req, res, next) => {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PATCH,PUT,DELETE,OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-  // Prevent browser caching for EVERYTHING (local dev)
-  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
-  res.setHeader('Pragma', 'no-cache');
-  res.setHeader('Expires', '0');
-  res.setHeader('Surrogate-Control', 'no-store');
-  if (req.method === 'OPTIONS') return res.sendStatus(204);
-  next();
 });
 
 
