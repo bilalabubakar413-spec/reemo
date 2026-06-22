@@ -931,6 +931,11 @@
                             <h2>Toegangsbeheer</h2>
                             <p>Beheer wie toegang heeft tot het Reemo-adminpaneel.</p>
                         </div>
+                        <div class="page-header-actions">
+                            <button class="btn-blue" onclick="openInviteModal()">
+                                <i data-lucide="user-plus" style="width:14px;height:14px"></i> Nodig iemand uit
+                            </button>
+                        </div>
                     </div>
 
                     <!-- Echte stat-kaarten -->
@@ -2973,6 +2978,45 @@
       <button onclick="closeModal('modal-verwijder-user')" class="btn-outline">Annuleer</button>
       <button id="vu-bevestig-btn" style="background:#EF4444; border:none; color:white; padding:9px 20px; border-radius:8px; cursor:pointer; font-weight:600;">
         Permanent verwijderen
+      </button>
+    </div>
+  </div>
+</div>
+<!-- ===== USER INVITATION MODAL ===== -->
+<div id="modal-invite-user" class="modal-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);backdrop-filter:blur(6px);z-index:9999;align-items:center;justify-content:center;padding:1rem">
+  <div class="modal-card" style="background:#0a0a0a; border:1px solid #1e1e1e; border-radius:1rem; width:100%; max-width:480px; box-shadow:0 25px 50px -12px rgba(0,0,0,0.5); overflow:hidden;">
+    <div class="modal-header" style="padding:1.5rem; border-bottom:1px solid #1e1e1e; display:flex; justify-content:space-between; align-items:center;">
+      <h3 style="color:var(--white); display:flex; align-items:center; gap:8px; font-size:1.125rem; font-weight:800; margin:0;">
+        <i data-lucide="user-plus" style="width:18px;height:18px;color:#3b82f6"></i> Iemand uitnodigen
+      </h3>
+      <button onclick="closeModal('modal-invite-user')" class="modal-close" style="width:2rem; height:2rem; border-radius:50%; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1); color:var(--white-60); cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:1rem;">✕</button>
+    </div>
+    <div class="modal-body" style="padding:1.5rem; display:flex; flex-direction:column; gap:1.25rem;">
+      <p style="color:var(--white-40); font-size:13px; margin:0;">
+        De uitgenodigde krijgt een e-mail om een account aan te maken en een wachtwoord in te stellen.
+      </p>
+      
+      <div>
+        <label style="display:block;font-size:0.625rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--white-40);margin-bottom:0.4rem">E-mailadres *</label>
+        <input id="iu-email" type="email" class="filter-input" placeholder="naam@voorbeeld.nl" style="width:100%">
+      </div>
+
+      <div>
+        <label style="display:block;font-size:0.625rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--white-40);margin-bottom:0.4rem">Rol *</label>
+        <div class="filter-select-wrap" style="width:100%">
+          <select id="iu-role" class="filter-select" style="width:100%">
+            <option value="admin" selected>Admin</option>
+            <option value="developer">Developer</option>
+          </select>
+        </div>
+      </div>
+      
+      <p id="iu-error" style="color:#EF4444; font-size:12px; font-weight:600; margin:0; display:none; background:rgba(239,68,68,0.1); border:1px solid rgba(239,68,68,0.2); border-radius:6px; padding:8px;"></p>
+    </div>
+    <div class="modal-footer" style="padding:1.25rem 1.5rem; border-top:1px solid #1e1e1e; background:#0d0d0d; display:flex; gap:10px; justify-content:flex-end;">
+      <button onclick="closeModal('modal-invite-user')" class="btn-outline">Annuleren</button>
+      <button id="iu-submit" class="btn-blue" style="padding:9px 20px; border-radius:8px; font-weight:600;">
+        Uitnodiging versturen
       </button>
     </div>
   </div>

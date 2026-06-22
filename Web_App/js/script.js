@@ -918,6 +918,84 @@ function deleteUser(id, email) {
     };
 }
 
+function openInviteModal() {
+    const emailInput = document.getElementById('iu-email');
+    const roleSelect = document.getElementById('iu-role');
+    const errorEl = document.getElementById('iu-error');
+    const submitBtn = document.getElementById('iu-submit');
+
+    if (emailInput) {
+        emailInput.value = '';
+    }
+    if (roleSelect) {
+        roleSelect.value = 'admin';
+    }
+    if (errorEl) {
+        errorEl.style.display = 'none';
+        errorEl.textContent = '';
+    }
+    if (submitBtn) {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = 'Uitnodiging versturen';
+    }
+
+    openModal('modal-invite-user');
+
+    if (emailInput) {
+        setTimeout(() => emailInput.focus(), 100);
+    }
+
+    if (submitBtn) {
+        submitBtn.onclick = async () => {
+            const email = emailInput?.value?.trim() || '';
+            const role = roleSelect?.value || 'admin';
+
+            if (!email) {
+                if (errorEl) {
+                    errorEl.textContent = 'E-mailadres is verplicht.';
+                    errorEl.style.display = 'block';
+                }
+                return;
+            }
+
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(email)) {
+                if (errorEl) {
+                    errorEl.textContent = 'Ongeldig e-mailadres.';
+                    errorEl.style.display = 'block';
+                }
+                return;
+            }
+
+            if (errorEl) {
+                errorEl.style.display = 'none';
+            }
+
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<span class="spinner-small"></span> Bezig...';
+
+            try {
+                await apiFetch('/api/admin/users/invite', {
+                    method: 'POST',
+                    body: JSON.stringify({ email, role })
+                });
+                closeModal('modal-invite-user');
+                showToast('✓ Uitnodiging verstuurd naar ' + email);
+                loadToegangsbeheer();
+            } catch (err) {
+                console.error('Failed to invite user:', err);
+                if (errorEl) {
+                    errorEl.textContent = err.message || 'Fout bij uitnodigen.';
+                    errorEl.style.display = 'block';
+                }
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = 'Uitnodiging versturen';
+            }
+        };
+    }
+}
+
+
 async function loadDevDashboard() {
     const devId = activeDeveloper?.id || developers[0]?.id;
     if (!devId) return;
