@@ -388,6 +388,8 @@ const _serveIndex = (req, res) => {
 app.get('/',                (req, res) => _serveIndex(req, res));
 app.get('/html/index.html', (req, res) => _serveIndex(req, res));
 app.get('/index.html',      (req, res) => _serveIndex(req, res));
+app.get('/set-password',    (req, res) => _serveIndex(req, res));
+
 
 
 // ── Helper ─────────────────────────────────────────────────────────────────────

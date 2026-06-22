@@ -116,6 +116,63 @@
         </div>
     </div>
 
+    <!-- Set Password Screen -->
+    <div id="set-password-screen" class="login-screen-wrap hidden">
+        <!-- Background glows -->
+        <div class="login-glow login-glow-1"></div>
+        <div class="login-glow login-glow-2"></div>
+
+        <!-- Left branding panel -->
+        <div class="login-brand-panel">
+            <div class="login-brand-logo">
+                <span>R</span>
+            </div>
+            <div>
+                <div class="login-brand-title">Reemo</div>
+                <div class="login-brand-sub">Operations Platform</div>
+            </div>
+            <div class="login-brand-desc">
+                Stel je wachtwoord in om toegang te krijgen tot het Reemo platform.
+            </div>
+        </div>
+
+        <!-- Right login card -->
+        <div class="login-card-panel">
+            <div class="login-card">
+                <div style="margin-bottom:2rem">
+                    <div style="font-size:1.25rem;font-weight:800;color:var(--white);margin-bottom:0.375rem">Wachtwoord instellen</div>
+                    <div style="font-size:0.875rem;color:var(--white-40)">Kies een veilig wachtwoord van minimaal 8 tekens.</div>
+                </div>
+
+                <form id="set-password-form" style="display:flex;flex-direction:column;gap:1rem">
+                    <div>
+                        <label class="login-field-label">Nieuw wachtwoord</label>
+                        <input type="password" required id="sp-password" class="login-input" placeholder="••••••••">
+                    </div>
+                    <div>
+                        <label class="login-field-label">Bevestig wachtwoord</label>
+                        <input type="password" required id="sp-password2" class="login-input" placeholder="••••••••">
+                    </div>
+
+                    <div id="sp-error" style="display:none; color:#ef4444; font-size:0.75rem; font-weight: 500; text-align:center; padding:0.5rem; background:rgba(239,68,68,0.1); border:1px solid rgba(239,68,68,0.2); border-radius:0.5rem;"></div>
+
+                    <button type="submit" class="login-submit-btn" id="sp-submit">
+                        Wachtwoord instellen
+                        <i data-lucide="arrow-right" style="width:15px;height:15px"></i>
+                    </button>
+                </form>
+
+                <div class="login-card-footer">
+                    <span>Protected by end-to-end encryption</span>
+                    <div style="display:flex;align-items:center;gap:0.35rem">
+                        <div style="width:0.4rem;height:0.4rem;border-radius:50%;background:#10b981"></div>
+                        <span>All systems operational</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- App Container -->
     <div id="app-container" class="hidden flex h-screen bg-base text-white overflow-hidden">
         

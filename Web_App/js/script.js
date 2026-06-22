@@ -268,6 +268,8 @@ const loginForm = document.getElementById('login-form');
 const logoutBtn = document.getElementById('logout-btn');
 const navItems = document.querySelectorAll('.nav-item[data-target]');
 const screenContents = document.querySelectorAll('.screen-content');
+const setPasswordScreen = document.getElementById('set-password-screen');
+const setPasswordForm = document.getElementById('set-password-form');
 
 const loginEmailInput = document.getElementById('login-email');
 const loginGlow = document.getElementById('login-glow');
@@ -287,6 +289,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Setup Event Listeners
     if (loginForm) loginForm.addEventListener('submit', handleLogin);
+    if (setPasswordForm) setPasswordForm.addEventListener('submit', handleSetPassword);
     if (logoutBtn) logoutBtn.addEventListener('click', handleLogout);
     
     // Navigation
@@ -317,25 +320,46 @@ document.addEventListener('DOMContentLoaded', async () => {
         console.error('Failed to get session:', err);
     }
 
-    // Load all data from Supabase (including projects for dropdowns)
-    await Promise.all([loadClients(), loadDevelopers(), loadTimesheets(), loadInvoices(), loadProjects()]);
+    const isInviteOrRecovery = window.location.pathname === '/set-password' || 
+                               window.location.hash.includes('type=invite') || 
+                               window.location.hash.includes('type=recovery') ||
+                               window.location.hash.includes('access_token=');
 
-    // Render everything
-    renderDashboardStats();
-    renderDashboardTimesheets();
-    renderClientsGrid();
-    renderDevelopersGrid();
-    renderTimesheetsTable();
-    renderInvoicesTable();
-    renderCVDatabase();
-    updateCVStats();
-    updateInvoiceStats();
-    updateTimesheetSummary();
-    if (typeof renderOmzetTrendChart === 'function') renderOmzetTrendChart();
+    if (isInviteOrRecovery) {
+        if (setPasswordScreen) setPasswordScreen.classList.remove('hidden');
+        if (loginScreen) loginScreen.classList.add('hidden');
+        if (appContainer) appContainer.classList.add('hidden');
 
-    if (session && session.user) {
-        const role = session.user.app_metadata?.role || 'developer';
-        await setupUserSession(session.user, role);
+        if (!session) {
+            const spError = document.getElementById('sp-error');
+            if (spError) {
+                spError.textContent = 'Deze link is verlopen of ongeldig. Vraag een nieuwe uitnodiging aan.';
+                spError.style.display = 'block';
+            }
+            const spSubmit = document.getElementById('sp-submit');
+            if (spSubmit) spSubmit.disabled = true;
+        }
+    } else {
+        // Load all data from Supabase (including projects for dropdowns)
+        await Promise.all([loadClients(), loadDevelopers(), loadTimesheets(), loadInvoices(), loadProjects()]);
+
+        // Render everything
+        renderDashboardStats();
+        renderDashboardTimesheets();
+        renderClientsGrid();
+        renderDevelopersGrid();
+        renderTimesheetsTable();
+        renderInvoicesTable();
+        renderCVDatabase();
+        updateCVStats();
+        updateInvoiceStats();
+        updateTimesheetSummary();
+        if (typeof renderOmzetTrendChart === 'function') renderOmzetTrendChart();
+
+        if (session && session.user) {
+            const role = session.user.app_metadata?.role || 'developer';
+            await setupUserSession(session.user, role);
+        }
     }
 
     // ── HTML Structure Guard ────────────────────────────────────────────────────
@@ -428,6 +452,59 @@ async function setupUserSession(user, role) {
         if (logoBox) logoBox.classList.remove('dev-mode');
         document.body.classList.remove('dev-portal');
         navigateTo('dashboard');
+    }
+async function handleSetPassword(e) {
+    e.preventDefault();
+    const spError = document.getElementById('sp-error');
+    const spSubmit = document.getElementById('sp-submit');
+    const p1 = document.getElementById('sp-password')?.value || '';
+    const p2 = document.getElementById('sp-password2')?.value || '';
+
+    if (spError) {
+        spError.style.display = 'none';
+        spError.textContent = '';
+    }
+
+    if (p1.length < 8) {
+        if (spError) {
+            spError.textContent = 'Wachtwoord moet minimaal 8 tekens lang zijn.';
+            spError.style.display = 'block';
+        }
+        return;
+    }
+
+    if (p1 !== p2) {
+        if (spError) {
+            spError.textContent = 'Wachtwoorden komen niet overeen.';
+            spError.style.display = 'block';
+        }
+        return;
+    }
+
+    const originalText = spSubmit ? spSubmit.innerHTML : '';
+    if (spSubmit) {
+        spSubmit.disabled = true;
+        spSubmit.innerHTML = '<span class="spinner-small"></span> Bezig...';
+    }
+
+    try {
+        const { error } = await sbClient.auth.updateUser({ password: p1 });
+        if (error) throw error;
+
+        showToast('✓ Wachtwoord ingesteld! Een moment geduld...');
+        setTimeout(() => {
+            window.location.href = '/';
+        }, 1500);
+    } catch (err) {
+        console.error('Failed to set password:', err);
+        if (spError) {
+            spError.textContent = err.message || 'Fout bij instellen van wachtwoord.';
+            spError.style.display = 'block';
+        }
+        if (spSubmit) {
+            spSubmit.disabled = false;
+            spSubmit.innerHTML = originalText;
+        }
     }
 }
 
