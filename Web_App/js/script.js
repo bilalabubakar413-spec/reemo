@@ -646,7 +646,7 @@ async function loadToegangsbeheer() {
     const listContainer = document.getElementById('toegang-list');
     if (!listContainer) return;
 
-    listContainer.innerHTML = `<tr><td colspan="4" style="padding:3rem;text-align:center;color:var(--white-30);font-size:0.875rem"><span class="spinner-small"></span> Gebruikers laden...</td></tr>`;
+    listContainer.innerHTML = `<div style="grid-column:1/-1;display:flex;align-items:center;justify-content:center;padding:3rem;color:var(--white-30);font-size:0.875rem"><span class="spinner-small"></span>&nbsp; Gebruikers laden...</div>`;
 
     try {
         const users = await apiFetch('/api/admin/users');
@@ -657,34 +657,32 @@ async function loadToegangsbeheer() {
         const devCount = toegangAllUsers.filter(u => u.role === 'developer').length;
         const totalCount = toegangAllUsers.length;
 
-        // 2. Render KPI cards
+        // 2. Render compact KPI cards (icon-left, smaller)
         if (statsContainer) {
             const statsData = [
-                { label: 'Admins', value: adminCount, icon: 'shield', accent: '#3b82f6', bg: 'rgba(37,99,235,0.08)', border: 'rgba(37,99,235,0.18)', glow: 'rgba(59,130,246,0.15)' },
-                { label: 'Developers', value: devCount, icon: 'user-circle', accent: '#10b981', bg: 'rgba(16,185,129,0.08)', border: 'rgba(16,185,129,0.18)', glow: 'rgba(16,185,129,0.15)' },
-                { label: 'Totaal accounts', value: totalCount, icon: 'users', accent: '#f59e0b', bg: 'rgba(245,158,11,0.08)', border: 'rgba(245,158,11,0.18)', glow: 'rgba(245,158,11,0.15)' }
+                { label: 'Admins', value: adminCount, icon: 'shield', accent: '#3b82f6', bg: 'rgba(37,99,235,0.08)', border: 'rgba(37,99,235,0.18)', glow: 'rgba(59,130,246,0.12)' },
+                { label: 'Developers', value: devCount, icon: 'code-2', accent: '#10b981', bg: 'rgba(16,185,129,0.08)', border: 'rgba(16,185,129,0.18)', glow: 'rgba(16,185,129,0.12)' },
+                { label: 'Totaal', value: totalCount, icon: 'users', accent: '#f59e0b', bg: 'rgba(245,158,11,0.08)', border: 'rgba(245,158,11,0.18)', glow: 'rgba(245,158,11,0.12)' }
             ];
-            statsContainer.innerHTML = statsData.map((s, i) => `
-                <div style="position:relative;overflow:hidden;padding:1.25rem 1.375rem;background:#0d0d0d;border:1px solid ${s.border};border-radius:0.875rem;cursor:default;box-shadow:0 0 0 1px rgba(255,255,255,0.03), 0 4px 24px ${s.glow};">
-                    <div style="position:absolute;top:-30px;right:-20px;width:100px;height:100px;border-radius:50%;background:radial-gradient(circle,${s.glow} 0%,transparent 70%);pointer-events:none"></div>
-                    <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:1rem">
-                        <div style="width:2.5rem;height:2.5rem;border-radius:0.75rem;background:${s.bg};border:1px solid ${s.border};display:flex;align-items:center;justify-content:center;flex-shrink:0">
-                            <i data-lucide="${s.icon}" style="width:16px;height:16px;color:${s.accent}"></i>
-                        </div>
+            statsContainer.innerHTML = statsData.map(s => `
+                <div style="display:flex;align-items:center;gap:0.875rem;padding:0.875rem 1rem;background:#0d0d0d;border:1px solid ${s.border};border-radius:0.875rem;box-shadow:0 0 0 1px rgba(255,255,255,0.02), 0 2px 12px ${s.glow};position:relative;overflow:hidden">
+                    <div style="position:absolute;top:-20px;right:-15px;width:60px;height:60px;border-radius:50%;background:radial-gradient(circle,${s.glow} 0%,transparent 70%);pointer-events:none"></div>
+                    <div style="width:2.25rem;height:2.25rem;border-radius:0.625rem;background:${s.bg};border:1px solid ${s.border};display:flex;align-items:center;justify-content:center;flex-shrink:0">
+                        <i data-lucide="${s.icon}" style="width:14px;height:14px;color:${s.accent}"></i>
                     </div>
-                    <div style="margin-bottom:0.375rem">
-                        <div style="font-size:1.875rem;font-weight:900;color:var(--white);letter-spacing:-0.02em;line-height:1">${s.value}</div>
+                    <div>
+                        <div style="font-size:1.375rem;font-weight:800;color:var(--white);line-height:1;letter-spacing:-0.02em">${s.value}</div>
+                        <div style="font-size:0.6875rem;font-weight:600;color:var(--white-40);text-transform:uppercase;letter-spacing:0.04em;margin-top:0.125rem">${s.label}</div>
                     </div>
-                    <div style="font-size:0.75rem;font-weight:600;color:var(--white-50);letter-spacing:0.02em;text-transform:uppercase">${s.label}</div>
                 </div>
             `).join('');
         }
 
-        // 3. Render table
+        // 3. Render cards
         renderToegangTable();
     } catch (e) {
         console.error('Failed to load toegangsbeheer accounts:', e);
-        listContainer.innerHTML = `<tr><td colspan="4" style="padding:3rem;text-align:center;color:#ef4444;font-size:0.875rem">Fout bij laden van gebruikers: ${e.message}</td></tr>`;
+        listContainer.innerHTML = `<div style="grid-column:1/-1;padding:3rem;text-align:center;color:#ef4444;font-size:0.875rem">Fout bij laden van gebruikers: ${e.message}</div>`;
     }
 }
 
@@ -711,64 +709,88 @@ function renderToegangTable() {
     }
 
     if (filtered.length === 0) {
-        listContainer.innerHTML = `<tr><td colspan="4" style="padding:3rem;text-align:center;color:var(--white-30);font-size:0.875rem">Geen gebruikers gevonden</td></tr>`;
+        listContainer.innerHTML = `
+        <div style="grid-column:1/-1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:4rem 2rem;text-align:center;background:var(--surface);border:1px solid var(--white-5);border-radius:1rem;backdrop-filter:blur(8px)">
+            <div style="width:3rem;height:3rem;border-radius:0.75rem;background:rgba(255,255,255,0.04);border:1px solid var(--white-10);display:flex;align-items:center;justify-content:center;margin-bottom:0.75rem">
+                <i data-lucide="users" style="width:18px;height:18px;color:var(--white-30)"></i>
+            </div>
+            <div style="font-size:0.875rem;font-weight:600;color:var(--white-50)">Geen gebruikers gevonden</div>
+            <div style="font-size:0.75rem;color:var(--white-30);margin-top:0.25rem">Pas je zoekopdracht of filter aan.</div>
+        </div>`;
+        if (typeof lucide !== 'undefined') lucide.createIcons();
         return;
     }
 
-    listContainer.innerHTML = filtered.map(user => {
+    listContainer.innerHTML = filtered.map((user, i) => {
         const role = user.role || 'developer';
         const isSuperAdmin = user.is_super_admin === true;
         const devName = user.developer_naam || '—';
+        const displayName = user.developer_naam || user.email.split('@')[0];
         
+        // Avatar
+        const avatarColor = getStringColor(displayName);
+        const avatarBg = `background-color: ${avatarColor}20; color: ${avatarColor}; border: 1px solid ${avatarColor}40;`;
+        const initials = user.developer_naam ? getInitials(user.developer_naam) : user.email.substring(0, 2).toUpperCase();
+
+        // Badge
         const badgeClass = role === 'admin' ? 'status-badge active' : 'status-badge candidate';
         const badgeText = role === 'admin' ? 'Admin' : 'Developer';
 
+        // Actions
         let actionHtml = '';
         if (isSuperAdmin) {
             actionHtml = `
-                <div style="display:inline-flex;align-items:center;gap:0.375rem;color:var(--white-40);font-size:0.75rem;padding:0.375rem 0.75rem;background:rgba(255,255,255,0.05);border-radius:0.375rem">
-                    <i data-lucide="lock" style="width:12px;height:12px"></i> Beveiligd
+                <div style="display:flex;align-items:center;justify-content:center;gap:0.5rem;padding:0.625rem;background:rgba(255,255,255,0.03);border:1px solid var(--white-5);border-radius:0.625rem;color:var(--white-30);font-size:0.75rem;font-weight:600">
+                    <i data-lucide="lock" style="width:13px;height:13px"></i>
+                    <span>Beveiligd account</span>
                 </div>
             `;
         } else {
             const toggleBtn = role === 'admin' ? `
-                <button class="ts-action-btn remind" title="Admin-rechten intrekken" onclick="setUserRole('${user.id}', 'developer')"
-                    style="display:inline-flex;align-items:center;gap:0.25rem;padding:0.375rem 0.75rem;border-radius:0.375rem;border:1px solid rgba(239,68,68,0.35);background:rgba(239,68,68,0.08);color:#f87171;cursor:pointer;font-size:0.75rem;font-weight:700;white-space:nowrap;transition:background 0.15s"
-                    onmouseenter="this.style.background='rgba(239,68,68,0.18)'" onmouseleave="this.style.background='rgba(239,68,68,0.08)'">
-                    <i data-lucide="shield-off" style="width:12px;height:12px"></i> Rechten intrekken
+                <button onclick="setUserRole('${user.id}', 'developer')" title="Admin-rechten intrekken"
+                    style="flex:1;display:inline-flex;align-items:center;justify-content:center;gap:0.375rem;padding:0.5rem 0.75rem;border-radius:0.5rem;border:1px solid rgba(239,68,68,0.3);background:rgba(239,68,68,0.06);color:#f87171;cursor:pointer;font-size:0.75rem;font-weight:700;white-space:nowrap;transition:all 0.15s"
+                    onmouseenter="this.style.background='rgba(239,68,68,0.15)';this.style.borderColor='rgba(239,68,68,0.5)'" onmouseleave="this.style.background='rgba(239,68,68,0.06)';this.style.borderColor='rgba(239,68,68,0.3)'">
+                    <i data-lucide="shield-off" style="width:13px;height:13px"></i> Intrekken
                 </button>
             ` : `
-                <button class="ts-action-btn view" title="Maak admin" onclick="setUserRole('${user.id}', 'admin')"
-                    style="display:inline-flex;align-items:center;gap:0.25rem;padding:0.375rem 0.75rem;border-radius:0.375rem;border:1px solid rgba(34,197,94,0.35555555555555557);background:rgba(34,197,94,0.08);color:#4ade80;cursor:pointer;font-size:0.75rem;font-weight:700;white-space:nowrap;transition:background 0.15s"
-                    onmouseenter="this.style.background='rgba(34,197,94,0.18)'" onmouseleave="this.style.background='rgba(34,197,94,0.08)'">
-                    <i data-lucide="shield" style="width:12px;height:12px"></i> Maak admin
+                <button onclick="setUserRole('${user.id}', 'admin')" title="Maak admin"
+                    style="flex:1;display:inline-flex;align-items:center;justify-content:center;gap:0.375rem;padding:0.5rem 0.75rem;border-radius:0.5rem;border:1px solid rgba(34,197,94,0.3);background:rgba(34,197,94,0.06);color:#4ade80;cursor:pointer;font-size:0.75rem;font-weight:700;white-space:nowrap;transition:all 0.15s"
+                    onmouseenter="this.style.background='rgba(34,197,94,0.15)';this.style.borderColor='rgba(34,197,94,0.5)'" onmouseleave="this.style.background='rgba(34,197,94,0.06)';this.style.borderColor='rgba(34,197,94,0.3)'">
+                    <i data-lucide="shield" style="width:13px;height:13px"></i> Maak admin
                 </button>
             `;
             
             const deleteBtn = `
-                <button class="ts-action-btn delete" title="Account verwijderen" onclick="deleteUser('${user.id}', '${user.email}')"
-                    style="display:inline-flex;align-items:center;justify-content:center;width:2.25rem;height:2.25rem;border-radius:0.375rem;border:1px solid rgba(239,68,68,0.3);background:rgba(239,68,68,0.05);color:#f87171;cursor:pointer;transition:background 0.15s"
-                    onmouseenter="this.style.background='rgba(239,68,68,0.15)'" onmouseleave="this.style.background='rgba(239,68,68,0.05)'">
+                <button onclick="deleteUser('${user.id}', '${user.email.replace(/'/g, "\\'")}')" title="Account verwijderen"
+                    style="display:inline-flex;align-items:center;justify-content:center;width:2.375rem;height:2.375rem;border-radius:0.5rem;border:1px solid rgba(239,68,68,0.25);background:rgba(239,68,68,0.04);color:#f87171;cursor:pointer;transition:all 0.15s;flex-shrink:0"
+                    onmouseenter="this.style.background='rgba(239,68,68,0.15)';this.style.borderColor='rgba(239,68,68,0.5)'" onmouseleave="this.style.background='rgba(239,68,68,0.04)';this.style.borderColor='rgba(239,68,68,0.25)'">
                     <i data-lucide="trash-2" style="width:14px;height:14px"></i>
                 </button>
             `;
             
-            actionHtml = `<div style="display:flex;align-items:center;justify-content:flex-end;gap:0.5rem">${toggleBtn}${deleteBtn}</div>`;
+            actionHtml = `<div style="display:flex;align-items:center;gap:0.5rem">${toggleBtn}${deleteBtn}</div>`;
         }
 
         return `
-        <tr class="ts-row">
-            <td style="padding:0.875rem 1.25rem">
-                <span style="font-weight:700;color:var(--white);font-size:0.875rem">${user.email}</span>
-            </td>
-            <td style="padding:0.875rem 1.25rem;color:var(--white-40);font-size:0.8125rem">${devName}</td>
-            <td style="padding:0.875rem 1.25rem">
-                <span class="${badgeClass}">${badgeText}</span>
-            </td>
-            <td style="padding:0.875rem 1.25rem;text-align:right">
+        <div class="dev-card" style="animation: fadeIn 0.3s ease-out ${i * 0.08}s both; background: var(--surface); border: 1px solid var(--white-5); border-radius: 1rem; padding: 1.25rem; display: flex; flex-direction: column; gap: 0.875rem; backdrop-filter: blur(12px); box-shadow: 0 4px 20px rgba(0,0,0,0.2);">
+            
+            <!-- Header: avatar + info + badge -->
+            <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:0.75rem">
+                <div style="display:flex;align-items:center;gap:0.75rem;min-width:0;flex:1">
+                    <div style="width:2.75rem;height:2.75rem;border-radius:0.75rem;display:flex;align-items:center;justify-content:center;font-size:0.875rem;font-weight:800;flex-shrink:0;${avatarBg}">${initials}</div>
+                    <div style="min-width:0;flex:1">
+                        <div style="font-weight:700;font-size:0.875rem;color:var(--white);white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${user.email}">${user.email}</div>
+                        <div style="font-size:0.75rem;color:var(--white-40);margin-top:0.125rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${devName !== '—' ? devName : '<span style="color:var(--white-20)">Niet gekoppeld</span>'}</div>
+                    </div>
+                </div>
+                <span class="${badgeClass}" style="flex-shrink:0">${badgeText}</span>
+            </div>
+
+            <!-- Acties -->
+            <div style="margin-top:auto">
                 ${actionHtml}
-            </td>
-        </tr>
+            </div>
+        </div>
         `;
     }).join('');
 
