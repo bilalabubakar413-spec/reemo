@@ -395,6 +395,16 @@ app.get('/set-password',    (req, res) => _serveIndex(req, res));
 // ── Helper ─────────────────────────────────────────────────────────────────────
 const q = async (sql, params = []) => (await pool.query(sql, params)).rows;
 
+async function getAdminPin() {
+  try {
+    const rows = await q("SELECT value FROM app_settings WHERE key = 'admin_pin'");
+    if (rows && rows.length && rows[0].value) return rows[0].value;
+  } catch (e) {
+    console.error('[getAdminPin] fout, val terug op env/default:', e.message);
+  }
+  return process.env.ADMIN_PIN || '2526';
+}
+
 // ==============================================================================
 //  OLAP VIEWS  (read-only dashboards)
 // ==============================================================================
@@ -1541,7 +1551,8 @@ app.delete('/api/clients/:id', async (req, res) => {
 
   // PIN-verificatie — server-side
   const pin = req.body?.pin || req.headers['x-admin-pin'];
-  if (!pin || pin !== (process.env.ADMIN_PIN || '2526')) {
+  const adminPin = await getAdminPin();
+  if (!pin || pin !== adminPin) {
     return res.status(403).json({ error: 'Ongeldige beheerderscode' });
   }
 
@@ -3059,7 +3070,8 @@ app.post('/api/data-management/import', dmUpload.array('bestanden', 50), async (
   try {
     // PIN verificatie EERST
     const pin = req.body.pin;
-    if (!pin || pin !== (process.env.ADMIN_PIN || '2526')) {
+    const adminPin = await getAdminPin();
+    if (!pin || pin !== adminPin) {
       return res.status(403).json({ error: 'Ongeldige beheerderscode' });
     }
 
@@ -3242,7 +3254,8 @@ app.post('/api/data-management/vernietig', async (req, res) => {
     const { scope, van, tot, klant_id, pin, bevestiging } = req.body;
 
     // Beveiligingschecks — ALTIJD server-side
-    if (!pin || pin !== (process.env.ADMIN_PIN || '2526')) {
+    const adminPin = await getAdminPin();
+    if (!pin || pin !== adminPin) {
       return res.status(403).json({ error: 'Ongeldige beheerderscode' });
     }
     if (bevestiging !== 'VERWIJDER') {
