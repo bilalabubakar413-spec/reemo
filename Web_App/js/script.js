@@ -727,13 +727,15 @@ function renderToegangTable() {
         const devName = user.developer_naam || '—';
         const displayName = user.developer_naam || user.email.split('@')[0];
         
-        // Avatar
+        // Avatar: same color logic as Developers page (subtle bg with opacity 20, color matching, border 40)
         const avatarColor = getStringColor(displayName);
         const avatarBg = `background-color: ${avatarColor}20; color: ${avatarColor}; border: 1px solid ${avatarColor}40;`;
         const initials = user.developer_naam ? getInitials(user.developer_naam) : user.email.substring(0, 2).toUpperCase();
 
-        // Badge
-        const badgeClass = role === 'admin' ? 'status-badge active' : 'status-badge candidate';
+        // Badge: standard status-badge style with subtle theme-consistent colors
+        const badgeStyle = role === 'admin' 
+            ? 'background: rgba(59, 130, 246, 0.1); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.2);' 
+            : 'background: rgba(16, 185, 129, 0.1); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.2);';
         const badgeText = role === 'admin' ? 'Admin' : 'Developer';
 
         // Actions
@@ -777,13 +779,13 @@ function renderToegangTable() {
             <!-- Header: avatar + info + badge -->
             <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:0.75rem">
                 <div style="display:flex;align-items:center;gap:0.75rem;min-width:0;flex:1">
-                    <div style="width:2.75rem;height:2.75rem;border-radius:0.75rem;display:flex;align-items:center;justify-content:center;font-size:0.875rem;font-weight:800;flex-shrink:0;${avatarBg}">${initials}</div>
+                    <div style="width:2.75rem;height:2.75rem;border-radius:0.75rem;display:flex;align-items:center;justify-content:center;font-size:0.875rem;font-weight:600;flex-shrink:0;${avatarBg}">${initials}</div>
                     <div style="min-width:0;flex:1">
-                        <div style="font-weight:700;font-size:0.875rem;color:var(--white);white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${user.email}">${user.email}</div>
-                        <div style="font-size:0.75rem;color:var(--white-40);margin-top:0.125rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${devName !== '—' ? devName : '<span style="color:var(--white-20)">Niet gekoppeld</span>'}</div>
+                        <div style="font-weight:600;font-size:0.875rem;color:var(--white);white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${user.email}">${user.email}</div>
+                        <div style="font-size:0.75rem;color:var(--white-40);font-weight:normal;margin-top:0.125rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${devName !== '—' ? devName : '<span style="color:var(--white-20)">Niet gekoppeld</span>'}</div>
                     </div>
                 </div>
-                <span class="${badgeClass}" style="flex-shrink:0">${badgeText}</span>
+                <span class="status-badge" style="flex-shrink:0;${badgeStyle}">${badgeText}</span>
             </div>
 
             <!-- Acties -->
