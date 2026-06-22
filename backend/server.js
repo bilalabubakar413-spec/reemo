@@ -184,6 +184,59 @@ app.get('/api/admin/users', async (req, res) => {
   }
 });
 
+// POST /api/admin/users/invite - Invite a new user by email (admin-only)
+app.post('/api/admin/users/invite', async (req, res) => {
+  if (req.authRole !== 'admin') {
+    return res.status(403).json({ ok: false, error: 'Admin-rechten vereist' });
+  }
+
+  const { email, role } = req.body || {};
+
+  if (!email || !role) {
+    return res.status(400).json({ ok: false, error: 'E-mailadres en rol zijn verplicht' });
+  }
+
+  if (role !== 'admin' && role !== 'developer') {
+    return res.status(400).json({ ok: false, error: 'Ongeldige rol opgegeven' });
+  }
+
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(email)) {
+    return res.status(400).json({ ok: false, error: 'Ongeldig e-mailadres' });
+  }
+
+  try {
+    const redirectUrl = 'https://reemo-2.onrender.com/set-password';
+    const { data, error } = await supabase.auth.admin.inviteUserByEmail(email, { redirectTo: redirectUrl });
+    
+    if (error) {
+      const msg = error.message || '';
+      if (error.status === 422 || msg.toLowerCase().includes('already registered') || msg.toLowerCase().includes('already exists')) {
+        return res.status(409).json({ ok: false, error: 'Er bestaat al een account met dit e-mailadres' });
+      }
+      throw error;
+    }
+
+    const newUserId = data?.user?.id;
+    if (!newUserId) {
+      return res.status(500).json({ ok: false, error: 'Uitnodiging mislukt (geen user-id terug)' });
+    }
+
+    const { error: roleError } = await supabase.auth.admin.updateUserById(newUserId, {
+      app_metadata: { role }
+    });
+    if (roleError) {
+      return res.status(500).json({ ok: false, error: roleError.message });
+    }
+
+    res.json({ ok: true, data: { id: newUserId, email, role } });
+  } catch (e) {
+    console.error('[POST /api/admin/users/invite]', e.message);
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
+
 // POST /api/admin/users/:id/role - Update user role (admin-only, with super-admin protection)
 app.post('/api/admin/users/:id/role', async (req, res) => {
   if (req.authRole !== 'admin') {
