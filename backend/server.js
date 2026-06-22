@@ -209,6 +209,11 @@ app.post('/api/admin/users/:id/role', async (req, res) => {
       return res.status(403).json({ ok: false, error: 'Dit account is beveiligd en kan niet gewijzigd worden' });
     }
 
+    // Voorkom dat een admin zichzelf degradeert
+    if (id === req.authClaims?.sub && role !== 'admin') {
+      return res.status(403).json({ ok: false, error: 'Je kunt je eigen admin-rechten niet intrekken' });
+    }
+
     // 3. Update the user role in Supabase auth metadata
     const { error: updateError } = await supabase.auth.admin.updateUserById(id, {
       app_metadata: { role }
