@@ -220,6 +220,10 @@
                         <i data-lucide="shield-check" class="w-5 h-5 nav-icon"></i>
                         Toegangsbeheer
                     </button>
+                    <button data-target="settings" class="nav-item">
+                        <i data-lucide="settings" class="w-5 h-5 nav-icon"></i>
+                        Settings
+                    </button>
                 </div>
 
                 <!-- Developer Navigation -->
@@ -244,10 +248,6 @@
             </nav>
 
             <div class="p-4 border-t space-y-1">
-                <button class="nav-item">
-                    <i data-lucide="settings" class="w-5 h-5 text-white-30"></i>
-                    Settings
-                </button>
                 <button id="logout-btn" class="nav-item nav-item-danger">
                     <i data-lucide="log-out" class="w-5 h-5"></i>
                     Logout
@@ -960,6 +960,53 @@
                     <!-- Account-kaarten grid -->
                     <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8" id="toegang-list" style="min-height:4rem">
                         <!-- Filled by JS -->
+                    </div>
+                </div>
+
+                <!-- Settings Screen -->
+                <div id="screen-settings" class="screen-content">
+                    <div class="page-header">
+                        <div class="page-header-left">
+                            <h2>Instellingen</h2>
+                            <p>Beheer de instellingen van het Reemo-platform.</p>
+                        </div>
+                    </div>
+
+                    <div style="max-width: 500px; margin-top: 1.5rem;">
+                        <div class="dashboard-card" style="padding: 24px;">
+                            <h3 style="font-size: 16px; font-weight: 700; color: #fff; margin: 0 0 8px 0; display: flex; align-items: center; gap: 8px;">
+                                <i data-lucide="shield" style="width:18px;height:18px;color:var(--white-70)"></i> Beheerders-PIN wijzigen
+                            </h3>
+                            <p style="font-size: 12px; color: var(--white-40); margin: 0 0 20px 0; line-height: 1.5;">
+                                De PIN beschermt gevoelige acties zoals het importeren, exporteren, en permanent vernietigen van platformgegevens.
+                            </p>
+
+                            <div style="display: flex; flex-direction: column; gap: 16px;">
+                                <div>
+                                    <label style="display: block; font-size: 11px; font-weight: 600; color: var(--white-60); margin-bottom: 6px;">Huidige PIN</label>
+                                    <input type="password" id="pin-current" class="filter-input" style="width:100%" placeholder="••••" inputmode="numeric" maxlength="4">
+                                </div>
+
+                                <div>
+                                    <label style="display: block; font-size: 11px; font-weight: 600; color: var(--white-60); margin-bottom: 6px;">Nieuwe PIN</label>
+                                    <input type="password" id="pin-new" class="filter-input" style="width:100%" placeholder="••••" inputmode="numeric" maxlength="4">
+                                </div>
+
+                                <div>
+                                    <label style="display: block; font-size: 11px; font-weight: 600; color: var(--white-60); margin-bottom: 6px;">Nieuwe PIN bevestigen</label>
+                                    <input type="password" id="pin-confirm" class="filter-input" style="width:100%" placeholder="••••" inputmode="numeric" maxlength="4">
+                                </div>
+
+                                <div id="pin-error" style="display: none; background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.2); border-radius: 8px; padding: 10px 12px; font-size: 12px; color: #f87171;">
+                                </div>
+
+                                <div style="margin-top: 8px;">
+                                    <button id="pin-save" class="btn-blue" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                                        <i data-lucide="key-round" style="width:14px;height:14px"></i> PIN wijzigen
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
 

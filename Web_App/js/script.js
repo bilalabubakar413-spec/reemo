@@ -324,6 +324,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (loginForm) loginForm.addEventListener('submit', handleLogin);
     if (setPasswordForm) setPasswordForm.addEventListener('submit', handleSetPassword);
     if (logoutBtn) logoutBtn.addEventListener('click', handleLogout);
+    document.getElementById('pin-save')?.addEventListener('click', handlePinChange);
     
     // Navigation
     navItems.forEach(item => {
@@ -577,6 +578,75 @@ async function handleLogout() {
     navigateTo('dashboard');
 }
 
+async function handlePinChange() {
+    const pinCurrent = document.getElementById('pin-current')?.value || '';
+    const pinNew = document.getElementById('pin-new')?.value || '';
+    const pinConfirm = document.getElementById('pin-confirm')?.value || '';
+    const pinError = document.getElementById('pin-error');
+    const pinSaveBtn = document.getElementById('pin-save');
+
+    if (pinError) {
+        pinError.style.display = 'none';
+        pinError.textContent = '';
+    }
+
+    if (!pinCurrent || !pinNew || !pinConfirm) {
+        if (pinError) {
+            pinError.textContent = 'Huidige, nieuwe PIN en bevestiging zijn verplicht.';
+            pinError.style.display = 'block';
+        }
+        return;
+    }
+
+    if (!/^\d{4}$/.test(pinNew)) {
+        if (pinError) {
+            pinError.textContent = 'De nieuwe PIN moet uit 4 cijfers bestaan.';
+            pinError.style.display = 'block';
+        }
+        return;
+    }
+
+    if (pinNew !== pinConfirm) {
+        if (pinError) {
+            pinError.textContent = 'De nieuwe PIN en bevestiging komen niet overeen.';
+            pinError.style.display = 'block';
+        }
+        return;
+    }
+
+    const originalHtml = pinSaveBtn ? pinSaveBtn.innerHTML : '';
+    if (pinSaveBtn) {
+        pinSaveBtn.disabled = true;
+        pinSaveBtn.innerHTML = '<span class="spinner-small"></span> Bezig...';
+    }
+
+    try {
+        await apiFetch('/api/admin/pin', {
+            method: 'POST',
+            body: JSON.stringify({ currentPin: pinCurrent, newPin: pinNew })
+        });
+
+        showToast('✓ PIN gewijzigd', 'success');
+
+        // Clear input fields
+        const c = document.getElementById('pin-current'); if (c) c.value = '';
+        const n = document.getElementById('pin-new'); if (n) n.value = '';
+        const cf = document.getElementById('pin-confirm'); if (cf) cf.value = '';
+
+    } catch (err) {
+        console.error('[handlePinChange]', err.message);
+        if (pinError) {
+            pinError.textContent = err.message || 'Fout bij het wijzigen van de PIN.';
+            pinError.style.display = 'block';
+        }
+    } finally {
+        if (pinSaveBtn) {
+            pinSaveBtn.disabled = false;
+            pinSaveBtn.innerHTML = originalHtml;
+        }
+    }
+}
+
 // --- Navigation ---
 function navigateTo(targetScreenId) {
     // Update Sidebar
@@ -721,6 +791,20 @@ function navigateTo(targetScreenId) {
     }
     if (targetScreenId === 'toegangsbeheer') {
         loadToegangsbeheer();
+    }
+    if (targetScreenId === 'settings') {
+        const pinCurrent = document.getElementById('pin-current');
+        const pinNew = document.getElementById('pin-new');
+        const pinConfirm = document.getElementById('pin-confirm');
+        const pinError = document.getElementById('pin-error');
+        if (pinCurrent) pinCurrent.value = '';
+        if (pinNew) pinNew.value = '';
+        if (pinConfirm) pinConfirm.value = '';
+        if (pinError) {
+            pinError.style.display = 'none';
+            pinError.textContent = '';
+        }
+        if (typeof lucide !== 'undefined') lucide.createIcons();
     }
 }
 
