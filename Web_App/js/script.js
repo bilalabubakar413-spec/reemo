@@ -7361,24 +7361,19 @@ async function submitContractForm() {
     };
 
     try {
-        const response = await fetch(`/api/clients/${clientId}/contracts`, {
+        await apiFetch(`/api/clients/${clientId}/contracts`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(body)
         });
-        const result = await response.json();
         
-        if (result.ok) {
-            await loadClientContracts(clientId);
-            await loadClients();
-            renderClientsGrid();
-            toggleAddContractForm();
-        } else {
-            alert('Opslaan mislukt: ' + (result.error || 'onbekende fout'));
-        }
+        await loadClientContracts(clientId);
+        await loadClients();
+        renderClientsGrid();
+        toggleAddContractForm();
+        showToast('✓ Contract succesvol aangemaakt!', 'success');
     } catch (e) {
         console.error('Error saving contract:', e);
-        alert('Fout tijdens opslaan van contract.');
+        showToast('Opslaan mislukt: ' + e.message, 'error');
     }
 }
 
