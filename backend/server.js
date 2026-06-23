@@ -84,6 +84,8 @@ async function authVerify(req, res, next) {
         { method: 'PATCH',  re: /^\/developers\/[^/]+$/ },
         { method: 'PATCH',  re: /^\/developers\/[^/]+\/skills$/ },
         { method: 'GET',    re: /^\/developers\/[^/]+\/cv-url$/ },
+        { method: 'GET',    re: /^\/developers\/[^/]+\/contracts$/ },
+        { method: 'GET',    re: /^\/contracts\/[^/]+\/document-url$/ },
         { method: 'GET',    re: /^\/timesheets$/ },
         { method: 'POST',   re: /^\/timesheets$/ },
         { method: 'DELETE', re: /^\/timesheets\/[^/]+$/ },
@@ -970,6 +972,73 @@ app.get('/api/developers/:id/cv-url', async (req, res) => {
   } catch (e) {
     console.error('[CV URL] Error:', e.message);
     res.status(500).json({ ok: false, error: 'Fout bij ophalen CV link: ' + e.message });
+  }
+});
+
+// GET – developer's own contracts with document info (Fase 3c-documents)
+app.get('/api/developers/:id/contracts', async (req, res) => {
+  const { id } = req.params;
+  if (req.authRole === 'developer' && (!req.myDeveloperId || String(id) !== String(req.myDeveloperId))) {
+    return res.status(403).json({ ok: false, error: 'Geen toegang tot deze gegevens.' });
+  }
+  try {
+    const rows = await q(`
+      SELECT c.contract_id, c.project_id, p.projectnaam, k.naam AS klant_naam,
+             c.startdatum, c.einddatum, c.rol_op_project, c.uren_per_week, c.uurtarief,
+             c.status, c.document_url
+      FROM contract c
+      LEFT JOIN project p ON p.project_id = c.project_id
+      LEFT JOIN klant k ON k.klant_id = c.klant_id
+      WHERE c.developer_id = $1
+      ORDER BY c.startdatum DESC
+    `, [id]);
+    res.json({ ok: true, data: rows });
+  } catch (e) {
+    console.error('[GET /api/developers/:id/contracts]', e.message);
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
+// GET – Get signed URL for contract document
+app.get('/api/contracts/:contract_id/document-url', async (req, res) => {
+  const contractId = parseInt(req.params.contract_id);
+  if (isNaN(contractId)) {
+    return res.status(400).json({ ok: false, error: 'Ongeldig contract_id.' });
+  }
+
+  try {
+    const rows = await q('SELECT developer_id, document_url FROM contract WHERE contract_id = $1', [contractId]);
+    if (!rows.length) {
+      return res.status(404).json({ ok: false, error: 'Contract niet gevonden.' });
+    }
+
+    const contract = rows[0];
+
+    // Security check: developer must own the contract
+    if (req.authRole === 'developer') {
+      if (!req.myDeveloperId || String(contract.developer_id) !== String(req.myDeveloperId)) {
+        return res.status(403).json({ ok: false, error: 'Geen toegang tot dit contract-document.' });
+      }
+    }
+
+    if (!contract.document_url) {
+      return res.status(404).json({ ok: false, error: 'Geen document gekoppeld aan dit contract.' });
+    }
+
+    const downloadName = `Contract_${contractId}.pdf`;
+
+    // Create signed URL via supabaseAdmin with download option
+    const { data, error } = await supabaseAdmin.storage
+      .from('contracten')
+      .createSignedUrl(contract.document_url, 3600, {
+        download: downloadName
+      });
+
+    if (error) throw error;
+    res.json({ ok: true, data: { url: data.signedUrl } });
+  } catch (e) {
+    console.error('[GET /api/contracts/:id/document-url]', e.message);
+    res.status(500).json({ ok: false, error: e.message });
   }
 });
 
