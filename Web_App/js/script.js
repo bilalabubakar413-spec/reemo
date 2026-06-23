@@ -5737,114 +5737,144 @@ function exportDevTimesheets() {
 const _origNavigateTo = window.navigateTo;
 
 // ===== MY DOCUMENTS =====
-const _DEF_DEV_DOCS = [
-    { id: 'doc1', name: 'Alex_Rivera_CV.pdf',         type: 'CV',       date: '2024-03-19', size: '1.2 MB', icon: 'file-text',      color: '#60a5fa' },
-    { id: 'doc2', name: 'NDA_Acme_Corp.pdf',          type: 'NDA',      date: '2024-03-01', size: '0.4 MB', icon: 'file-lock',      color: '#fbbf24' },
-    { id: 'doc3', name: 'Service_Contract_2024.pdf',  type: 'Contract', date: '2024-01-15', size: '0.8 MB', icon: 'file-signature', color: '#a5b4fc' },
-    { id: 'doc4', name: 'Tax_Form_2023.pdf',          type: 'Finance',  date: '2024-02-10', size: '0.3 MB', icon: 'receipt',        color: '#34d399' },
-];
-let devDocuments = _ls('reemo_dev_docs', _DEF_DEV_DOCS);
-function saveDevDocs() { _lss('reemo_dev_docs', devDocuments); }
+let devContracts = [];
 
-const typeColors = {
-    'CV':       'rgba(37,99,235,0.1);color:#60a5fa;border:1px solid rgba(37,99,235,0.2)',
-    'NDA':      'rgba(245,158,11,0.1);color:#fbbf24;border:1px solid rgba(245,158,11,0.2)',
-    'Contract': 'rgba(99,102,241,0.1);color:#a5b4fc;border:1px solid rgba(99,102,241,0.2)',
-    'Finance':  'rgba(16,185,129,0.1);color:#34d399;border:1px solid rgba(16,185,129,0.2)',
-    'Other':    'rgba(255,255,255,0.06);color:var(--white-60);border:1px solid rgba(255,255,255,0.1)',
-};
+async function renderDevDocuments() {
+    if (!activeDeveloper || !activeDeveloper.id) {
+        const tbody = document.getElementById('dev-docs-body');
+        if (tbody) {
+            tbody.innerHTML = `<tr><td colspan="4" style="padding:2rem;text-align:center;color:var(--white-30);font-size:0.875rem">Geen actieve developer sessie.</td></tr>`;
+        }
+        return;
+    }
+
+    try {
+        const res = await apiFetch(`/api/developers/${activeDeveloper.id}/contracts`);
+        devContracts = res || [];
+    } catch (e) {
+        console.error('Fout bij het laden van contracten:', e);
+        devContracts = [];
+    }
+
+    renderDevDocsList();
+    renderDevCVPreview();
+    updateDocStats();
+}
+
+function updateDocStats() {
+    const totalEl = document.getElementById('doc-total');
+    if (totalEl) totalEl.textContent = devContracts.length;
+
+    const cvStatusEl = document.getElementById('dev-docs-cv-status');
+    if (cvStatusEl) {
+        if (activeDeveloper && activeDeveloper.cv_url) {
+            cvStatusEl.textContent = 'Reemo Ready';
+            cvStatusEl.style.color = '#34d399';
+        } else {
+            cvStatusEl.textContent = 'Geen CV';
+            cvStatusEl.style.color = 'var(--white-40)';
+        }
+    }
+
+    const activeContractsEl = document.getElementById('dev-docs-active-contracts');
+    if (activeContractsEl) {
+        const activeCount = devContracts.filter(c => c.status === 'actief').length;
+        activeContractsEl.textContent = activeCount;
+    }
+}
 
 function renderDevDocsList() {
     const tbody = document.getElementById('dev-docs-body');
     if (!tbody) return;
 
-    const filterVal = document.getElementById('dev-docs-filter')?.value || '';
-    const filteredDocs = filterVal ? devDocuments.filter(d => d.type === filterVal) : devDocuments;
-
-    if (filteredDocs.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="4" style="padding:2rem;text-align:center;color:var(--white-30);font-size:0.875rem">No documents found</td></tr>`;
+    if (devContracts.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="4" style="padding:2rem;text-align:center;color:var(--white-30);font-size:0.875rem">Je hebt nog geen contracten.</td></tr>`;
         return;
     }
 
-    tbody.innerHTML = filteredDocs.map(doc => {
-        const typeBg = typeColors[doc.type] || typeColors['Other'];
+    tbody.innerHTML = devContracts.map(contract => {
+        const start = contract.startdatum ? new Date(contract.startdatum).toLocaleDateString('nl-NL') : '—';
+        const end = contract.einddatum ? new Date(contract.einddatum).toLocaleDateString('nl-NL') : 'Heden';
+        
+        let actionBtn = `<span style="font-size:0.75rem;color:var(--white-30)">Geen document</span>`;
+        if (contract.document_url) {
+            actionBtn = `
+                <button class="ts-action-btn view" id="btn-download-contract-${contract.contract_id}" title="Download Contract PDF" onclick="downloadContractDocument(${contract.contract_id})">
+                    <i data-lucide="download" style="width:13px;height:13px"></i>
+                </button>
+            `;
+        }
+
+        const statusStyle = contract.status === 'actief' 
+            ? 'rgba(16,185,129,0.1);color:#34d399;border:1px solid rgba(16,185,129,0.2)'
+            : 'rgba(255,255,255,0.06);color:var(--white-60);border:1px solid rgba(255,255,255,0.1)';
+
         return `
         <tr class="ts-row">
             <td style="padding:0.875rem 1.25rem">
                 <div style="display:flex;align-items:center;gap:0.75rem">
                     <div style="width:2rem;height:2rem;border-radius:0.5rem;background:rgba(37,99,235,0.08);border:1px solid rgba(37,99,235,0.15);display:flex;align-items:center;justify-content:center;flex-shrink:0">
-                        <i data-lucide="${doc.icon}" style="width:13px;height:13px;color:${doc.color}"></i>
+                        <i data-lucide="file-signature" style="width:13px;height:13px;color:#a5b4fc"></i>
                     </div>
                     <div>
-                        <div style="font-size:0.8125rem;font-weight:600;color:var(--white)">${doc.name}</div>
-                        <div style="font-size:0.625rem;color:var(--white-40)">${doc.size}</div>
+                        <div style="font-size:0.8125rem;font-weight:600;color:var(--white)">${contract.klant_naam || 'Klant'}</div>
+                        <div style="font-size:0.625rem;color:var(--white-40)">${contract.projectnaam || 'Project'}</div>
                     </div>
                 </div>
             </td>
+            <td style="padding:0.875rem 1.25rem;font-size:0.8125rem;color:var(--white-40);white-space:nowrap">${start} - ${end}</td>
             <td style="padding:0.875rem 1.25rem">
-                <span style="display:inline-block;padding:0.2rem 0.5rem;border-radius:0.375rem;font-size:0.5625rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;background:${typeBg}">${doc.type}</span>
+                <span style="display:inline-block;padding:0.2rem 0.5rem;border-radius:0.375rem;font-size:0.5625rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;background:${statusStyle}">${contract.status}</span>
             </td>
-            <td style="padding:0.875rem 1.25rem;font-size:0.8125rem;color:var(--white-40);font-family:monospace;white-space:nowrap">${doc.date}</td>
             <td style="padding:0.875rem 1.25rem;text-align:right">
                 <div style="display:flex;justify-content:flex-end;gap:0.375rem">
-                    <button class="ts-action-btn view" title="Download" onclick="downloadDevDoc('${doc.id}')">
-                        <i data-lucide="download" style="width:13px;height:13px"></i>
-                    </button>
-                    <button class="ts-action-btn reject" title="Delete" onclick="deleteDevDoc('${doc.id}')">
-                        <i data-lucide="trash-2" style="width:13px;height:13px"></i>
-                    </button>
+                    ${actionBtn}
                 </div>
             </td>
         </tr>`;
     }).join('');
-    if (typeof lucide !== 'undefined') lucide.createIcons();
-    updateDocTotal();
-    renderDevCVPreview();
-}
 
-function renderDevDocuments() {
-    renderDevDocsList();
+    if (typeof lucide !== 'undefined') lucide.createIcons();
 }
 
 function renderDevCVPreview() {
     const previewContainer = document.getElementById('dev-docs-cv-preview');
     if (!previewContainer) return;
 
-    const cvDoc = devDocuments.find(d => d.type === 'CV');
-    if (!cvDoc) {
+    if (!activeDeveloper || !activeDeveloper.cv_url) {
         previewContainer.innerHTML = `
-            <div onclick="triggerDocUpload('CV')" style="background:rgba(255,255,255,0.02);border:1.5px dashed rgba(255,255,255,0.1);border-radius:0.875rem;padding:2rem 1rem;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;margin-bottom:1rem;cursor:pointer;transition:all 0.2s">
+            <div onclick="triggerDocUpload()" style="background:rgba(255,255,255,0.02);border:1.5px dashed rgba(255,255,255,0.1);border-radius:0.875rem;padding:2rem 1rem;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;margin-bottom:1rem;cursor:pointer;transition:all 0.2s" onmouseover="this.style.borderColor='rgba(37,99,235,0.35)';this.style.background='rgba(37,99,235,0.04)'" onmouseout="this.style.borderColor='rgba(255,255,255,0.1)';this.style.background='transparent'">
                 <i data-lucide="file-x" style="width:24px;height:24px;color:var(--white-30);margin-bottom:0.75rem"></i>
                 <div style="font-weight:700;font-size:0.875rem;color:var(--white-60)">Geen CV geüpload</div>
                 <div style="margin-top:0.25rem;font-size:0.625rem;color:#60a5fa;font-weight:700;text-transform:uppercase;letter-spacing:0.08em">Klik om te uploaden</div>
             </div>
         `;
     } else {
-        const devId = activeDeveloper?.id || '';
-        const devName = (activeDeveloper?.naam || '').replace(/'/g, "\\'");
+        const devId = activeDeveloper.id;
+        const devName = (activeDeveloper.naam || '').replace(/'/g, "\\'");
+        const cvFilename = activeDeveloper.cv_url.split('/').pop() || 'CV.pdf';
         
         let actionsHtml = `
-            <button class="btn-outline" onclick="downloadDevCV()" style="justify-content:center;font-size:0.75rem;padding:0.5rem 0.75rem;flex:1">
+            <button class="btn-outline" onclick="downloadDeveloperCV('${devId}')" style="justify-content:center;font-size:0.75rem;padding:0.5rem 0.75rem;flex:1">
                 <i data-lucide="download" style="width:13px;height:13px"></i> Download
             </button>
-            <button class="btn-outline" onclick="triggerDocUpload('cv')" style="justify-content:center;font-size:0.75rem;padding:0.5rem 0.75rem;flex:1">
+            <button class="btn-outline" id="btn-upload-cv-trigger" onclick="triggerDocUpload()" style="justify-content:center;font-size:0.75rem;padding:0.5rem 0.75rem;flex:1">
                 <i data-lucide="upload-cloud" style="width:13px;height:13px"></i> Replace
             </button>
         `;
 
         actionsHtml += `
-        <button class="btn-outline" onclick="openCvConverterModal({developer_naam: '${devName}', cv_url: '${cvDoc.url || ''}', developer_id: '${devId}'})" style="justify-content:center;font-size:0.75rem;padding:0.5rem 0.75rem;flex:1;border-color:rgba(167,139,250,0.3);color:#a78bfa">
+        <button class="btn-outline" onclick="openCvConverterModal({developer_naam: '${devName}', cv_url: '${activeDeveloper.cv_url}', developer_id: '${devId}'})" style="justify-content:center;font-size:0.75rem;padding:0.5rem 0.75rem;flex:1;border-color:rgba(167,139,250,0.3);color:#a78bfa">
             <i data-lucide="sparkles" style="width:13px;height:13px"></i> Converteer
         </button>
         `;
 
         previewContainer.innerHTML = `
-            <div onclick="downloadDevCV()" style="background:rgba(255,255,255,0.03);border:1.5px dashed rgba(255,255,255,0.12);border-radius:0.875rem;padding:2rem 1rem;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;margin-bottom:1rem;cursor:pointer;transition:all 0.2s" onmouseover="this.style.borderColor='rgba(37,99,235,0.4)';this.style.background='rgba(37,99,235,0.04)'" onmouseout="this.style.borderColor='rgba(255,255,255,0.12)';this.style.background='rgba(255,255,255,0.03)'">
+            <div onclick="downloadDeveloperCV('${devId}')" style="background:rgba(255,255,255,0.03);border:1.5px dashed rgba(255,255,255,0.12);border-radius:0.875rem;padding:2rem 1rem;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;margin-bottom:1rem;cursor:pointer;transition:all 0.2s" onmouseover="this.style.borderColor='rgba(37,99,235,0.4)';this.style.background='rgba(37,99,235,0.04)'" onmouseout="this.style.borderColor='rgba(255,255,255,0.12)';this.style.background='rgba(255,255,255,0.03)'">
                 <div style="width:3rem;height:3rem;border-radius:0.75rem;background:rgba(37,99,235,0.1);border:1px solid rgba(37,99,235,0.2);display:flex;align-items:center;justify-content:center;margin-bottom:0.75rem">
                     <i data-lucide="file-text" style="width:22px;height:22px;color:#60a5fa"></i>
                 </div>
-                <div style="font-weight:700;font-size:0.875rem;color:var(--white);margin-bottom:0.25rem">${cvDoc.name}</div>
-                <div style="font-size:0.6875rem;color:var(--white-40)">Uploaded ${cvDoc.date} &bull; ${cvDoc.size}</div>
+                <div style="font-weight:700;font-size:0.875rem;color:var(--white);margin-bottom:0.25rem;word-break:break-all">${cvFilename}</div>
                 <div style="margin-top:0.75rem;font-size:0.625rem;color:#60a5fa;font-weight:700;text-transform:uppercase;letter-spacing:0.08em">Click to download</div>
             </div>
             <div style="display:flex;gap:0.625rem">
@@ -5855,123 +5885,97 @@ function renderDevCVPreview() {
     if (typeof lucide !== 'undefined') lucide.createIcons();
 }
 
-function updateDocTotal() {
-    const el = document.getElementById('doc-total');
-    if (el) el.textContent = devDocuments.length;
-    
-    const lastUploadEl = document.getElementById('doc-last-upload');
-    if (lastUploadEl) {
-        if (devDocuments.length > 0) {
-            // Find most recent
-            const sorted = [...devDocuments].sort((a,b) => new Date(b.date) - new Date(a.date));
-            const diffDays = Math.floor((new Date() - new Date(sorted[0].date)) / (1000 * 60 * 60 * 24));
-            lastUploadEl.textContent = diffDays === 0 ? 'Vandaag' : diffDays === 1 ? 'Gisteren' : `${diffDays} dagen geleden`;
-        } else {
-            lastUploadEl.textContent = '—';
-        }
-    }
+function triggerDocUpload() {
+    document.getElementById('cv-file-input-documents')?.click();
 }
 
-function triggerDocUpload(hint) {
-    window._uploadDocType = hint ? hint.toUpperCase() : 'OTHER';
-    document.getElementById('doc-file-input')?.click();
-}
-
-function handleDocUpload(input) {
-    const file = input.files[0];
+async function handleDevCVUpload(event) {
+    const file = event.target.files[0];
     if (!file) return;
-    const ext = file.name.split('.').pop().toUpperCase();
-    const type = window._uploadDocType || 'OTHER';
 
-    if (type === 'CV') {
-        const cvDocIdx = devDocuments.findIndex(d => d.type === 'CV');
-        const cvDoc = {
-            id: genId('doc'),
-            name: file.name,
-            type: 'CV',
-            date: new Date().toISOString().slice(0, 10),
-            size: (file.size / 1024 / 1024).toFixed(1) + ' MB',
-            icon: 'file-text',
-            color: '#60a5fa',
-            url: 'uploads/' + file.name
-        };
-        if (cvDocIdx >= 0) {
-            devDocuments[cvDocIdx] = cvDoc;
-        } else {
-            devDocuments.unshift(cvDoc);
-        }
-    } else {
-        devDocuments.unshift({
-            id: genId('doc'),
-            name: file.name,
-            type: type,
-            date: new Date().toISOString().slice(0, 10),
-            size: (file.size / 1024 / 1024).toFixed(1) + ' MB',
-            icon: 'file',
-            color: 'var(--white-50)',
-            url: 'uploads/' + file.name
+    const allowed = ['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/msword', 'text/plain'];
+    if (!allowed.includes(file.type) && !file.name.match(/\.(pdf|doc|docx|txt)$/i)) {
+        showToast('⚠ Alleen PDF, Word of TXT bestanden zijn toegestaan.', 'error');
+        event.target.value = '';
+        return;
+    }
+
+    const devId = activeDeveloper?.id;
+    if (!devId) return;
+
+    const btn = document.getElementById('btn-upload-cv-trigger');
+    const originalText = btn ? btn.innerHTML : null;
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = 'Bezig...';
+    }
+
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('bucket', 'cvs');
+    formData.append('developer_id', devId);
+
+    try {
+        const storageData = await apiFetch('/api/storage/upload', {
+            method: 'POST',
+            body: formData
         });
-    }
+        const filePath = storageData?.filePath || storageData?.data?.filePath;
 
-    saveDevDocs();
-    input.value = '';
-    renderDevDocuments();
-    showToast(`✓ "${file.name}" uploaded!`);
+        if (filePath) {
+            await apiFetch(`/api/developers/${devId}`, {
+                method: 'PATCH',
+                body: JSON.stringify({ cv_url: filePath })
+            });
 
-    // Sync with cvs list if a CV is uploaded
-    if (type === 'CV') {
-        const activeDev = activeDeveloper || developers[0];
-        const activeDevId = activeDev?.id || activeDev?.developer_id || 'dev1';
-        const activeDevName = activeDev?.naam || activeDev?.name || 'Developer';
-        const activeDevEmail = activeDev?.email || 'developer@reemo.io';
-        const activeDevRole = activeDev?.rol || activeDev?.role || 'Developer';
-        const activeDevRate = activeDev?.uurtarief || activeDev?.hourlyRate || 85;
-
-        if (activeDev) {
-            activeDev.cv_url = 'uploads/' + file.name;
-            saveDevelopers();
-        }
-
-        const cvIdx = cvs.findIndex(c => c.developer_id === activeDevId || c.id === activeDevId || c.email === activeDevEmail);
-        const cvEntry = {
-            id: cvIdx >= 0 ? cvs[cvIdx].id : genId('cv'),
-            developer_id: activeDevId,
-            naam: activeDevName,
-            name: activeDevName,
-            email: activeDevEmail,
-            rol: activeDevRole,
-            role: activeDevRole,
-            rate: activeDevRate,
-            skills: cvIdx >= 0 ? cvs[cvIdx].skills : ['JavaScript'],
-            uploadDate: new Date().toISOString().slice(0, 10),
-            status: 'ORIGINAL',
-            cv_url: 'uploads/' + file.name
-        };
-        if (cvIdx >= 0) {
-            cvs[cvIdx] = cvEntry;
+            activeDeveloper.cv_url = filePath;
+            showToast('✓ CV succesvol geüpload!', 'success');
+            await renderDevDocuments();
         } else {
-            cvs.unshift(cvEntry);
+            showToast('Upload mislukt: geen bestandspad ontvangen.', 'error');
         }
-        saveCVs();
-        renderCVDatabase();
-        updateCVStats();
+    } catch (e) {
+        console.error('Error uploading dev CV:', e);
+        showToast('Fout tijdens uploaden van CV: ' + e.message, 'error');
+    } finally {
+        if (btn && originalText) {
+            btn.disabled = false;
+            btn.innerHTML = originalText;
+        }
+        event.target.value = '';
     }
 }
 
-function downloadDevDoc(id) {
-    const doc = devDocuments.find(d => d.id === id);
-    if (!doc) return;
-    const text = `Document: ${doc.name}\nType: ${doc.type}\nDate: ${doc.date}\nManaged by: Reemo B.V.`;
-    const blob = new Blob([text], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url; a.download = doc.name.replace(/\.[^.]+$/, '.txt');
-    a.click(); URL.revokeObjectURL(url);
-}
-function downloadDevCV() {
-    const cvDoc = devDocuments.find(d => d.type === 'CV');
-    if(cvDoc) downloadDevDoc(cvDoc.id);
-}
+async function downloadContractDocument(contractId) {
+    const btn = document.getElementById(`btn-download-contract-${contractId}`);
+    const originalText = btn ? btn.innerHTML : null;
+
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '...';
+    }
+
+    try {
+        const data = await apiFetch(`/api/contracts/${contractId}/document-url`);
+        const url = data.url || (data.data && data.data.url);
+        if (!url) {
+            showToast('Document-URL niet beschikbaar.', 'error');
+            return;
+        }
+
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `Contract_${contractId}.pdf`;
+        a.click();
+    } catch (err) {
+        showToast('Contract-document downloaden mislukt.', 'error');
+        console.error('Contract download error:', err);
+    } finally {
+        if (btn && originalText) {
+            btn.disabled = false;
+            btn.innerHTML = originalText;
+        }
+    }
 
 // ===== SKILLS API & CV CONVERTER MODAL =====
 
@@ -6155,15 +6159,7 @@ function openCvConverterModal({ developer_naam, cv_url, developer_id }) {
     if (typeof lucide !== 'undefined') lucide.createIcons();
 }
 
-function deleteDevDoc(id) {
-    const idx = devDocuments.findIndex(d => d.id === id);
-    if (idx !== -1) {
-        devDocuments.splice(idx, 1);
-        saveDevDocs();
-        renderDevDocuments();
-        showToast('Document verwijderd.');
-    }
-}
+
 
 // ============================================================
 //  CV UPLOAD & PARSE

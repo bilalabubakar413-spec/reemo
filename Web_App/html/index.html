@@ -1626,100 +1626,73 @@
                             <h2>My Documents</h2>
                             <p>Manage your CV, contracts and legal documents.</p>
                         </div>
-                        <div class="page-header-actions">
-                            <button class="btn-blue" onclick="triggerDocUpload()">
-                                <i data-lucide="upload" style="width:14px;height:14px"></i> Upload Document
-                            </button>
                         </div>
-                    </div>
-
-                    <!-- Stat strip -->
-                    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:0.875rem;margin-bottom:1.5rem">
-                        <div class="profile-section-card" style="display:flex;align-items:center;gap:0.875rem">
-                            <div style="width:2.25rem;height:2.25rem;border-radius:0.625rem;background:rgba(37,99,235,0.1);border:1px solid rgba(37,99,235,0.2);display:flex;align-items:center;justify-content:center;flex-shrink:0">
-                                <i data-lucide="files" style="width:14px;height:14px;color:#60a5fa"></i>
-                            </div>
-                            <div>
-                                <div style="font-size:0.5625rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--white-30);margin-bottom:0.2rem">Total Files</div>
-                                <div style="display:flex;align-items:baseline;gap:0.5rem">
-                                    <div id="doc-total" style="font-size:1.25rem;font-weight:800;color:var(--white)">0</div>
-                                    <div id="doc-last-upload" style="font-size:0.6875rem;color:var(--white-40)">—</div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="profile-section-card" style="display:flex;align-items:center;gap:0.875rem">
-                            <div style="width:2.25rem;height:2.25rem;border-radius:0.625rem;background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.2);display:flex;align-items:center;justify-content:center;flex-shrink:0">
-                                <i data-lucide="badge-check" style="width:14px;height:14px;color:#34d399"></i>
-                            </div>
-                            <div>
-                                <div style="font-size:0.5625rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--white-30);margin-bottom:0.2rem">CV Status</div>
-                                <div style="font-size:1.25rem;font-weight:800;color:#34d399">Reemo Ready</div>
-                            </div>
-                        </div>
-                        <div class="profile-section-card" style="display:flex;align-items:center;gap:0.875rem">
-                            <div style="width:2.25rem;height:2.25rem;border-radius:0.625rem;background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.2);display:flex;align-items:center;justify-content:center;flex-shrink:0">
-                                <i data-lucide="file-signature" style="width:14px;height:14px;color:#fbbf24"></i>
-                            </div>
-                            <div>
-                                <div style="font-size:0.5625rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--white-30);margin-bottom:0.2rem">Contract</div>
-                                <div style="font-size:1.25rem;font-weight:800;color:#fbbf24">Active</div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Main grid -->
-                    <div style="display:grid;grid-template-columns:1fr 1.6fr;gap:1.25rem;align-items:start">
-
-                        <!-- CV Card -->
-                        <div class="profile-section-card" id="dev-docs-cv-preview">
-                            <!-- Loaded dynamically via script.js -->
-                        </div>
-
-                        <!-- Documents List -->
-                        <div class="profile-section-card" style="padding:0;overflow:hidden">
-                            <div style="padding:1.25rem;border-bottom:1px solid #1a1a1a;display:flex;justify-content:space-between;align-items:center">
-                                <div style="font-weight:700;font-size:0.9375rem;color:var(--white)">All Documents</div>
-                                <div style="display:flex;align-items:center;gap:0.5rem">
-                                    <div class="filter-select-wrap" style="width:100px;font-size:0.75rem">
-                                        <select id="dev-docs-filter" class="filter-select" onchange="renderDevDocsList()" style="padding:0.2rem 0.5rem">
-                                            <option value="">All Types</option>
-                                            <option value="CV">CV</option>
-                                            <option value="Contract">Contract</option>
-                                            <option value="ID/Passport">ID/Passport</option>
-                                            <option value="Other">Other</option>
-                                        </select>
-                                    </div>
-                                    <button class="btn-outline" onclick="triggerDocUpload()" style="font-size:0.75rem;padding:0.35rem 0.75rem">
-                                        <i data-lucide="plus" style="width:12px;height:12px"></i> Add
-                                    </button>
-                                </div>
-                            </div>
-
-                            <table style="width:100%;border-collapse:collapse">
-                                <thead>
-                                    <tr>
-                                        <th style="padding:0.75rem 1.25rem;font-size:0.5625rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--white-40);border-bottom:1px solid #1a1a1a;text-align:left">File</th>
-                                        <th style="padding:0.75rem 1.25rem;font-size:0.5625rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--white-40);border-bottom:1px solid #1a1a1a;text-align:left">Type</th>
-                                        <th style="padding:0.75rem 1.25rem;font-size:0.5625rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--white-40);border-bottom:1px solid #1a1a1a;text-align:left">Date</th>
-                                        <th style="padding:0.75rem 1.25rem;font-size:0.5625rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--white-40);border-bottom:1px solid #1a1a1a;text-align:right">Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="dev-docs-body">
-                                    <!-- Filled by JS -->
-                                </tbody>
-                            </table>
-
-                            <!-- Drop zone -->
-                            <div id="doc-dropzone" style="margin:1.25rem;border:1.5px dashed rgba(255,255,255,0.1);border-radius:0.875rem;padding:1.5rem;text-align:center;cursor:pointer;transition:all 0.2s" onclick="triggerDocUpload()" onmouseover="this.style.borderColor='rgba(37,99,235,0.35)';this.style.background='rgba(37,99,235,0.04)'" onmouseout="this.style.borderColor='rgba(255,255,255,0.1)';this.style.background='transparent'">
-                                <i data-lucide="upload-cloud" style="width:20px;height:20px;color:var(--white-30);margin-bottom:0.5rem"></i>
-                                <div style="font-size:0.75rem;color:var(--white-40)">Drop files here or <span style="color:#60a5fa;font-weight:700">click to upload</span></div>
-                                <div style="font-size:0.625rem;color:var(--white-30);margin-top:0.25rem">PDF, DOC, DOCX — max 10 MB</div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <input type="file" id="doc-file-input" accept=".pdf,.doc,.docx" style="display:none" onchange="handleDocUpload(this)">
-                </div>
+ 
+                     <!-- Stat strip -->
+                     <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:0.875rem;margin-bottom:1.5rem">
+                         <div class="profile-section-card" style="display:flex;align-items:center;gap:0.875rem">
+                             <div style="width:2.25rem;height:2.25rem;border-radius:0.625rem;background:rgba(37,99,235,0.1);border:1px solid rgba(37,99,235,0.2);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+                                 <i data-lucide="files" style="width:14px;height:14px;color:#60a5fa"></i>
+                             </div>
+                             <div>
+                                 <div style="font-size:0.5625rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--white-30);margin-bottom:0.2rem">Total Contracts</div>
+                                 <div style="display:flex;align-items:baseline;gap:0.5rem">
+                                     <div id="doc-total" style="font-size:1.25rem;font-weight:800;color:var(--white)">0</div>
+                                 </div>
+                             </div>
+                         </div>
+                         <div class="profile-section-card" style="display:flex;align-items:center;gap:0.875rem">
+                             <div style="width:2.25rem;height:2.25rem;border-radius:0.625rem;background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.2);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+                                 <i data-lucide="badge-check" style="width:14px;height:14px;color:#34d399"></i>
+                             </div>
+                             <div>
+                                 <div style="font-size:0.5625rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--white-30);margin-bottom:0.2rem">CV Status</div>
+                                 <div style="font-size:1.25rem;font-weight:800;color:#34d399" id="dev-docs-cv-status">Geen CV</div>
+                             </div>
+                         </div>
+                         <div class="profile-section-card" style="display:flex;align-items:center;gap:0.875rem">
+                             <div style="width:2.25rem;height:2.25rem;border-radius:0.625rem;background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.2);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+                                 <i data-lucide="file-signature" style="width:14px;height:14px;color:#fbbf24"></i>
+                             </div>
+                             <div>
+                                 <div style="font-size:0.5625rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--white-30);margin-bottom:0.2rem">Active Contracts</div>
+                                 <div style="font-size:1.25rem;font-weight:800;color:#fbbf24" id="dev-docs-active-contracts">0</div>
+                             </div>
+                         </div>
+                     </div>
+ 
+                     <!-- Main grid -->
+                     <div style="display:grid;grid-template-columns:1fr 1.6fr;gap:1.25rem;align-items:start">
+ 
+                         <!-- CV Card -->
+                         <div class="profile-section-card" id="dev-docs-cv-preview">
+                             <!-- Loaded dynamically via script.js -->
+                         </div>
+ 
+                         <!-- Documents List -->
+                         <div class="profile-section-card" style="padding:0;overflow:hidden">
+                             <div style="padding:1.25rem;border-bottom:1px solid #1a1a1a;display:flex;justify-content:space-between;align-items:center">
+                                 <div style="font-weight:700;font-size:0.9375rem;color:var(--white)">My Contracts</div>
+                             </div>
+ 
+                             <table style="width:100%;border-collapse:collapse">
+                                 <thead>
+                                     <tr>
+                                         <th style="padding:0.75rem 1.25rem;font-size:0.5625rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--white-40);border-bottom:1px solid #1a1a1a;text-align:left">Client & Project</th>
+                                         <th style="padding:0.75rem 1.25rem;font-size:0.5625rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--white-40);border-bottom:1px solid #1a1a1a;text-align:left">Period</th>
+                                         <th style="padding:0.75rem 1.25rem;font-size:0.5625rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--white-40);border-bottom:1px solid #1a1a1a;text-align:left">Status</th>
+                                         <th style="padding:0.75rem 1.25rem;font-size:0.5625rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--white-40);border-bottom:1px solid #1a1a1a;text-align:right">Actions</th>
+                                     </tr>
+                                 </thead>
+                                 <tbody id="dev-docs-body">
+                                     <!-- Filled by JS -->
+                                 </tbody>
+                             </table>
+                         </div>
+                     </div>
+ 
+                     <input type="file" id="cv-file-input-documents" accept=".pdf,.doc,.docx" style="display:none" onchange="handleDevCVUpload(event)">
+                 </div>
 
             </div>
         </main>
