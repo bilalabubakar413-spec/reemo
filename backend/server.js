@@ -1072,9 +1072,16 @@ app.post('/api/storage/upload', storageUpload.single('file'), async (req, res) =
 
     console.log('Stap 4: Storage response:', data, 'Geen fout');
 
-    // Update developer table with cv_url
-    await q('UPDATE developer SET cv_url = $1 WHERE developer_id = $2', [filePath, developer_id]);
-    console.log('Stap 5: cv_url opgeslagen in database:', filePath);
+    // Update developer table conditionally based on bucket
+    if (bucket === 'cvs') {
+      await q('UPDATE developer SET cv_url = $1 WHERE developer_id = $2', [filePath, developer_id]);
+      console.log('Stap 5: cv_url opgeslagen in database:', filePath);
+    } else if (bucket === 'avatars') {
+      await q('UPDATE developer SET avatar_url = $1 WHERE developer_id = $2', [filePath, developer_id]);
+      console.log('Stap 5: avatar_url opgeslagen in database:', filePath);
+    } else {
+      console.log(`Stap 5: Geen database update voor bucket '${bucket}'`);
+    }
 
     res.json({ ok: true, data: { filePath } });
   } catch (e) {
@@ -1159,9 +1166,13 @@ app.patch('/api/developers/:id', async (req, res) => {
   if (req.authRole === 'developer' && (!req.myDeveloperId || String(id) !== String(req.myDeveloperId))) {
     return res.status(403).json({ ok: false, error: 'Geen toegang tot deze gegevens' });
   }
-  const { cv_url, naam, email, rol, uurtarief, weekcapaciteit, beschikbaarheid, skills, type, status } = req.body;
+  const { cv_url, naam, email, rol, uurtarief, weekcapaciteit, beschikbaarheid, skills, type, status, telefoon, bio, avatar_url, onboarded_at } = req.body;
   console.log(`[PATCH /api/developers/${id}] Body:`, req.body);
   try {
+    let finalBio = bio;
+    if (bio !== undefined && bio !== null) {
+      finalBio = String(bio).substring(0, 300);
+    }
 
     const fields = [];
     const values = [];
@@ -1177,6 +1188,10 @@ app.patch('/api/developers/:id', async (req, res) => {
     if (skills !== undefined)         { fields.push(`skills=$${i++}`);        values.push(JSON.stringify(skills || [])); }
     if (type !== undefined)           { fields.push(`type=$${i++}`);          values.push(type); }
     if (status !== undefined)         { fields.push(`status=$${i++}`);        values.push(status); }
+    if (telefoon !== undefined)       { fields.push(`telefoon=$${i++}`);      values.push(telefoon); }
+    if (bio !== undefined)            { fields.push(`bio=$${i++}`);           values.push(finalBio); }
+    if (avatar_url !== undefined)     { fields.push(`avatar_url=$${i++}`);    values.push(avatar_url); }
+    if (onboarded_at !== undefined)   { fields.push(`onboarded_at=$${i++}`);  values.push(onboarded_at); }
 
     if (fields.length === 0) return res.status(400).json({ ok: false, error: 'Geen velden om bij te werken' });
 
