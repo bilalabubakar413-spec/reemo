@@ -476,7 +476,11 @@ async function setupUserSession(user, role) {
         // Green logo + green nav for developer portal
         if (logoBox) logoBox.classList.add('dev-mode');
         document.body.classList.add('dev-portal');
-        navigateTo('dev-dashboard');
+        if (activeDeveloper && !activeDeveloper.onboarded_at) {
+            enterOnboardingMode();
+        } else {
+            navigateTo('dev-dashboard');
+        }
     } else {
         activeDeveloper = null;
         navDevItems.classList.add('hidden');
@@ -8294,11 +8298,79 @@ function validateOnboardingStep2() {
     onboardingGoToStep(3);
 }
 
-function finishOnboardingPlaceholder() {
-    console.log('[Onboarding] Wizard afronden (placeholder-handler). Gegevens worden nog niet opgeslagen.');
-    showToast('✓ Onboarding afgerond (visual walkthrough!)', 'success');
-    exitOnboardingMode();
-    navigateTo('dev-dashboard');
+async function finishOnboarding() {
+    const nameInput = document.getElementById('onboard-naam');
+    const phoneInput = document.getElementById('onboard-telefoon');
+    const bioInput = document.getElementById('onboard-bio');
+
+    const naamVal = nameInput ? nameInput.value.trim() : '';
+    const telVal = phoneInput ? phoneInput.value.trim() : '';
+    const bioVal = bioInput ? bioInput.value.trim() : '';
+
+    if (!naamVal) {
+        showToast('Naam mag niet leeg zijn', 'error');
+        onboardingGoToStep(2);
+        return;
+    }
+
+    const btn = document.getElementById('onboard-finish-btn');
+    let originalText = 'Afronden';
+    if (btn) {
+        btn.disabled = true;
+        originalText = btn.innerHTML;
+        btn.innerHTML = 'Bezig... <i class="animate-spin" data-lucide="loader" style="width:14px; height:14px; margin-left:0.5rem"></i>';
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+    }
+
+    try {
+        const payload = {
+            naam: naamVal,
+            telefoon: telVal,
+            bio: bioVal,
+            onboarded_at: new Date().toISOString()
+        };
+
+        await apiFetch(`/api/developers/${activeDeveloper.id}`, {
+            method: 'PATCH',
+            body: JSON.stringify(payload)
+        });
+
+        // Update activeDeveloper lokaal
+        if (activeDeveloper) {
+            activeDeveloper.naam = naamVal;
+            activeDeveloper.name = naamVal;
+            activeDeveloper.telefoon = telVal;
+            activeDeveloper.bio = bioVal;
+            activeDeveloper.onboarded_at = payload.onboarded_at;
+        }
+
+        // Sync header/sidebar names & avatars
+        const initials = getInitials(naamVal);
+        if (userProfileAvatar) {
+            userProfileAvatar.textContent = initials;
+        }
+        if (userProfileName) {
+            userProfileName.innerHTML = `<p class="text-sm font-medium truncate">${naamVal}</p><p class="text-[10px] text-emerald-500 truncate">${activeDeveloper?.role || activeDeveloper?.rol || 'Developer'}</p>`;
+        }
+        const headerName = document.getElementById('header-user-name');
+        const headerRole = document.getElementById('header-user-role');
+        const headerAvatar = document.getElementById('header-user-avatar');
+        if (headerName) headerName.textContent = naamVal;
+        if (headerAvatar) headerAvatar.textContent = initials;
+
+        exitOnboardingMode();
+        navigateTo('dev-dashboard');
+        showToast('✓ Profiel compleet! Welkom bij Reemo.', 'success');
+    } catch (err) {
+        console.error('Error during onboarding save:', err);
+        showToast(err.message || 'Fout bij het opslaan van gegevens.', 'error');
+    } finally {
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = originalText;
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+        }
+    }
 }
 
 function enterOnboardingMode() {
