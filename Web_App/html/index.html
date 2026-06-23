@@ -177,7 +177,7 @@
     <div id="app-container" class="hidden flex h-screen bg-base text-white overflow-hidden">
         
         <!-- Sidebar -->
-        <aside class="w-64 border-r flex flex-col bg-surface shrink-0 z-20 h-full overflow-y-auto">
+        <aside id="app-sidebar" class="w-64 border-r flex flex-col bg-surface shrink-0 z-20 h-full overflow-y-auto">
             <div class="p-6 flex items-center gap-3">
                 <div class="logo-box-small shadow-blue">
                     <span class="font-bold text-lg">R</span>
@@ -269,7 +269,7 @@
         <main class="flex-1 overflow-y-auto bg-base relative w-full h-full">
             
             <!-- Header -->
-            <header class="h-16 border-b flex items-center justify-between px-8 sticky top-0 bg-base-80 backdrop-blur-md z-10 w-full">
+            <header id="app-header" class="h-16 border-b flex items-center justify-between px-8 sticky top-0 bg-base-80 backdrop-blur-md z-10 w-full">
                 <div class="relative w-96">
                     <i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white-30"></i>
                     <input type="text" placeholder="Search clients, developers, invoices..." class="search-input w-full">
@@ -1366,6 +1366,107 @@
                     </div>
                 </div>
 
+
+                <!-- Developer Onboarding Screen -->
+                <div id="screen-dev-onboarding" class="screen-content hidden" style="width:100%; min-height:calc(100vh - 4rem); display:flex; align-items:center; justify-content:center; padding:2rem 1.5rem; background:var(--base)">
+                    <div style="background:var(--surface); border:1px solid var(--white-5); border-radius:1.25rem; width:min(500px,100vw); padding:2.5rem; box-shadow:0 32px 80px rgba(0,0,0,0.6); position:relative; overflow:hidden">
+                        
+                        <!-- Progress Indicator -->
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:2rem">
+                            <div style="display:flex; gap:0.5rem">
+                                <div id="onboard-dot-1" style="width:1.75rem; height:0.25rem; border-radius:1rem; background:rgba(37,99,235,0.2)"></div>
+                                <div id="onboard-dot-2" style="width:1.75rem; height:0.25rem; border-radius:1rem; background:rgba(37,99,235,0.2)"></div>
+                                <div id="onboard-dot-3" style="width:1.75rem; height:0.25rem; border-radius:1rem; background:rgba(37,99,235,0.2)"></div>
+                            </div>
+                            <span id="onboard-progress-text" style="font-size:0.6875rem; font-weight:700; text-transform:uppercase; letter-spacing:0.1em; color:var(--white-30)">Stap 1 van 3</span>
+                        </div>
+
+                        <!-- STAP 1: Welkom -->
+                        <div id="onboard-step-1" class="onboard-step">
+                            <div style="text-align:center; margin-bottom:2rem">
+                                <div style="width:4.5rem; height:4.5rem; border-radius:1.25rem; background:rgba(37,99,235,0.1); border:1px solid rgba(37,99,235,0.25); display:flex; align-items:center; justify-content:center; margin:0 auto 1.5rem; color:#60a5fa; box-shadow:0 0 25px rgba(37,99,235,0.15)">
+                                    <i data-lucide="sparkles" style="width:2rem; height:2rem"></i>
+                                </div>
+                                <h2 style="font-size:1.5rem; font-weight:800; color:var(--white); margin-bottom:0.75rem">Welkom bij Reemo!</h2>
+                                <p style="color:var(--white-60); font-size:0.875rem; line-height:1.6">
+                                    Laten we je profiel compleet maken zodat je direct aan de slag kunt. Het duurt minder dan een minuut.
+                                </p>
+                            </div>
+                            <div style="display:flex; justify-content:center">
+                                <button class="btn-blue" onclick="onboardingGoToStep(2)" style="width:100%; justify-content:center; padding:0.875rem">
+                                    Laten we beginnen <i data-lucide="arrow-right" style="width:14px; height:14px; margin-left:0.5rem"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- STAP 2: Je gegevens -->
+                        <div id="onboard-step-2" class="onboard-step hidden">
+                            <div style="margin-bottom:1.5rem">
+                                <h2 style="font-size:1.25rem; font-weight:800; color:var(--white); margin-bottom:0.5rem">Je gegevens</h2>
+                                <p style="color:var(--white-40); font-size:0.75rem">Bevestig je naam en vul eventueel je telefoonnummer en bio aan.</p>
+                            </div>
+                            
+                            <div style="display:flex; flex-direction:column; gap:1.25rem; margin-bottom:2rem">
+                                <div>
+                                    <label style="display:block; font-size:0.625rem; font-weight:700; text-transform:uppercase; letter-spacing:0.1em; color:var(--white-40); margin-bottom:0.5rem">Volledige Naam *</label>
+                                    <input type="text" id="onboard-naam" class="filter-input" placeholder="Je volledige naam" style="width:100%">
+                                </div>
+                                <div>
+                                    <label style="display:block; font-size:0.625rem; font-weight:700; text-transform:uppercase; letter-spacing:0.1em; color:var(--white-40); margin-bottom:0.5rem">Telefoonnummer</label>
+                                    <input type="text" id="onboard-telefoon" class="filter-input" placeholder="Bijv. +31 6 12345678" style="width:100%">
+                                </div>
+                                <div>
+                                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.5rem">
+                                        <label style="font-size:0.625rem; font-weight:700; text-transform:uppercase; letter-spacing:0.1em; color:var(--white-40)">Korte Bio</label>
+                                        <span id="onboard-bio-counter" style="font-size:0.625rem; color:var(--white-30)">0/300</span>
+                                    </div>
+                                    <textarea id="onboard-bio" class="filter-input" placeholder="Vertel kort iets over jezelf..." style="width:100%; height:5.5rem; resize:none" maxlength="300" oninput="updateOnboardBioCounter()"></textarea>
+                                </div>
+                            </div>
+
+                            <div style="display:flex; gap:0.75rem">
+                                <button class="btn-outline" onclick="onboardingGoToStep(1)" style="flex:1; justify-content:center; padding:0.75rem">
+                                    <i data-lucide="arrow-left" style="width:14px; height:14px; margin-right:0.5rem"></i> Terug
+                                </button>
+                                <button class="btn-blue" onclick="validateOnboardingStep2()" style="flex:1.5; justify-content:center; padding:0.75rem">
+                                    Volgende <i data-lucide="arrow-right" style="width:14px; height:14px; margin-left:0.5rem"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- STAP 3: Profielfoto -->
+                        <div id="onboard-step-3" class="onboard-step hidden">
+                            <div style="text-align:center; margin-bottom:1.5rem">
+                                <h2 style="font-size:1.25rem; font-weight:800; color:var(--white); margin-bottom:0.5rem">Profielfoto</h2>
+                                <p style="color:var(--white-40); font-size:0.75rem">Kies een optionele profielfoto voor je profiel.</p>
+                            </div>
+
+                            <div style="display:flex; flex-direction:column; align-items:center; gap:1.25rem; margin-bottom:2rem">
+                                <!-- Avatar Preview Circle -->
+                                <div id="onboard-avatar-preview" class="avatar-small font-bold flex items-center justify-center shrink-0" style="width:6rem; height:6rem; border-radius:50%; font-size:2rem; background:rgba(37,99,235,0.1); border:2px solid rgba(37,99,235,0.2); color:#60a5fa; box-shadow:0 10px 25px rgba(0,0,0,0.3)">
+                                    D
+                                </div>
+
+                                <button class="btn-outline" style="font-size:0.75rem; padding:0.5rem 1rem">
+                                    <i data-lucide="image" style="width:14px; height:14px; margin-right:0.5rem"></i> Foto kiezen
+                                </button>
+                                <p style="font-size:0.6875rem; color:var(--white-30); max-width:260px; text-align:center; line-height:1.5">
+                                    Een foto is optioneel — je kunt 'm later altijd nog uploaden of wijzigen op je profielpagina.
+                                </p>
+                            </div>
+
+                            <div style="display:flex; gap:0.75rem">
+                                <button class="btn-outline" onclick="onboardingGoToStep(2)" style="flex:1; justify-content:center; padding:0.75rem">
+                                    <i data-lucide="arrow-left" style="width:14px; height:14px; margin-right:0.5rem"></i> Terug
+                                </button>
+                                <button class="btn-emerald" onclick="finishOnboardingPlaceholder()" style="flex:1.5; justify-content:center; padding:0.75rem">
+                                    Afronden <i data-lucide="check" style="width:14px; height:14px; margin-left:0.5rem"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
 
                 <!-- Dev Dashboard Screen -->
                 <div id="screen-dev-dashboard" class="screen-content">

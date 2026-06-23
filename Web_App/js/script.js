@@ -280,6 +280,8 @@ const navAdminItems = document.getElementById('nav-admin-items');
 const navDevItems = document.getElementById('nav-dev-items');
 const userProfileAvatar = document.getElementById('user-profile-avatar');
 const userProfileName = document.getElementById('user-profile-name');
+const appSidebar = document.getElementById('app-sidebar');
+const appHeader = document.getElementById('app-header');
 
 async function loadAndRenderAllData() {
     // Load all data from Supabase (including projects for dropdowns)
@@ -8203,4 +8205,127 @@ async function bevestigVerwijderCV() {
     btn.textContent = originalText;
   }
 }
+
+// ── Developer Onboarding Wizard Logic ──────────────────────────────────────────
+
+function onboardingGoToStep(step) {
+    const steps = [1, 2, 3];
+    steps.forEach(s => {
+        const stepDiv = document.getElementById(`onboard-step-${s}`);
+        if (stepDiv) {
+            if (s === step) {
+                stepDiv.classList.remove('hidden');
+            } else {
+                stepDiv.classList.add('hidden');
+            }
+        }
+    });
+
+    // Update progress dots
+    steps.forEach(s => {
+        const dot = document.getElementById(`onboard-dot-${s}`);
+        if (dot) {
+            if (s === step) {
+                dot.style.background = 'rgba(37,99,235,1)';
+            } else {
+                dot.style.background = 'rgba(37,99,235,0.2)';
+            }
+        }
+    });
+
+    // Update progress text
+    const progressText = document.getElementById('onboard-progress-text');
+    if (progressText) {
+        progressText.textContent = `Stap ${step} van 3`;
+    }
+
+    // Refresh dynamic icons
+    if (typeof lucide !== 'undefined') {
+        lucide.createIcons();
+    }
+}
+
+function updateOnboardBioCounter() {
+    const bioTextArea = document.getElementById('onboard-bio');
+    const counterSpan = document.getElementById('onboard-bio-counter');
+    if (bioTextArea && counterSpan) {
+        const len = bioTextArea.value.length;
+        counterSpan.textContent = `${len}/300`;
+    }
+}
+
+function prepopulateOnboardingFields() {
+    const nameInput = document.getElementById('onboard-naam');
+    const phoneInput = document.getElementById('onboard-telefoon');
+    const bioInput = document.getElementById('onboard-bio');
+    const avatarPreview = document.getElementById('onboard-avatar-preview');
+
+    if (nameInput) {
+        nameInput.value = activeDeveloper?.naam || activeDeveloper?.name || '';
+    }
+    if (phoneInput) {
+        phoneInput.value = activeDeveloper?.telefoon || '';
+    }
+    if (bioInput) {
+        bioInput.value = activeDeveloper?.bio || '';
+    }
+
+    updateOnboardBioCounter();
+
+    if (avatarPreview) {
+        const displayName = (nameInput ? nameInput.value : '') || activeDeveloper?.naam || activeDeveloper?.name || '?';
+        avatarPreview.textContent = getInitials(displayName.trim());
+    }
+}
+
+function validateOnboardingStep2() {
+    const nameInput = document.getElementById('onboard-naam');
+    if (!nameInput || !nameInput.value.trim()) {
+        showToast('Naam mag niet leeg zijn', 'error');
+        return;
+    }
+
+    // Update avatar preview with the confirmed name before advancing to step 3
+    const avatarPreview = document.getElementById('onboard-avatar-preview');
+    if (avatarPreview) {
+        avatarPreview.textContent = getInitials(nameInput.value.trim());
+    }
+
+    onboardingGoToStep(3);
+}
+
+function finishOnboardingPlaceholder() {
+    console.log('[Onboarding] Wizard afronden (placeholder-handler). Gegevens worden nog niet opgeslagen.');
+    showToast('✓ Onboarding afgerond (visual walkthrough!)', 'success');
+    exitOnboardingMode();
+    navigateTo('dev-dashboard');
+}
+
+function enterOnboardingMode() {
+    if (appSidebar) appSidebar.classList.add('hidden');
+    if (appHeader) appHeader.classList.add('hidden');
+
+    const onboardingScreen = document.getElementById('screen-dev-onboarding');
+    if (onboardingScreen) {
+        onboardingScreen.classList.remove('hidden');
+    }
+
+    prepopulateOnboardingFields();
+    onboardingGoToStep(1);
+
+    // Use navigateTo to deactivate other screens
+    navigateTo('dev-onboarding');
+}
+
+function exitOnboardingMode() {
+    if (appSidebar) appSidebar.classList.remove('hidden');
+    if (appHeader) appHeader.classList.remove('hidden');
+
+    const onboardingScreen = document.getElementById('screen-dev-onboarding');
+    if (onboardingScreen) {
+        onboardingScreen.classList.add('hidden');
+        onboardingScreen.classList.remove('active');
+    }
+}
+
 
