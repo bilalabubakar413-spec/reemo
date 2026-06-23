@@ -7415,19 +7415,33 @@ async function handleContractDocumentUpload(event) {
     formData.append('file', file);
 
     try {
+        const { data: sessionData } = await sbClient.auth.getSession();
+        const token = sessionData?.session?.access_token;
+        
+        const headers = {};
+        if (token) {
+            headers['Authorization'] = `Bearer ${token}`;
+        }
+
         const clientId = document.getElementById('contract-client-id')?.value;
-        const res = await apiFetch(`/api/contracts/${contractId}/document`, {
+        const response = await fetch(`/api/contracts/${contractId}/document`, {
             method: 'POST',
+            headers: headers,
             body: formData
         });
 
-        if (res.ok) {
+        if (response.ok) {
             showToast('✓ Contract-document geüpload', 'success');
             if (clientId) {
                 await loadClientContracts(clientId);
             }
         } else {
-            showToast(res.error || 'Upload mislukt.', 'error');
+            let errorMsg = 'Upload mislukt.';
+            try {
+                const errData = await response.json();
+                errorMsg = errData.error || errData.message || errorMsg;
+            } catch (_) {}
+            showToast(errorMsg, 'error');
         }
     } catch (e) {
         console.error('Error uploading contract document:', e);
