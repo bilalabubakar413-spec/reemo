@@ -5420,7 +5420,7 @@ function renderDevTimesheets(data) {
     const tbody = document.getElementById('dev-ts-body');
     if (!tbody) return;
     
-    const currentDevId = developers[0]?.id; // Mock logged-in dev
+    const currentDevId = activeDeveloper?.id;
     const searchText = document.getElementById('dev-ts-search')?.value.toLowerCase() || '';
     const statusFilter = document.getElementById('dev-ts-filter')?.value || '';
 
@@ -5635,9 +5635,9 @@ function getMondayFromWeek(weekStr) {
 }
 
 async function submitDevTimesheet() {
-    const developer_id = activeDeveloper?.id || developers[0]?.id;
+    const developer_id = activeDeveloper?.id;
     if (!developer_id) {
-        showToast('⚠ Geen developer gevonden. Log opnieuw in.');
+        showToast('Geen developer-gegevens gevonden', 'error');
         return;
     }
 
@@ -5699,8 +5699,12 @@ function filterDevTimesheets(searchText) {
 }
 
 function exportDevTimesheets() {
+    const currentDevId = activeDeveloper?.id;
+    if (!currentDevId) {
+        showToast('Geen developer-gegevens gevonden', 'error');
+        return;
+    }
     const lines = ['Date,Project,Hours,Type,Status,Description'];
-    const currentDevId = developers[0]?.id;
     timesheets.filter(t => t.developer_id === currentDevId).forEach(e => {
         const isOvertime = e.description.includes('[OVERTIME]');
         const typeStr = isOvertime ? 'Overtime' : 'Regular';
@@ -5799,8 +5803,8 @@ function renderDevCVPreview() {
             </div>
         `;
     } else {
-        const devId = developers[0]?.id || '';
-        const devName = (developers[0]?.naam || '').replace(/'/g, "\\'");
+        const devId = activeDeveloper?.id || '';
+        const devName = (activeDeveloper?.naam || '').replace(/'/g, "\\'");
         
         let actionsHtml = `
             <button class="btn-outline" onclick="downloadDevCV()" style="justify-content:center;font-size:0.75rem;padding:0.5rem 0.75rem;flex:1">
