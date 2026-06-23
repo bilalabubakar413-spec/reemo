@@ -7154,7 +7154,7 @@ async function openClientContractsModal(clientId) {
     if (clientIdField) clientIdField.value = clientId;
 
     await loadClientContracts(clientId);
-    populateContractFormDropdowns(clientId);
+    await populateContractFormDropdowns(clientId);
 
     const formContainer = document.getElementById('add-contract-form-container');
     if (formContainer) formContainer.style.display = 'none';
@@ -7289,12 +7289,23 @@ function toggleAddContractForm() {
     }
 }
 
-function populateContractFormDropdowns(clientId) {
+async function populateContractFormDropdowns(clientId) {
     const projectSelect = document.getElementById('contract-project-id');
     if (projectSelect) {
-        const clientProjects = projects.filter(p => p.klant_id == clientId);
-        projectSelect.innerHTML = '<option value="">Selecteer project...</option>' + 
-            clientProjects.map(p => `<option value="${p.project_id}">${p.projectnaam}</option>`).join('');
+        projectSelect.innerHTML = '<option value="">Projecten laden...</option>';
+        try {
+            const res = await apiFetch(`/api/klanten/${clientId}`);
+            const clientProjects = res?.projecten || [];
+            if (clientProjects.length === 0) {
+                projectSelect.innerHTML = '<option value="" disabled selected>Geen projecten — maak eerst een project aan</option>';
+            } else {
+                projectSelect.innerHTML = '<option value="">Selecteer project...</option>' + 
+                    clientProjects.map(p => `<option value="${p.project_id}">${p.projectnaam}</option>`).join('');
+            }
+        } catch (e) {
+            console.error('Error fetching projects for dropdown:', e);
+            projectSelect.innerHTML = '<option value="">— Fout bij laden projecten —</option>';
+        }
     }
 
     const developerSelect = document.getElementById('contract-developer-id');
