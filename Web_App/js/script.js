@@ -5976,6 +5976,7 @@ async function downloadContractDocument(contractId) {
             btn.innerHTML = originalText;
         }
     }
+}
 
 // ===== SKILLS API & CV CONVERTER MODAL =====
 
