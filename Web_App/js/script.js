@@ -424,6 +424,10 @@ async function setupUserSession(user, role) {
 
     window._devNotLinked = false;
 
+    const headerName = document.getElementById('header-user-name');
+    const headerRole = document.getElementById('header-user-role');
+    const headerAvatar = document.getElementById('header-user-avatar');
+
     if (role === 'developer') {
         try {
             const meData = await apiFetch('/api/developers/me');
@@ -453,9 +457,17 @@ async function setupUserSession(user, role) {
         if (window._devNotLinked) {
             userProfileAvatar.className = 'w-8 h-8 rounded-full bg-red-950 text-red-400 font-bold flex items-center justify-center shrink-0';
             userProfileName.innerHTML = `<p class="text-sm font-medium truncate">Niet gekoppeld</p><p class="text-[10px] text-red-500 truncate">Contact beheerder</p>`;
+            
+            if (headerName) headerName.textContent = 'Niet gekoppeld';
+            if (headerRole) headerRole.textContent = 'Contact beheerder';
+            if (headerAvatar) headerAvatar.textContent = initials;
         } else {
             userProfileAvatar.className = 'w-8 h-8 rounded-full bg-emerald-900 text-emerald-400 font-bold flex items-center justify-center shrink-0';
             userProfileName.innerHTML = `<p class="text-sm font-medium truncate">${activeDeveloper?.naam || 'Developer'}</p><p class="text-[10px] text-emerald-500 truncate">${activeDeveloper?.role || activeDeveloper?.rol || 'Developer'}</p>`;
+            
+            if (headerName) headerName.textContent = activeDeveloper?.naam || 'Developer';
+            if (headerRole) headerRole.textContent = activeDeveloper?.role || activeDeveloper?.rol || 'Developer';
+            if (headerAvatar) headerAvatar.textContent = initials;
         }
         
         if (appTitle) appTitle.textContent = 'Reemo Developer';
@@ -470,6 +482,11 @@ async function setupUserSession(user, role) {
         userProfileAvatar.textContent = user?.user_metadata?.naam ? user.user_metadata.naam.slice(0,1).toUpperCase() : 'T';
         userProfileAvatar.className = 'avatar-small';
         userProfileName.innerHTML = `<p class="text-sm font-medium truncate">${user?.user_metadata?.naam || 'Test'}</p><p class="text-[10px] text-white-40 truncate">Admin</p>`;
+        
+        if (headerName) headerName.textContent = user?.user_metadata?.naam || 'Admin';
+        if (headerRole) headerRole.textContent = 'Admin';
+        if (headerAvatar) headerAvatar.textContent = user?.user_metadata?.naam ? user.user_metadata.naam.slice(0,1).toUpperCase() : 'A';
+
         if (appTitle) appTitle.textContent = 'Reemo Admin';
         // Blue logo + blue nav for admin portal
         if (logoBox) logoBox.classList.remove('dev-mode');
