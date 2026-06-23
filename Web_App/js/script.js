@@ -1114,29 +1114,35 @@ async function setUserRole(userId, role) {
 async function stuurResetLink(email, btn) {
     if (!email) return;
     
-    if (!confirm(`Reset-link sturen naar ${email}?`)) return;
+    bevestigModal({
+        titel: 'Reset-link sturen',
+        tekst: `Wachtwoord-reset-link sturen naar ${email}?`,
+        bevestigTekst: 'Versturen',
+        soort: 'actie',
+        onConfirm: async () => {
+            const originalHtml = btn ? btn.innerHTML : '';
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = '<div class="spinner" style="width:13px;height:13px;border:2px solid rgba(255,255,255,0.3);border-top-color:#fff;border-radius:50%;animation:spin 1s linear infinite;margin:0 auto"></div>';
+            }
 
-    const originalHtml = btn ? btn.innerHTML : '';
-    if (btn) {
-        btn.disabled = true;
-        btn.innerHTML = '<div class="spinner" style="width:13px;height:13px;border:2px solid rgba(255,255,255,0.3);border-top-color:#fff;border-radius:50%;animation:spin 1s linear infinite;margin:0 auto"></div>';
-    }
-
-    try {
-        await apiFetch('/api/admin/users/reset-link', {
-            method: 'POST',
-            body: JSON.stringify({ email })
-        });
-        showToast(`✓ Reset-link verstuurd naar ${email}`, 'success');
-    } catch (err) {
-        console.error('[stuurResetLink]', err.message);
-        showToast(err.message || 'Fout bij het versturen van de reset-link.', 'error');
-    } finally {
-        if (btn) {
-            btn.disabled = false;
-            btn.innerHTML = originalHtml;
+            try {
+                await apiFetch('/api/admin/users/reset-link', {
+                    method: 'POST',
+                    body: JSON.stringify({ email })
+                });
+                showToast(`✓ Reset-link verstuurd naar ${email}`, 'success');
+            } catch (err) {
+                console.error('[stuurResetLink]', err.message);
+                showToast(err.message || 'Fout bij het versturen van de reset-link.', 'error');
+            } finally {
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = originalHtml;
+                }
+            }
         }
-    }
+    });
 }
 
 function deleteUser(id, email) {
@@ -3271,17 +3277,24 @@ async function submitAddDevToClient(btnElement) {
 }
 
 async function unlinkDeveloper(clientId, developerId, devNaam, btnElement) {
-    if (!confirm(`Weet je zeker dat je "${devNaam}" wilt ontkoppelen van alle projecten van deze klant?`)) return;
-    if (btnElement) btnElement.disabled = true;
-    try {
-        await apiFetch(`/api/clients/${clientId}/developers/${developerId}`, { method: 'DELETE' });
-        showToast(`✓ ${devNaam} ontkoppeld.`);
-        await openClientDetails(clientId);
-        await loadDevelopers(); renderDevelopersGrid();
-    } catch (e) {
-        showToast(`⚠ ${e.message}`);
-        if (btnElement) btnElement.disabled = false;
-    }
+    bevestigModal({
+        titel: 'Developer ontkoppelen',
+        tekst: `Weet je zeker dat je "${devNaam}" wilt ontkoppelen van alle projecten van deze klant?`,
+        bevestigTekst: 'Ontkoppelen',
+        soort: 'gevaar',
+        onConfirm: async () => {
+            if (btnElement) btnElement.disabled = true;
+            try {
+                await apiFetch(`/api/clients/${clientId}/developers/${developerId}`, { method: 'DELETE' });
+                showToast(`✓ ${devNaam} ontkoppeld.`);
+                await openClientDetails(clientId);
+                await loadDevelopers(); renderDevelopersGrid();
+            } catch (e) {
+                showToast(`⚠ ${e.message}`);
+                if (btnElement) btnElement.disabled = false;
+            }
+        }
+    });
 }
 
 
@@ -3594,36 +3607,40 @@ async function stuurDeveloperUitnodiging(developerId, devEmail) {
     const btn = document.getElementById('btn-invite-dev');
 
     if (devEmail) {
-        if (!confirm(`Weet je zeker dat je een uitnodiging wilt sturen naar ${devEmail}?`)) {
-            return;
-        }
+        bevestigModal({
+            titel: 'Uitnodiging sturen',
+            tekst: `Een uitnodiging sturen naar ${devEmail}?`,
+            bevestigTekst: 'Versturen',
+            soort: 'actie',
+            onConfirm: async () => {
+                if (btn) {
+                    btn.disabled = true;
+                    btn.innerHTML = 'Bezig...';
+                }
 
-        if (btn) {
-            btn.disabled = true;
-            btn.innerHTML = 'Bezig...';
-        }
+                try {
+                    const res = await apiFetch(`/api/admin/developers/${developerId}/invite`, {
+                        method: 'POST',
+                        body: JSON.stringify({})
+                    });
 
-        try {
-            const res = await apiFetch(`/api/admin/developers/${developerId}/invite`, {
-                method: 'POST',
-                body: JSON.stringify({})
-            });
-
-            if (res.ok || res.data) {
-                const alreadyExisted = res.data?.alreadyExisted;
-                showToast(`✓ Uitnodiging verstuurd${alreadyExisted ? ' (bestaand account gekoppeld)' : ''}`, 'success');
-                // Refresh detail screen
-                await openDeveloperDetails(developerId);
+                    if (res.ok || res.data) {
+                        const alreadyExisted = res.data?.alreadyExisted;
+                        showToast(`✓ Uitnodiging verstuurd${alreadyExisted ? ' (bestaand account gekoppeld)' : ''}`, 'success');
+                        // Refresh detail screen
+                        await openDeveloperDetails(developerId);
+                    }
+                } catch (e) {
+                    showToast(`⚠ ${e.message}`, 'error');
+                } finally {
+                    if (btn) {
+                        btn.disabled = false;
+                        btn.innerHTML = `<i data-lucide="user-plus" style="width:14px;height:14px"></i> Stuur uitnodiging`;
+                        if (typeof lucide !== 'undefined') lucide.createIcons();
+                    }
+                }
             }
-        } catch (e) {
-            showToast(`⚠ ${e.message}`, 'error');
-        } finally {
-            if (btn) {
-                btn.disabled = false;
-                btn.innerHTML = `<i data-lucide="user-plus" style="width:14px;height:14px"></i> Stuur uitnodiging`;
-                if (typeof lucide !== 'undefined') lucide.createIcons();
-            }
-        }
+        });
     } else {
         // Developer has no email address. Open fallback modal
         const emailInput = document.getElementById('dev-invite-email');
@@ -5208,12 +5225,66 @@ function closeModal(id) {
     const m = document.getElementById(id);
     if (m) { m.style.display = 'none'; document.body.style.overflow = ''; }
 }
+
+// ===== GENERIC CONFIRMATION MODAL HELPER =====
+function bevestigModal({ titel, tekst, bevestigTekst = 'Bevestigen', soort = 'actie', onConfirm }) {
+    const titleEl = document.getElementById('confirm-title');
+    const textEl = document.getElementById('confirm-text');
+    const iconWrapper = document.getElementById('confirm-icon-wrapper');
+    const okBtn = document.getElementById('confirm-ok');
+    const headerEl = document.querySelector('#modal-confirm .modal-header');
+
+    if (titleEl) {
+        titleEl.textContent = titel;
+        titleEl.style.color = soort === 'gevaar' ? '#EF4444' : 'var(--white)';
+    }
+    if (textEl) {
+        textEl.textContent = tekst;
+    }
+    if (headerEl) {
+        headerEl.style.borderBottom = soort === 'gevaar' ? '1px solid #450A0A' : '1px solid #1e1e1e';
+    }
+
+    if (okBtn) {
+        okBtn.textContent = bevestigTekst;
+        okBtn.className = '';
+        if (soort === 'gevaar') {
+            okBtn.className = 'btn-danger-final active';
+            okBtn.style.cssText = 'background:#EF4444; border:none; color:white; padding:9px 20px; border-radius:8px; cursor:pointer; font-weight:600;';
+        } else {
+            okBtn.className = 'btn-blue';
+            okBtn.style.cssText = '';
+        }
+
+        // Set non-stacking click handler
+        okBtn.onclick = () => {
+            closeModal('modal-confirm');
+            if (typeof onConfirm === 'function') {
+                onConfirm();
+            }
+        };
+    }
+
+    if (iconWrapper) {
+        if (soort === 'gevaar') {
+            iconWrapper.innerHTML = `<i id="confirm-icon" data-lucide="alert-triangle" style="width:18px;height:18px;color:#EF4444"></i>`;
+        } else {
+            iconWrapper.innerHTML = `<i id="confirm-icon" data-lucide="send" style="width:18px;height:18px;color:#3b82f6"></i>`;
+        }
+    }
+
+    openModal('modal-confirm');
+
+    if (typeof lucide !== 'undefined') {
+        lucide.createIcons();
+    }
+}
 // Close on overlay click (all modals)
 document.addEventListener('click', e => {
     [
         'modal-onboard','modal-adv-filter','modal-add-client','modal-create-invoice',
         'modal-client-form','modal-project-form','modal-factuur-form','modal-client-contracts',
-        'modal-dev-invite-email'
+        'modal-dev-invite-email', 'modal-confirm'
     ].forEach(id => {
         const m = document.getElementById(id);
         if (m && e.target === m) closeModal(id);
@@ -5518,18 +5589,25 @@ async function refreshDevTimesheetsSilent() {
 }
 
 async function deleteDevTimesheet(id) {
-    if(!confirm('Weet je zeker dat je deze uren wilt verwijderen?')) return;
-    try {
-        await apiFetch(`/api/timesheets/${id}`, { method: 'DELETE' });
-        await loadTimesheets();
-        renderDevTimesheets();
-        updateDevTsStats();
-        updateTimesheetSummary();
-        renderDashboardStats();
-        showToast('✓ Timesheet verwijderd');
-    } catch (e) {
-        showToast(`⚠ ${e.message}`);
-    }
+    bevestigModal({
+        titel: 'Uren verwijderen',
+        tekst: 'Weet je zeker dat je deze uren wilt verwijderen?',
+        bevestigTekst: 'Verwijderen',
+        soort: 'gevaar',
+        onConfirm: async () => {
+            try {
+                await apiFetch(`/api/timesheets/${id}`, { method: 'DELETE' });
+                await loadTimesheets();
+                renderDevTimesheets();
+                updateDevTsStats();
+                updateTimesheetSummary();
+                renderDashboardStats();
+                showToast('✓ Timesheet verwijderd');
+            } catch (e) {
+                showToast(`⚠ ${e.message}`);
+            }
+        }
+    });
 }
 
 function getCurrentISOWeekString() {
@@ -5916,21 +5994,28 @@ async function addDevSkill(devId) {
 }
 
 async function removeDevSkill(devId, skillToRemove) {
-    if(!confirm(`Weet je zeker dat je "${skillToRemove}" wilt verwijderen?`)) return;
-    try {
-        const res = await apiFetch(`/api/developers/${devId}`);
-        let currentSkills = [];
-        try { currentSkills = JSON.parse(res.developer.skills) || []; } catch(e) {}
-        
-        currentSkills = currentSkills.filter(s => s !== skillToRemove);
-        
-        const success = await saveSkills(devId, currentSkills);
-        if (success) {
-            loadDevProfile(); // reload the UI
+    bevestigModal({
+        titel: 'Skill verwijderen',
+        tekst: `Weet je zeker dat je "${skillToRemove}" wilt verwijderen?`,
+        bevestigTekst: 'Verwijderen',
+        soort: 'gevaar',
+        onConfirm: async () => {
+            try {
+                const res = await apiFetch(`/api/developers/${devId}`);
+                let currentSkills = [];
+                try { currentSkills = JSON.parse(res.developer.skills) || []; } catch(e) {}
+                
+                currentSkills = currentSkills.filter(s => s !== skillToRemove);
+                
+                const success = await saveSkills(devId, currentSkills);
+                if (success) {
+                    loadDevProfile(); // reload the UI
+                }
+            } catch(e) {
+                showToast('⚠ Fout bij verwijderen skill: ' + e.message, 'error');
+            }
         }
-    } catch(e) {
-        showToast('⚠ Fout bij verwijderen skill: ' + e.message, 'error');
-    }
+    });
 }
 
 async function downloadDeveloperCV(devId) {
@@ -6988,41 +7073,47 @@ async function handleLogoUpload(event) {
 }
 
 async function removeLogo(clientId) {
-    if (!confirm('Weet je zeker dat je het logo wilt verwijderen?')) return;
-    
-    document.querySelectorAll('.client-logo-dropdown').forEach(el => el.remove());
+    bevestigModal({
+        titel: 'Logo verwijderen',
+        tekst: 'Weet je zeker dat je het logo wilt verwijderen?',
+        bevestigTekst: 'Verwijderen',
+        soort: 'gevaar',
+        onConfirm: async () => {
+            document.querySelectorAll('.client-logo-dropdown').forEach(el => el.remove());
 
-    try {
-        await apiFetch(`/api/clients/${clientId}/logo`, {
-            method: 'DELETE'
-        });
-        await loadClients();
-        renderClientsGrid();
+            try {
+                await apiFetch(`/api/clients/${clientId}/logo`, {
+                    method: 'DELETE'
+                });
+                await loadClients();
+                renderClientsGrid();
 
-        // Refresh client detail page hero if active
-        if (_currentClientId == clientId) {
-            const updated = clients.find(c => c.id == clientId);
-            if (updated) {
-                const initials = getInitials(updated.naam);
-                const logoEl = document.getElementById('detail-client-logo');
-                if (logoEl) {
-                    logoEl.innerHTML = `
-                        ${updated.logo_url
-                            ? `<img src="${updated.logo_url}" alt="${updated.naam}" style="width:100%; height:100%; object-fit:cover;" />`
-                            : `<span>${initials}</span>`
+                // Refresh client detail page hero if active
+                if (_currentClientId == clientId) {
+                    const updated = clients.find(c => c.id == clientId);
+                    if (updated) {
+                        const initials = getInitials(updated.naam);
+                        const logoEl = document.getElementById('detail-client-logo');
+                        if (logoEl) {
+                            logoEl.innerHTML = `
+                                ${updated.logo_url
+                                    ? `<img src="${updated.logo_url}" alt="${updated.naam}" style="width:100%; height:100%; object-fit:cover;" />`
+                                    : `<span>${initials}</span>`
+                                }
+                                <div class="avatar-overlay">
+                                    <i class="ti ti-camera"></i>
+                                </div>
+                            `;
+                            logoEl.className = `client-detail-logo client-avatar ${updated.logo_url ? 'has-image' : ''}`;
                         }
-                        <div class="avatar-overlay">
-                            <i class="ti ti-camera"></i>
-                        </div>
-                    `;
-                    logoEl.className = `client-detail-logo client-avatar ${updated.logo_url ? 'has-image' : ''}`;
+                    }
                 }
+            } catch (e) {
+                console.error('Error removing logo:', e);
+                alert('Fout tijdens verwijderen van logo: ' + e.message);
             }
         }
-    } catch (e) {
-        console.error('Error removing logo:', e);
-        alert('Fout tijdens verwijderen van logo: ' + e.message);
-    }
+    });
 }
 
 function openContractenModal(clientId, clientName) {
