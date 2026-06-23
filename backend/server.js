@@ -270,6 +270,101 @@ app.post('/api/admin/users/reset-link', async (req, res) => {
 });
 
 
+// POST /api/admin/developers/:developer_id/invite - Invite a developer and link instantly (admin-only)
+app.post('/api/admin/developers/:developer_id/invite', async (req, res) => {
+  if (req.authRole !== 'admin') {
+    return res.status(403).json({ ok: false, error: 'Admin-rechten vereist' });
+  }
+
+  const { developer_id } = req.params;
+  const { email: inputEmail } = req.body || {};
+
+  try {
+    // 1. Fetch developer row
+    const devRows = await q('SELECT developer_id, naam, email, auth_user_id FROM developer WHERE developer_id = $1', [developer_id]);
+    if (!devRows.length) {
+      return res.status(404).json({ ok: false, error: 'Developer niet gevonden' });
+    }
+    const dev = devRows[0];
+
+    // 2. Check if already linked
+    if (dev.auth_user_id) {
+      return res.status(409).json({ ok: false, error: 'Deze developer is al gekoppeld aan een account.' });
+    }
+
+    // 3. Determine email address
+    let email = (inputEmail || dev.email || '').trim();
+    if (!email) {
+      return res.status(400).json({ ok: false, error: 'Geen e-mailadres bekend. Vul een e-mailadres in.' });
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({ ok: false, error: 'Ongeldig e-mailadres' });
+    }
+
+    // 4. Update email if changed or was null
+    if (email.toLowerCase() !== (dev.email || '').toLowerCase()) {
+      await q('UPDATE developer SET email = $1 WHERE developer_id = $2', [email, developer_id]);
+    }
+
+    // 5. Send invitation
+    const redirectUrl = 'https://reemo-2.onrender.com/set-password';
+    let newUserId = null;
+    let alreadyExisted = false;
+
+    const { data, error } = await supabase.auth.admin.inviteUserByEmail(email, { redirectTo: redirectUrl });
+    
+    if (error) {
+      const msg = error.message || '';
+      // If user already exists/registered, link to existing account (Edge C4)
+      if (error.status === 422 || msg.toLowerCase().includes('already registered') || msg.toLowerCase().includes('already exists')) {
+        const { data: { users }, error: listError } = await supabase.auth.admin.listUsers();
+        if (listError) throw listError;
+
+        const existingUser = users.find(u => u.email && u.email.toLowerCase() === email.toLowerCase());
+        if (!existingUser) {
+          return res.status(500).json({ ok: false, error: 'Er bestaat al een account met dit e-mailadres, maar kon het ID niet ophalen.' });
+        }
+        newUserId = existingUser.id;
+        alreadyExisted = true;
+      } else {
+        throw error;
+      }
+    } else {
+      newUserId = data?.user?.id;
+      if (!newUserId) {
+        return res.status(500).json({ ok: false, error: 'Uitnodiging mislukt (geen user-id terug)' });
+      }
+
+      // Update user metadata role to developer
+      const { error: roleError } = await supabase.auth.admin.updateUserById(newUserId, {
+        app_metadata: { role: 'developer' }
+      });
+      if (roleError) {
+        return res.status(500).json({ ok: false, error: roleError.message });
+      }
+    }
+
+    // 6. Link developer profile to the auth user ID
+    await q('UPDATE developer SET auth_user_id = $1 WHERE developer_id = $2', [newUserId, developer_id]);
+
+    res.json({
+      ok: true,
+      data: {
+        developer_id,
+        email,
+        auth_user_id: newUserId,
+        alreadyExisted
+      }
+    });
+  } catch (e) {
+    console.error('[POST /api/admin/developers/:id/invite]', e.message);
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
+
 // POST /api/admin/users/:id/role - Update user role (admin-only, with super-admin protection)
 app.post('/api/admin/users/:id/role', async (req, res) => {
   if (req.authRole !== 'admin') {

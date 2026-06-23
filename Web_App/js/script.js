@@ -3309,6 +3309,31 @@ function renderDeveloperDetailView(dev, projecten, uren, cv) {
     const d = document.getElementById('developer-detail-content');
     if (!d) return;
 
+    const headerActions = document.querySelector('#screen-developer-details .page-header-actions');
+    if (headerActions) {
+        let inviteBtnHtml = '';
+        if (dev.auth_user_id) {
+            inviteBtnHtml = `
+                <span class="status-badge status-approved" style="display:inline-flex;align-items:center;gap:0.35rem;padding:0.5rem 0.875rem;font-size:0.8125rem;border-radius:0.5rem;background:rgba(16,185,129,0.1);color:#10b981;border:1px solid rgba(16,185,129,0.2)">
+                    <i data-lucide="check" style="width:14px;height:14px"></i> Gekoppeld aan account
+                </span>
+            `;
+        } else {
+            inviteBtnHtml = `
+                <button class="btn-blue" id="btn-invite-dev" onclick="stuurDeveloperUitnodiging('${dev.developer_id}', ${dev.email ? `'${dev.email}'` : 'null'})">
+                    <i data-lucide="user-plus" style="width:14px;height:14px"></i> Stuur uitnodiging
+                </button>
+            `;
+        }
+        
+        headerActions.innerHTML = `
+            ${inviteBtnHtml}
+            <button class="btn-outline" onclick="openAssignProjectModal('${dev.developer_id}')">
+                <i data-lucide="link" style="width:14px;height:14px"></i> Koppel aan Project
+            </button>
+        `;
+    }
+
     const uurtarief = parseFloat(dev.uurtarief) || 0;
     const name = dev.naam || dev.name || 'Developer';
     const isMale = !['Aisha','Elena','Nadia','Sarah'].includes(name.split(' ')[0]);
@@ -3562,6 +3587,120 @@ function renderDeveloperDetailView(dev, projecten, uren, cv) {
       </div>
     `;
     if (typeof lucide !== 'undefined') lucide.createIcons();
+}
+
+// ===== DEVELOPER INVITATION FLOW =====
+async function stuurDeveloperUitnodiging(developerId, devEmail) {
+    const btn = document.getElementById('btn-invite-dev');
+
+    if (devEmail) {
+        if (!confirm(`Weet je zeker dat je een uitnodiging wilt sturen naar ${devEmail}?`)) {
+            return;
+        }
+
+        if (btn) {
+            btn.disabled = true;
+            btn.innerHTML = 'Bezig...';
+        }
+
+        try {
+            const res = await apiFetch(`/api/admin/developers/${developerId}/invite`, {
+                method: 'POST',
+                body: JSON.stringify({})
+            });
+
+            if (res.ok || res.data) {
+                const alreadyExisted = res.data?.alreadyExisted;
+                showToast(`✓ Uitnodiging verstuurd${alreadyExisted ? ' (bestaand account gekoppeld)' : ''}`, 'success');
+                // Refresh detail screen
+                await openDeveloperDetails(developerId);
+            }
+        } catch (e) {
+            showToast(`⚠ ${e.message}`, 'error');
+        } finally {
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = `<i data-lucide="user-plus" style="width:14px;height:14px"></i> Stuur uitnodiging`;
+                if (typeof lucide !== 'undefined') lucide.createIcons();
+            }
+        }
+    } else {
+        // Developer has no email address. Open fallback modal
+        const emailInput = document.getElementById('dev-invite-email');
+        const errorEl = document.getElementById('dev-invite-email-error');
+        const submitBtn = document.getElementById('btn-dev-invite-email-submit');
+
+        if (emailInput) {
+            emailInput.value = '';
+        }
+        if (errorEl) {
+            errorEl.style.display = 'none';
+            errorEl.textContent = '';
+        }
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = `<i data-lucide="mail" style="width:14px;height:14px"></i> Uitnodigen`;
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+        }
+
+        openModal('modal-dev-invite-email');
+
+        if (emailInput) {
+            setTimeout(() => emailInput.focus(), 100);
+        }
+
+        if (submitBtn) {
+            submitBtn.onclick = async () => {
+                const email = emailInput?.value?.trim() || '';
+
+                if (!email) {
+                    if (errorEl) {
+                        errorEl.textContent = 'E-mailadres is verplicht.';
+                        errorEl.style.display = 'block';
+                    }
+                    return;
+                }
+
+                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                if (!emailRegex.test(email)) {
+                    if (errorEl) {
+                        errorEl.textContent = 'Ongeldig e-mailadres.';
+                        errorEl.style.display = 'block';
+                    }
+                    return;
+                }
+
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = 'Bezig...';
+
+                try {
+                    const res = await apiFetch(`/api/admin/developers/${developerId}/invite`, {
+                        method: 'POST',
+                        body: JSON.stringify({ email })
+                    });
+
+                    if (res.ok || res.data) {
+                        const alreadyExisted = res.data?.alreadyExisted;
+                        showToast(`✓ Uitnodiging verstuurd${alreadyExisted ? ' (bestaand account gekoppeld)' : ''}`, 'success');
+                        closeModal('modal-dev-invite-email');
+                        // Refresh detail screen
+                        await openDeveloperDetails(developerId);
+                    }
+                } catch (e) {
+                    if (errorEl) {
+                        errorEl.textContent = e.message;
+                        errorEl.style.display = 'block';
+                    } else {
+                        showToast(`⚠ ${e.message}`, 'error');
+                    }
+                } finally {
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = `<i data-lucide="mail" style="width:14px;height:14px"></i> Uitnodigen`;
+                    if (typeof lucide !== 'undefined') lucide.createIcons();
+                }
+            };
+        }
+    }
 }
 
 // ===== ASSIGN PROJECT MODAL =====
@@ -5073,7 +5212,8 @@ function closeModal(id) {
 document.addEventListener('click', e => {
     [
         'modal-onboard','modal-adv-filter','modal-add-client','modal-create-invoice',
-        'modal-client-form','modal-project-form','modal-factuur-form','modal-client-contracts'
+        'modal-client-form','modal-project-form','modal-factuur-form','modal-client-contracts',
+        'modal-dev-invite-email'
     ].forEach(id => {
         const m = document.getElementById(id);
         if (m && e.target === m) closeModal(id);
