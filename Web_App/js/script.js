@@ -6661,9 +6661,8 @@ async function saveParsedCV() {
 
                 if (filePath) {
                     console.log('[DEBUG] saveParsedCV - Updating cv_url via PATCH');
-                    await fetch(`/api/developers/${developer_id}`, {
+                    await apiFetch(`/api/developers/${developer_id}`, {
                         method: 'PATCH',
-                        headers: {'Content-Type': 'application/json'},
                         body: JSON.stringify({ cv_url: filePath })
                     });
                     console.log('[DEBUG] saveParsedCV - PATCH successful');
