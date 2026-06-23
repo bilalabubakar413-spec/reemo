@@ -7193,6 +7193,29 @@ async function loadClientContracts(clientId) {
             
             const periodString = formatContractPeriod(contract.startdatum, contract.einddatum);
             const rateFormatted = formatCurrency(parseFloat(contract.uurtarief || 0));
+
+            let docActionHtml = '';
+            if (contract.document_url) {
+                docActionHtml = `
+                    <div style="display:flex;align-items:center;gap:0.35rem">
+                        <span class="status-badge" style="font-size:0.625rem;padding:0.25rem 0.5rem;border-radius:4px;font-weight:700;background:rgba(16,185,129,0.1);color:#10b981;border:1px solid rgba(16,185,129,0.2)">
+                            <i class="ti ti-check" style="font-size:10px;vertical-align:middle;margin-right:2px"></i>Document
+                        </span>
+                        <button class="client-card-btn view" title="Vervang PDF" onclick="triggerContractUpload(${contract.contract_id})" style="width:1.6rem;height:1.6rem;border-radius:0.375rem;display:flex;align-items:center;justify-content:center;font-size:0.75rem;padding:0;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:var(--white-70);cursor:pointer">
+                            <i class="ti ti-upload" style="font-size:12px"></i>
+                        </button>
+                        <button class="client-card-btn reject" title="Verwijder PDF" onclick="deleteContractDocument(${contract.contract_id}, ${contract.klant_id})" style="width:1.6rem;height:1.6rem;border-radius:0.375rem;display:flex;align-items:center;justify-content:center;font-size:0.75rem;padding:0;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.2);color:#ef4444;cursor:pointer">
+                            <i class="ti ti-trash" style="font-size:12px"></i>
+                        </button>
+                    </div>
+                `;
+            } else {
+                docActionHtml = `
+                    <button class="btn-outline" onclick="triggerContractUpload(${contract.contract_id})" style="font-size:0.75rem;padding:0.3rem 0.6rem;display:flex;align-items:center;gap:0.25rem" id="btn-upload-contract-${contract.contract_id}">
+                        <i class="ti ti-upload" style="font-size:12px"></i> PDF uploaden
+                    </button>
+                `;
+            }
             
             return `
                 <div class="contract-row-card" style="background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.05);border-radius:0.75rem;padding:1rem;display:flex;justify-content:space-between;align-items:center">
@@ -7207,7 +7230,10 @@ async function loadClientContracts(clientId) {
                         </div>
                         <div style="font-size:0.75rem;color:var(--white-40)">${periodString}</div>
                     </div>
-                    <span class="status-badge" style="flex-shrink:0;margin-left:1rem;font-size:0.625rem;padding:0.25rem 0.5rem;border-radius:4px;font-weight:700;${badgeStyle}">${status}</span>
+                    <div style="display:flex;align-items:center;gap:0.5rem;flex-shrink:0;margin-left:1rem">
+                        ${docActionHtml}
+                        <span class="status-badge" style="flex-shrink:0;font-size:0.625rem;padding:0.25rem 0.5rem;border-radius:4px;font-weight:700;${badgeStyle}">${status}</span>
+                    </div>
                 </div>
             `;
         }).join('');
@@ -7343,6 +7369,98 @@ async function submitContractForm() {
         console.error('Error saving contract:', e);
         alert('Fout tijdens opslaan van contract.');
     }
+}
+
+let currentUploadContractId = null;
+
+function triggerContractUpload(contractId) {
+    currentUploadContractId = contractId;
+    document.getElementById('contract-document-input')?.click();
+}
+
+async function handleContractDocumentUpload(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    if (file.type !== 'application/pdf') {
+        showToast('Alleen PDF-bestanden zijn toegestaan.', 'error');
+        event.target.value = '';
+        return;
+    }
+
+    if (file.size > 10 * 1024 * 1024) {
+        showToast('Bestand is te groot (max 10MB).', 'error');
+        event.target.value = '';
+        return;
+    }
+
+    const contractId = currentUploadContractId;
+    if (!contractId) return;
+
+    const btn = document.getElementById(`btn-upload-contract-${contractId}`);
+    const originalText = btn ? btn.innerHTML : null;
+    
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = 'Bezig...';
+    }
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+        const clientId = document.getElementById('contract-client-id')?.value;
+        const res = await apiFetch(`/api/contracts/${contractId}/document`, {
+            method: 'POST',
+            body: formData
+        });
+
+        if (res.ok) {
+            showToast('✓ Contract-document geüpload', 'success');
+            if (clientId) {
+                await loadClientContracts(clientId);
+            }
+        } else {
+            showToast(res.error || 'Upload mislukt.', 'error');
+        }
+    } catch (e) {
+        console.error('Error uploading contract document:', e);
+        showToast('Fout tijdens uploaden van contract-document: ' + e.message, 'error');
+    } finally {
+        if (btn && originalText) {
+            btn.disabled = false;
+            btn.innerHTML = originalText;
+        }
+        event.target.value = '';
+        currentUploadContractId = null;
+    }
+}
+
+async function deleteContractDocument(contractId, clientId) {
+    bevestigModal({
+        titel: 'Contract-document verwijderen',
+        tekst: 'Weet je zeker dat je het gekoppelde PDF-document wilt verwijderen?',
+        bevestigTekst: 'Verwijderen',
+        soort: 'gevaar',
+        onConfirm: async () => {
+            try {
+                const res = await apiFetch(`/api/contracts/${contractId}/document`, {
+                    method: 'DELETE'
+                });
+                if (res.ok) {
+                    showToast('✓ Document verwijderd', 'success');
+                    if (clientId) {
+                        await loadClientContracts(clientId);
+                    }
+                } else {
+                    showToast(res.error || 'Verwijderen mislukt.', 'error');
+                }
+            } catch (e) {
+                console.error('Error deleting contract document:', e);
+                showToast('Fout tijdens verwijderen van document: ' + e.message, 'error');
+            }
+        }
+    });
 }
 
 // === Data Management Logic ===

@@ -1928,6 +1928,90 @@ app.post('/api/clients/:id/contracts', async (req, res) => {
   }
 });
 
+// POST – upload contract document (admin-only)
+app.post('/api/contracts/:contract_id/document', storageUpload.single('file'), async (req, res) => {
+  if (req.authRole !== 'admin') {
+    return res.status(403).json({ ok: false, error: 'Geen toegang tot deze actie.' });
+  }
+  const contractId = parseInt(req.params.contract_id);
+  if (isNaN(contractId)) {
+    return res.status(400).json({ ok: false, error: 'Ongeldig contract_id.' });
+  }
+
+  try {
+    const contracts = await q('SELECT contract_id FROM contract WHERE contract_id = $1', [contractId]);
+    if (!contracts.length) {
+      return res.status(404).json({ ok: false, error: 'Contract niet gevonden.' });
+    }
+
+    const file = req.file;
+    if (!file) {
+      return res.status(400).json({ ok: false, error: 'Geen bestand ontvangen.' });
+    }
+
+    if (file.mimetype !== 'application/pdf') {
+      return res.status(400).json({ ok: false, error: 'Alleen PDF-bestanden zijn toegestaan.' });
+    }
+
+    const filePath = `contract_${contractId}_${Date.now()}.pdf`;
+
+    const { data, error } = await supabaseAdmin.storage
+      .from('contracten')
+      .upload(filePath, file.buffer, {
+        contentType: 'application/pdf',
+        upsert: true
+      });
+
+    if (error) {
+      console.error('[POST /api/contracts/:id/document] Supabase Error:', error);
+      throw error;
+    }
+
+    await q('UPDATE contract SET document_url = $1 WHERE contract_id = $2', [filePath, contractId]);
+
+    res.json({ ok: true, data: { contract_id: contractId, document_url: filePath } });
+  } catch (e) {
+    console.error('[POST /api/contracts/:id/document]', e.message);
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
+// DELETE – delete contract document (admin-only)
+app.delete('/api/contracts/:contract_id/document', async (req, res) => {
+  if (req.authRole !== 'admin') {
+    return res.status(403).json({ ok: false, error: 'Geen toegang tot deze actie.' });
+  }
+  const contractId = parseInt(req.params.contract_id);
+  if (isNaN(contractId)) {
+    return res.status(400).json({ ok: false, error: 'Ongeldig contract_id.' });
+  }
+
+  try {
+    const contracts = await q('SELECT contract_id, document_url FROM contract WHERE contract_id = $1', [contractId]);
+    if (!contracts.length) {
+      return res.status(404).json({ ok: false, error: 'Contract niet gevonden.' });
+    }
+
+    const currentDoc = contracts[0].document_url;
+    if (currentDoc) {
+      const { error } = await supabaseAdmin.storage
+        .from('contracten')
+        .remove([currentDoc]);
+
+      if (error) {
+        console.error('[DELETE /api/contracts/:id/document] Supabase Error:', error);
+      }
+    }
+
+    await q('UPDATE contract SET document_url = NULL WHERE contract_id = $1', [contractId]);
+
+    res.json({ ok: true });
+  } catch (e) {
+    console.error('[DELETE /api/contracts/:id/document]', e.message);
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
 // GET – developers NOT yet linked to any project of this client
 app.get('/api/clients/:id/available-developers', async (req, res) => {
   const { id } = req.params;
