@@ -583,7 +583,7 @@ async function handleLogin(e) {
     } catch (err) {
         console.error('Login error:', err);
         if (loginError) {
-            loginError.textContent = err.message || 'Inloggen mislukt. Controleer je gegevens.';
+            loginError.textContent = err.message || 'Login failed. Please check your credentials.';
             loginError.style.display = 'block';
         }
     }
@@ -1837,7 +1837,7 @@ async function loadDevProfile() {
         const { developer, projecten, uren, cv } = res;
         renderDevProfilePage(developer, projecten, uren, cv);
     } catch (e) {
-        container.innerHTML = `<div style="padding:2rem;color:#f43f5e">Fout bij laden van profiel: ${e.message}</div>`;
+        container.innerHTML = `<div style="padding:2rem;color:#f43f5e">Error loading profile: ${e.message}</div>`;
     }
 }
 
@@ -5771,7 +5771,7 @@ async function renderDevDocuments() {
     if (!activeDeveloper || !activeDeveloper.id) {
         const tbody = document.getElementById('dev-docs-body');
         if (tbody) {
-            tbody.innerHTML = `<tr><td colspan="4" style="padding:2rem;text-align:center;color:var(--white-30);font-size:0.875rem">Geen actieve developer sessie.</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="4" style="padding:2rem;text-align:center;color:var(--white-30);font-size:0.875rem">No active developer session.</td></tr>`;
         }
         return;
     }
@@ -5780,7 +5780,7 @@ async function renderDevDocuments() {
         const res = await apiFetch(`/api/developers/${activeDeveloper.id}/contracts`);
         devContracts = res || [];
     } catch (e) {
-        console.error('Fout bij het laden van contracten:', e);
+        console.error('Error loading contracts:', e);
         devContracts = [];
     }
 
@@ -5799,7 +5799,7 @@ function updateDocStats() {
             cvStatusEl.textContent = 'Reemo Ready';
             cvStatusEl.style.color = '#34d399';
         } else {
-            cvStatusEl.textContent = 'Geen CV';
+            cvStatusEl.textContent = 'No CV';
             cvStatusEl.style.color = 'var(--white-40)';
         }
     }
