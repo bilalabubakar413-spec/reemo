@@ -1447,7 +1447,8 @@
                                     D
                                 </div>
 
-                                <button class="btn-outline" style="font-size:0.75rem; padding:0.5rem 1rem">
+                                <input type="file" id="onboard-avatar-input" accept="image/jpeg,image/png,image/webp" style="display:none" onchange="handleOnboardAvatarUpload(event)">
+                                <button id="onboard-avatar-choose-btn" class="btn-outline" onclick="document.getElementById('onboard-avatar-input').click()" style="font-size:0.75rem; padding:0.5rem 1rem">
                                     <i data-lucide="image" style="width:14px; height:14px; margin-right:0.5rem"></i> Choose photo
                                 </button>
                                 <p style="font-size:0.6875rem; color:var(--white-30); max-width:260px; text-align:center; line-height:1.5">

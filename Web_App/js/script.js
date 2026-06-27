@@ -227,6 +227,27 @@ function getInitials(name) {
     return name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
 }
 
+function getAvatarUrl(avatarUrl) {
+    if (!avatarUrl) return null;
+    if (avatarUrl.startsWith('http')) return avatarUrl;
+    return `https://ekldjmogkgucxdbftgmb.supabase.co/storage/v1/object/public/avatars/${avatarUrl}`;
+}
+
+function renderUserAvatar(containerEl, userObj) {
+    if (!containerEl) return;
+    const avatarUrl = userObj?.avatar_url;
+    const initials = getInitials(userObj?.naam || userObj?.name || '?');
+    
+    if (avatarUrl) {
+        const publicUrl = getAvatarUrl(avatarUrl);
+        containerEl.innerHTML = `<img src="${publicUrl}" alt="${userObj?.naam || ''}" style="width:100%; height:100%; object-fit:cover; border-radius:50%;" />`;
+        containerEl.style.padding = '0';
+    } else {
+        containerEl.textContent = initials;
+        containerEl.style.padding = '';
+    }
+}
+
 function getStatusClass(status) {
     if (!status || typeof status !== 'string') return '';
     const s = status.toLowerCase();
@@ -470,6 +491,9 @@ async function setupUserSession(user, role) {
             if (headerName) headerName.textContent = activeDeveloper?.naam || 'Developer';
             if (headerRole) headerRole.textContent = activeDeveloper?.role || activeDeveloper?.rol || 'Developer';
             if (headerAvatar) headerAvatar.textContent = initials;
+
+            renderUserAvatar(userProfileAvatar, activeDeveloper);
+            renderUserAvatar(headerAvatar, activeDeveloper);
         }
         
         if (appTitle) appTitle.textContent = 'Reemo Developer';
@@ -1846,6 +1870,10 @@ function renderDevProfilePage(dev, projecten, uren, cv) {
     if (!container) return;
 
     const initials = getInitials(dev.naam || '?');
+    const hasAvatar = dev.avatar_url;
+    const avatarContent = hasAvatar
+        ? `<img src="${getAvatarUrl(dev.avatar_url)}" alt="${dev.naam || ''}" style="width:100%; height:100%; object-fit:cover; border-radius:50%;" />`
+        : initials;
     const role = dev.rol || 'Developer';
     const rate = parseFloat(dev.uurtarief) || 0;
     const capacity = dev.weekcapaciteit || 40;
@@ -1952,7 +1980,7 @@ function renderDevProfilePage(dev, projecten, uren, cv) {
             <!-- Hero card -->
             <div class="profile-hero">
                 <div style="position:relative;flex-shrink:0">
-                    <div class="profile-hero-avatar" style="background:linear-gradient(135deg, ${avatarColor}20, ${avatarColor}05);color:${avatarColor};border:1px solid ${avatarColor}40;box-shadow: 0 8px 24px -4px ${avatarColor}15;position:relative">${initials}</div>
+                    <div class="profile-hero-avatar" style="background:linear-gradient(135deg, ${avatarColor}20, ${avatarColor}05);color:${avatarColor};border:1px solid ${avatarColor}40;box-shadow: 0 8px 24px -4px ${avatarColor}15;position:relative;padding:0">${avatarContent}</div>
                     <div style="position:absolute;bottom:2px;right:2px;width:1rem;height:1rem;border-radius:50%;background:#0c0c0c;display:flex;align-items:center;justify-content:center;border:1px solid rgba(255,255,255,0.05)">
                         <div id="profile-avatar-status-dot" style="width:0.625rem;height:0.625rem;border-radius:50%;background:${statusCfg.color};box-shadow:0 0 8px ${statusCfg.color}"></div>
                     </div>
@@ -8299,8 +8327,93 @@ function prepopulateOnboardingFields() {
     updateOnboardBioCounter();
 
     if (avatarPreview) {
-        const displayName = (nameInput ? nameInput.value : '') || activeDeveloper?.naam || activeDeveloper?.name || '?';
-        avatarPreview.textContent = getInitials(displayName.trim());
+        if (activeDeveloper && activeDeveloper.avatar_url) {
+            renderUserAvatar(avatarPreview, activeDeveloper);
+        } else {
+            const displayName = (nameInput ? nameInput.value : '') || activeDeveloper?.naam || activeDeveloper?.name || '?';
+            avatarPreview.textContent = getInitials(displayName.trim());
+        }
+    }
+}
+
+async function handleOnboardAvatarUpload(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
+    if (!allowedTypes.includes(file.type)) {
+        showToast('Only JPG, PNG or WEBP images are allowed.', 'error');
+        event.target.value = '';
+        return;
+    }
+
+    const maxSize = 2 * 1024 * 1024; // 2MB
+    if (file.size > maxSize) {
+        showToast('Image is too large (max 2MB).', 'error');
+        event.target.value = '';
+        return;
+    }
+
+    const btn = document.getElementById('onboard-avatar-choose-btn');
+    const originalText = btn ? btn.innerHTML : null;
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = 'Uploading...';
+    }
+
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('bucket', 'avatars');
+    formData.append('developer_id', activeDeveloper.id);
+
+    try {
+        const { data: sessionData } = await sbClient.auth.getSession();
+        const token = sessionData?.session?.access_token;
+        
+        const headers = {};
+        if (token) {
+            headers['Authorization'] = `Bearer ${token}`;
+        }
+
+        const response = await fetch('/api/storage/upload', {
+            method: 'POST',
+            headers: headers,
+            body: formData
+        });
+
+        if (response.ok) {
+            const resData = await response.json();
+            const filePath = resData.filePath || resData.data?.filePath;
+            if (filePath) {
+                activeDeveloper.avatar_url = filePath;
+                
+                // Update wizard preview
+                const avatarPreview = document.getElementById('onboard-avatar-preview');
+                if (avatarPreview) {
+                    renderUserAvatar(avatarPreview, activeDeveloper);
+                }
+
+                showToast('✓ Photo uploaded', 'success');
+            } else {
+                showToast('Upload failed: no file path received.', 'error');
+            }
+        } else {
+            let errorMsg = 'Upload failed.';
+            try {
+                const errData = await response.json();
+                errorMsg = errData.error || errData.message || errorMsg;
+            } catch (_) {}
+            showToast(errorMsg, 'error');
+        }
+    } catch (e) {
+        console.error('Error uploading onboarding avatar:', e);
+        showToast('Error during avatar upload: ' + e.message, 'error');
+    } finally {
+        if (btn && originalText) {
+            btn.disabled = false;
+            btn.innerHTML = originalText;
+        }
+        event.target.value = '';
     }
 }
 
@@ -8311,9 +8424,9 @@ function validateOnboardingStep2() {
         return;
     }
 
-    // Update avatar preview with the confirmed name before advancing to step 3
+    // Update avatar preview with the confirmed name before advancing to step 3 if no custom avatar is uploaded
     const avatarPreview = document.getElementById('onboard-avatar-preview');
-    if (avatarPreview) {
+    if (avatarPreview && (!activeDeveloper || !activeDeveloper.avatar_url)) {
         avatarPreview.textContent = getInitials(nameInput.value.trim());
     }
 
@@ -8379,6 +8492,9 @@ async function finishOnboarding() {
         const headerAvatar = document.getElementById('header-user-avatar');
         if (headerName) headerName.textContent = naamVal;
         if (headerAvatar) headerAvatar.textContent = initials;
+
+        renderUserAvatar(userProfileAvatar, activeDeveloper);
+        renderUserAvatar(headerAvatar, activeDeveloper);
 
         exitOnboardingMode();
         navigateTo('dev-dashboard');
