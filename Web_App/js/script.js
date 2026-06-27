@@ -2188,14 +2188,14 @@ function renderDevProfilePage(dev, projecten, uren, cv) {
                     <div class="profile-card" style="cursor:pointer;transition:border-color 0.2s"
                          onmouseover="this.style.borderColor='rgba(99,102,241,0.3)'"
                          onmouseout="this.style.borderColor='#1a1a1a'"
-                         onclick="showToast('Neem contact op met admin@reemo.io voor ondersteuning.')">
+                         onclick="showToast('Contact admin@reemo.io for support.')">
                         <div class="profile-card-body" style="display:flex;align-items:center;gap:1rem">
                             <div style="width:2.5rem;height:2.5rem;border-radius:0.75rem;background:rgba(99,102,241,0.08);border:1px solid rgba(99,102,241,0.2);display:flex;align-items:center;justify-content:center;color:#818cf8;flex-shrink:0">
                                 <i data-lucide="headphones" style="width:16px;height:16px"></i>
                             </div>
                             <div>
-                                <div style="font-weight:700;font-size:0.875rem;color:var(--white)">Hulp nodig?</div>
-                                <div style="font-size:0.6875rem;color:var(--white-40);margin-top:0.15rem">Contacteer de administratie</div>
+                                <div style="font-weight:700;font-size:0.875rem;color:var(--white)">Need help?</div>
+                                <div style="font-size:0.6875rem;color:var(--white-40);margin-top:0.15rem">Contact the administration</div>
                             </div>
                             <i data-lucide="chevron-right" style="width:14px;height:14px;color:var(--white-20);margin-left:auto"></i>
                         </div>
