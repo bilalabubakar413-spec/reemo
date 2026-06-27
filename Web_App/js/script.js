@@ -442,13 +442,13 @@ async function setupUserSession(user, role) {
                     hourlyRate: parseFloat(meData.uurtarief) || 0
                 };
             } else {
-                throw new Error('Geen developer-profiel gevonden');
+                throw new Error('No developer profile found');
             }
         } catch (err) {
-            console.error('Fout bij ophalen van /api/developers/me:', err);
+            console.error('Error fetching /api/developers/me:', err);
             activeDeveloper = null;
             window._devNotLinked = true;
-            showToast('Je account is nog niet gekoppeld aan een developer-profiel. Neem contact op met de beheerder.', 'error');
+            showToast('Your account is not yet linked to a developer profile. Please contact the administrator.', 'error');
         }
 
         navAdminItems.classList.add('hidden');
@@ -458,10 +458,10 @@ async function setupUserSession(user, role) {
         userProfileAvatar.textContent = initials;
         if (window._devNotLinked) {
             userProfileAvatar.className = 'w-8 h-8 rounded-full bg-red-950 text-red-400 font-bold flex items-center justify-center shrink-0';
-            userProfileName.innerHTML = `<p class="text-sm font-medium truncate">Niet gekoppeld</p><p class="text-[10px] text-red-500 truncate">Contact beheerder</p>`;
+            userProfileName.innerHTML = `<p class="text-sm font-medium truncate">Not linked</p><p class="text-[10px] text-red-500 truncate">Contact administrator</p>`;
             
-            if (headerName) headerName.textContent = 'Niet gekoppeld';
-            if (headerRole) headerRole.textContent = 'Contact beheerder';
+            if (headerName) headerName.textContent = 'Not linked';
+            if (headerRole) headerRole.textContent = 'Contact administrator';
             if (headerAvatar) headerAvatar.textContent = initials;
         } else {
             userProfileAvatar.className = 'w-8 h-8 rounded-full bg-emerald-900 text-emerald-400 font-bold flex items-center justify-center shrink-0';
@@ -1869,7 +1869,7 @@ function renderDevProfilePage(dev, projecten, uren, cv) {
                     <i data-lucide="x" style="width:10px;height:10px"></i>
                 </button>
             </span>`).join('')
-        : `<span style="font-size:0.75rem;color:var(--white-30);font-style:italic">Nog geen skills toegevoegd.</span>`;
+        : `<span style="font-size:0.75rem;color:var(--white-30);font-style:italic">No skills added yet.</span>`;
 
     // Status config
     const statusCfg = _beschikbaarheidConfig[beschikbaarheid] || _beschikbaarheidConfig['beschikbaar'];
@@ -1885,7 +1885,7 @@ function renderDevProfilePage(dev, projecten, uren, cv) {
     // CV section
     let hasCv = cv || dev.cv_url;
     let cvFilename = cv ? (cv.original_filename || 'CV.pdf') : (dev.cv_url ? dev.cv_url.split('_').slice(1).join('_') || 'CV.pdf' : 'CV.pdf');
-    let cvDateText = cv ? `Geüpload op ${new Date(cv.aangemaakt_op || cv.date || Date.now()).toLocaleDateString('nl-NL')}` : (dev.cv_url ? 'Geüpload' : '');
+    let cvDateText = cv ? `Uploaded on ${new Date(cv.aangemaakt_op || cv.date || Date.now()).toLocaleDateString('en-US')}` : (dev.cv_url ? 'Uploaded' : '');
 
     let cvSectionHtml = '';
     if (hasCv) {
@@ -1904,7 +1904,7 @@ function renderDevProfilePage(dev, projecten, uren, cv) {
                     <button class="client-card-btn download" title="Download CV" onclick="downloadDeveloperCV('${devId}')">
                         <i data-lucide="download" style="width:13px;height:13px"></i>
                     </button>
-                    <button class="client-card-btn view" title="Converteer naar Reemo format" onclick="openCvConverterModal({developer_naam: '${(dev.naam || '').replace(/'/g, "\\'")}', cv_url: '${dev.cv_url || cv?.cv_url || ''}', developer_id: '${devId}'})" style="color:#a78bfa">
+                    <button class="client-card-btn view" title="Convert to Reemo format" onclick="openCvConverterModal({developer_naam: '${(dev.naam || '').replace(/'/g, "\\'")}', cv_url: '${dev.cv_url || cv?.cv_url || ''}', developer_id: '${devId}'})" style="color:#a78bfa">
                         <i data-lucide="sparkles" style="width:13px;height:13px"></i>
                     </button>
                 </div>
@@ -1913,8 +1913,8 @@ function renderDevProfilePage(dev, projecten, uren, cv) {
         cvSectionHtml = `
             <div class="profile-cv-empty" onclick="navigateTo('dev-documents')">
                 <i data-lucide="upload-cloud" style="width:1.75rem;height:1.75rem;color:var(--white-20)"></i>
-                <div style="font-weight:700;font-size:0.875rem;color:var(--white-50)">Nog geen CV</div>
-                <div style="font-size:0.6875rem;color:var(--white-30)">Klik om naar Documents te gaan</div>
+                <div style="font-weight:700;font-size:0.875rem;color:var(--white-50)">No CV</div>
+                <div style="font-size:0.6875rem;color:var(--white-30)">Click to go to Documents</div>
             </div>`;
     }
 
@@ -1928,15 +1928,15 @@ function renderDevProfilePage(dev, projecten, uren, cv) {
             <div class="profile-project-row">
                 <div>
                     <div class="profile-project-name">${p.projectnaam}</div>
-                    <div class="profile-project-meta">${p.klant_naam || 'Onbekende Klant'} · ${p.rol_op_project || 'Developer'}</div>
+                    <div class="profile-project-meta">${p.klant_naam || 'Unknown Client'} · ${p.rol_op_project || 'Developer'}</div>
                 </div>
                 <div>
-                    <div class="profile-project-hours">${uren}u/wk</div>
-                    <div class="profile-project-pct" style="color:${pctColor}">${pct}% van cap.</div>
+                    <div class="profile-project-hours">${uren}h/wk</div>
+                    <div class="profile-project-pct" style="color:${pctColor}">${pct}% of cap.</div>
                 </div>
             </div>`;
         }).join('')
-        : `<div style="font-size:0.875rem;color:var(--white-40);padding:0.5rem 0">Geen actieve projecten.</div>`;
+        : `<div style="font-size:0.875rem;color:var(--white-40);padding:0.5rem 0">No active projects.</div>`;
 
     container.innerHTML = `
         <div class="profile-page-wrap">
@@ -1944,8 +1944,8 @@ function renderDevProfilePage(dev, projecten, uren, cv) {
             <!-- Header -->
             <div class="profile-header">
                 <div class="profile-header-left">
-                    <h2>Mijn Profiel</h2>
-                    <p>Beheer je beschikbaarheid, skills en CV.</p>
+                    <h2>My Profile</h2>
+                    <p>Manage your availability, skills, and CV.</p>
                 </div>
             </div>
 
@@ -1984,15 +1984,15 @@ function renderDevProfilePage(dev, projecten, uren, cv) {
                 <div class="profile-hero-stats">
                     <div class="profile-stat-cell">
                         <div class="profile-stat-val" style="color:${isOverAllocated ? '#f87171' : 'var(--white)'}">${capacity}</div>
-                        <div class="profile-stat-label">Uren/Week</div>
+                        <div class="profile-stat-label">Hours/Week</div>
                     </div>
                     <div class="profile-stat-cell">
                         <div class="profile-stat-val">${activeProjectsCount}</div>
-                        <div class="profile-stat-label">Projecten</div>
+                        <div class="profile-stat-label">Projects</div>
                     </div>
                     <div class="profile-stat-cell">
                         <div class="profile-stat-val">€${rate}</div>
-                        <div class="profile-stat-label">Tarief/Uur</div>
+                        <div class="profile-stat-label">Rate/Hour</div>
                     </div>
                 </div>
             </div>
@@ -2001,7 +2001,7 @@ function renderDevProfilePage(dev, projecten, uren, cv) {
             ${isOverAllocated ? `
             <div class="profile-overalloc-banner">
                 <i data-lucide="alert-triangle" style="width:14px;height:14px;flex-shrink:0"></i>
-                <span>Je bent overalloceerd: <strong>${allocatedHours}u</strong> ingepland op <strong>${capacity}u</strong> capaciteit (${allocatedHours - capacity}u te veel).</span>
+                <span>You are over-allocated: <strong>${allocatedHours}h</strong> scheduled on <strong>${capacity}h</strong> capacity (${allocatedHours - capacity}h too many).</span>
             </div>` : ''}
 
             <!-- Content grid -->
@@ -2015,7 +2015,7 @@ function renderDevProfilePage(dev, projecten, uren, cv) {
                         <div class="profile-card-header">
                             <div class="profile-card-title">
                                 <i data-lucide="user" style="width:13px;height:13px;color:#60a5fa"></i>
-                                Persoonlijke Gegevens
+                                Personal Details
                             </div>
                         </div>
                         <div class="profile-card-body">
@@ -2024,7 +2024,7 @@ function renderDevProfilePage(dev, projecten, uren, cv) {
                                     <div style="width:1.75rem;height:1.75rem;border-radius:0.375rem;background:rgba(255,255,255,0.03);display:flex;align-items:center;justify-content:center;color:var(--white-40)">
                                         <i data-lucide="user" style="width:14px;height:14px"></i>
                                     </div>
-                                    <span class="profile-info-key" style="margin:0;padding:0;color:var(--white-40);text-transform:none;letter-spacing:normal">Volledige naam</span>
+                                    <span class="profile-info-key" style="margin:0;padding:0;color:var(--white-40);text-transform:none;letter-spacing:normal">Full name</span>
                                 </div>
                                 <span class="profile-info-val">${dev.naam}</span>
                             </div>
@@ -2033,7 +2033,7 @@ function renderDevProfilePage(dev, projecten, uren, cv) {
                                     <div style="width:1.75rem;height:1.75rem;border-radius:0.375rem;background:rgba(255,255,255,0.03);display:flex;align-items:center;justify-content:center;color:var(--white-40)">
                                         <i data-lucide="briefcase" style="width:14px;height:14px"></i>
                                     </div>
-                                    <span class="profile-info-key" style="margin:0;padding:0;color:var(--white-40);text-transform:none;letter-spacing:normal">Rol</span>
+                                    <span class="profile-info-key" style="margin:0;padding:0;color:var(--white-40);text-transform:none;letter-spacing:normal">Role</span>
                                 </div>
                                 <span class="profile-info-val">${role}</span>
                             </div>
@@ -2042,25 +2042,25 @@ function renderDevProfilePage(dev, projecten, uren, cv) {
                                     <div style="width:1.75rem;height:1.75rem;border-radius:0.375rem;background:rgba(255,255,255,0.03);display:flex;align-items:center;justify-content:center;color:var(--white-40)">
                                         <i data-lucide="credit-card" style="width:14px;height:14px"></i>
                                     </div>
-                                    <span class="profile-info-key" style="margin:0;padding:0;color:var(--white-40);text-transform:none;letter-spacing:normal">Uurtarief</span>
+                                    <span class="profile-info-key" style="margin:0;padding:0;color:var(--white-40);text-transform:none;letter-spacing:normal">Hourly rate</span>
                                 </div>
-                                <span class="profile-info-val">€ ${rate.toLocaleString('nl-NL')}/u</span>
+                                <span class="profile-info-val">€ ${rate.toLocaleString('en-US')}/h</span>
                             </div>
                             <div class="profile-info-row">
                                 <div style="display:flex;align-items:center;gap:0.75rem">
                                     <div style="width:1.75rem;height:1.75rem;border-radius:0.375rem;background:rgba(255,255,255,0.03);display:flex;align-items:center;justify-content:center;color:var(--white-40)">
                                         <i data-lucide="clock" style="width:14px;height:14px"></i>
                                     </div>
-                                    <span class="profile-info-key" style="margin:0;padding:0;color:var(--white-40);text-transform:none;letter-spacing:normal">Weekcapaciteit</span>
+                                    <span class="profile-info-key" style="margin:0;padding:0;color:var(--white-40);text-transform:none;letter-spacing:normal">Weekly capacity</span>
                                 </div>
-                                <span class="profile-info-val">${capacity} uur</span>
+                                <span class="profile-info-val">${capacity} hours</span>
                             </div>
                             <div class="profile-info-row">
                                 <div style="display:flex;align-items:center;gap:0.75rem">
                                     <div style="width:1.75rem;height:1.75rem;border-radius:0.375rem;background:rgba(255,255,255,0.03);display:flex;align-items:center;justify-content:center;color:var(--white-40)">
                                         <i data-lucide="mail" style="width:14px;height:14px"></i>
                                     </div>
-                                    <span class="profile-info-key" style="margin:0;padding:0;color:var(--white-40);text-transform:none;letter-spacing:normal">E-mailadres</span>
+                                    <span class="profile-info-key" style="margin:0;padding:0;color:var(--white-40);text-transform:none;letter-spacing:normal">Email address</span>
                                 </div>
                                 <span class="profile-info-val">${dev.email || '—'}</span>
                             </div>
@@ -2069,7 +2069,7 @@ function renderDevProfilePage(dev, projecten, uren, cv) {
                                     <div style="width:1.75rem;height:1.75rem;border-radius:0.375rem;background:rgba(255,255,255,0.03);display:flex;align-items:center;justify-content:center;color:var(--white-40)">
                                         <i data-lucide="phone" style="width:14px;height:14px"></i>
                                     </div>
-                                    <span class="profile-info-key" style="margin:0;padding:0;color:var(--white-40);text-transform:none;letter-spacing:normal">Telefoonnummer</span>
+                                    <span class="profile-info-key" style="margin:0;padding:0;color:var(--white-40);text-transform:none;letter-spacing:normal">Phone number</span>
                                 </div>
                                 <span class="profile-info-val">${dev.telefoon || '—'}</span>
                             </div>
@@ -2081,7 +2081,7 @@ function renderDevProfilePage(dev, projecten, uren, cv) {
                         <div class="profile-card-header">
                             <div class="profile-card-title">
                                 <i data-lucide="zap" style="width:13px;height:13px;color:#818cf8"></i>
-                                Vaardigheden
+                                Skills
                             </div>
                         </div>
                         <div class="profile-card-body">
@@ -2089,11 +2089,11 @@ function renderDevProfilePage(dev, projecten, uren, cv) {
                                 ${skillsHtml}
                             </div>
                             <div class="profile-skill-add">
-                                <input type="text" id="new-dev-skill" class="profile-skill-input" placeholder="Bijv. TypeScript, Docker..."
+                                <input type="text" id="new-dev-skill" class="profile-skill-input" placeholder="e.g. TypeScript, Docker..."
                                     onkeypress="if(event.key==='Enter') addDevSkill('${devId}')">
                                 <button class="btn-blue" style="height:2.25rem;padding:0 1rem;font-size:0.8125rem;white-space:nowrap"
                                     onclick="addDevSkill('${devId}')">
-                                    + Toevoegen
+                                    + Add
                                 </button>
                             </div>
                         </div>
@@ -2104,10 +2104,10 @@ function renderDevProfilePage(dev, projecten, uren, cv) {
                         <div class="profile-card-header">
                             <div class="profile-card-title">
                                 <i data-lucide="file-text" style="width:13px;height:13px;color:#34d399"></i>
-                                CV Beheer
+                                CV Management
                             </div>
                             <button class="btn-outline" style="height:1.75rem;padding:0 0.75rem;font-size:0.6875rem" onclick="navigateTo('dev-documents')">
-                                Naar Documents →
+                                Go to Documents →
                             </button>
                         </div>
                         <div class="profile-card-body">
@@ -2138,7 +2138,7 @@ function renderDevProfilePage(dev, projecten, uren, cv) {
                         <div class="profile-card-header">
                             <div class="profile-card-title">
                                 <i data-lucide="briefcase" style="width:13px;height:13px;color:#60a5fa"></i>
-                                Actieve Projecten
+                                Active Projects
                             </div>
                             ${isOverAllocated ? `<span style="font-size:0.625rem;font-weight:700;color:#f87171;text-transform:uppercase;letter-spacing:0.05em">${allocatedHours}u / ${capacity}u</span>` : `<span style="font-size:0.6875rem;color:var(--white-30)">${allocatedHours}u / ${capacity}u</span>`}
                         </div>
@@ -2152,12 +2152,12 @@ function renderDevProfilePage(dev, projecten, uren, cv) {
                         <div class="profile-card-header">
                             <div class="profile-card-title">
                                 <i data-lucide="bar-chart-2" style="width:13px;height:13px;color:#fbbf24"></i>
-                                Capaciteitsoverzicht
+                                Capacity Overview
                             </div>
                         </div>
                         <div class="profile-card-body">
                             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.625rem">
-                                <span style="font-size:0.75rem;color:var(--white-50)">Ingepland</span>
+                                <span style="font-size:0.75rem;color:var(--white-50)">Scheduled</span>
                                 <span style="font-size:0.875rem;font-weight:700;color:${isOverAllocated ? '#f87171' : 'var(--white)'}">${allocatedHours}u / ${capacity}u</span>
                             </div>
                             <div style="height:6px;background:rgba(255,255,255,0.06);border-radius:9999px;overflow:hidden;margin-bottom:1rem">
@@ -2178,8 +2178,8 @@ function renderDevProfilePage(dev, projecten, uren, cv) {
                                 </div>`;
                             }).join('')}
                             <div style="margin-top:0.75rem;padding-top:0.75rem;border-top:1px solid #161616;display:flex;justify-content:space-between;align-items:center">
-                                <span style="font-size:0.6875rem;color:var(--white-30)">Resterend</span>
-                                <span style="font-size:0.875rem;font-weight:700;color:${capacity - allocatedHours < 0 ? '#f87171' : '#34d399'}">${capacity - allocatedHours}u/wk</span>
+                                <span style="font-size:0.6875rem;color:var(--white-30)">Remaining</span>
+                                <span style="font-size:0.875rem;font-weight:700;color:${capacity - allocatedHours < 0 ? '#f87171' : '#34d399'}">${capacity - allocatedHours}h/wk</span>
                             </div>
                         </div>
                     </div>
@@ -5272,7 +5272,7 @@ function closeModal(id) {
 }
 
 // ===== GENERIC CONFIRMATION MODAL HELPER =====
-function bevestigModal({ titel, tekst, bevestigTekst = 'Bevestigen', soort = 'actie', onConfirm }) {
+function bevestigModal({ titel, tekst, bevestigTekst = 'Confirm', soort = 'actie', onConfirm }) {
     const titleEl = document.getElementById('confirm-title');
     const textEl = document.getElementById('confirm-text');
     const iconWrapper = document.getElementById('confirm-icon-wrapper');
@@ -5624,20 +5624,20 @@ async function refreshDevTimesheetsSilent() {
             }
             
             if (statusChanged) {
-                if (approvedCount > 0) showToast('✅ Je timesheet is goedgekeurd!');
-                else if (rejectedCount > 0) showToast('❌ Je timesheet is afgekeurd.');
+                if (approvedCount > 0) showToast('✅ Your timesheet has been approved!');
+                else if (rejectedCount > 0) showToast('❌ Your timesheet has been rejected.');
             }
         }
     } catch(e) {
-        console.warn('Dev auto-refresh mislukt:', e);
+        console.warn('Dev auto-refresh failed:', e);
     }
 }
 
 async function deleteDevTimesheet(id) {
     bevestigModal({
-        titel: 'Uren verwijderen',
-        tekst: 'Weet je zeker dat je deze uren wilt verwijderen?',
-        bevestigTekst: 'Verwijderen',
+        titel: 'Delete hours',
+        tekst: 'Are you sure you want to delete these logged hours?',
+        bevestigTekst: 'Delete',
         soort: 'gevaar',
         onConfirm: async () => {
             try {
@@ -5647,7 +5647,7 @@ async function deleteDevTimesheet(id) {
                 updateDevTsStats();
                 updateTimesheetSummary();
                 renderDashboardStats();
-                showToast('✓ Timesheet verwijderd');
+                showToast('✓ Timesheet deleted');
             } catch (e) {
                 showToast(`⚠ ${e.message}`);
             }
@@ -5682,7 +5682,7 @@ function getMondayFromWeek(weekStr) {
 async function submitDevTimesheet() {
     const developer_id = activeDeveloper?.id;
     if (!developer_id) {
-        showToast('Geen developer-gegevens gevonden', 'error');
+        showToast('No developer profile found', 'error');
         return;
     }
 
@@ -5692,19 +5692,19 @@ async function submitDevTimesheet() {
     let desc          = document.getElementById('dev-ts-desc')?.value?.trim() || '';
 
     if (!developer_id) {
-        showToast('⚠ Fout: geen developer ingelogd');
+        showToast('⚠ Error: no developer logged in');
         return;
     }
     if (!project_id || project_id === '' || project_id === 'undefined') {
-        showToast('⚠ Selecteer een geldig project.');
+        showToast('⚠ Please select a valid project.');
         return;
     }
     if (!weekVal) {
-        showToast('⚠ Kies een week.');
+        showToast('⚠ Please choose a week.');
         return;
     }
     if (!hours || hours <= 0 || hours > 40) {
-        showToast('⚠ Voer een geldig aantal uren in (1-40 per week).');
+        showToast('⚠ Please enter a valid number of hours (1-40 per week).');
         return;
     }
 
@@ -5733,7 +5733,7 @@ async function submitDevTimesheet() {
         updateDevTsStats();
         updateTimesheetSummary();
         renderDashboardStats();
-        showToast('✓ Uren geregistreerd!');
+        showToast('✓ Hours logged successfully!');
     } catch (e) {
         showToast(`⚠ ${e.message}`);
     }
@@ -5816,15 +5816,15 @@ function renderDevDocsList() {
     if (!tbody) return;
 
     if (devContracts.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="4" style="padding:2rem;text-align:center;color:var(--white-30);font-size:0.875rem">Je hebt nog geen contracten.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="4" style="padding:2rem;text-align:center;color:var(--white-30);font-size:0.875rem">You don't have any contracts yet.</td></tr>`;
         return;
     }
 
     tbody.innerHTML = devContracts.map(contract => {
-        const start = contract.startdatum ? new Date(contract.startdatum).toLocaleDateString('nl-NL') : '—';
-        const end = contract.einddatum ? new Date(contract.einddatum).toLocaleDateString('nl-NL') : 'Heden';
+        const start = contract.startdatum ? new Date(contract.startdatum).toLocaleDateString('en-US') : '—';
+        const end = contract.einddatum ? new Date(contract.einddatum).toLocaleDateString('en-US') : 'Present';
         
-        let actionBtn = `<span style="font-size:0.75rem;color:var(--white-30)">Geen document</span>`;
+        let actionBtn = `<span style="font-size:0.75rem;color:var(--white-30)">No document</span>`;
         if (contract.document_url) {
             actionBtn = `
                 <button class="ts-action-btn view" id="btn-download-contract-${contract.contract_id}" title="Download Contract PDF" onclick="downloadContractDocument(${contract.contract_id})">
@@ -5845,14 +5845,14 @@ function renderDevDocsList() {
                         <i data-lucide="file-signature" style="width:13px;height:13px;color:#a5b4fc"></i>
                     </div>
                     <div>
-                        <div style="font-size:0.8125rem;font-weight:600;color:var(--white)">${contract.klant_naam || 'Klant'}</div>
+                        <div style="font-size:0.8125rem;font-weight:600;color:var(--white)">${contract.klant_naam || 'Client'}</div>
                         <div style="font-size:0.625rem;color:var(--white-40)">${contract.projectnaam || 'Project'}</div>
                     </div>
                 </div>
             </td>
             <td style="padding:0.875rem 1.25rem;font-size:0.8125rem;color:var(--white-40);white-space:nowrap">${start} - ${end}</td>
             <td style="padding:0.875rem 1.25rem">
-                <span style="display:inline-block;padding:0.2rem 0.5rem;border-radius:0.375rem;font-size:0.5625rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;background:${statusStyle}">${contract.status}</span>
+                <span style="display:inline-block;padding:0.2rem 0.5rem;border-radius:0.375rem;font-size:0.5625rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;background:${statusStyle}">${contract.status === 'actief' ? 'Active' : (contract.status || '')}</span>
             </td>
             <td style="padding:0.875rem 1.25rem;text-align:right">
                 <div style="display:flex;justify-content:flex-end;gap:0.375rem">
@@ -5873,8 +5873,8 @@ function renderDevCVPreview() {
         previewContainer.innerHTML = `
             <div onclick="triggerDocUpload()" style="background:rgba(255,255,255,0.02);border:1.5px dashed rgba(255,255,255,0.1);border-radius:0.875rem;padding:2rem 1rem;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;margin-bottom:1rem;cursor:pointer;transition:all 0.2s" onmouseover="this.style.borderColor='rgba(37,99,235,0.35)';this.style.background='rgba(37,99,235,0.04)'" onmouseout="this.style.borderColor='rgba(255,255,255,0.1)';this.style.background='transparent'">
                 <i data-lucide="file-x" style="width:24px;height:24px;color:var(--white-30);margin-bottom:0.75rem"></i>
-                <div style="font-weight:700;font-size:0.875rem;color:var(--white-60)">Geen CV geüpload</div>
-                <div style="margin-top:0.25rem;font-size:0.625rem;color:#60a5fa;font-weight:700;text-transform:uppercase;letter-spacing:0.08em">Klik om te uploaden</div>
+                <div style="font-weight:700;font-size:0.875rem;color:var(--white-60)">No CV uploaded</div>
+                <div style="margin-top:0.25rem;font-size:0.625rem;color:#60a5fa;font-weight:700;text-transform:uppercase;letter-spacing:0.08em">Click to upload</div>
             </div>
         `;
     } else {
@@ -5893,7 +5893,7 @@ function renderDevCVPreview() {
 
         actionsHtml += `
         <button class="btn-outline" onclick="openCvConverterModal({developer_naam: '${devName}', cv_url: '${activeDeveloper.cv_url}', developer_id: '${devId}'})" style="justify-content:center;font-size:0.75rem;padding:0.5rem 0.75rem;flex:1;border-color:rgba(167,139,250,0.3);color:#a78bfa">
-            <i data-lucide="sparkles" style="width:13px;height:13px"></i> Converteer
+            <i data-lucide="sparkles" style="width:13px;height:13px"></i> Convert
         </button>
         `;
 
@@ -5923,7 +5923,7 @@ async function handleDevCVUpload(event) {
 
     const allowed = ['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/msword', 'text/plain'];
     if (!allowed.includes(file.type) && !file.name.match(/\.(pdf|doc|docx|txt)$/i)) {
-        showToast('⚠ Alleen PDF, Word of TXT bestanden zijn toegestaan.', 'error');
+        showToast('⚠ Only PDF, Word, or TXT files are allowed.', 'error');
         event.target.value = '';
         return;
     }
@@ -5935,7 +5935,7 @@ async function handleDevCVUpload(event) {
     const originalText = btn ? btn.innerHTML : null;
     if (btn) {
         btn.disabled = true;
-        btn.innerHTML = 'Bezig...';
+        btn.innerHTML = 'Uploading...';
     }
 
     const formData = new FormData();
@@ -5957,14 +5957,14 @@ async function handleDevCVUpload(event) {
             });
 
             activeDeveloper.cv_url = filePath;
-            showToast('✓ CV succesvol geüpload!', 'success');
+            showToast('✓ CV uploaded successfully!', 'success');
             await renderDevDocuments();
         } else {
-            showToast('Upload mislukt: geen bestandspad ontvangen.', 'error');
+            showToast('Upload failed: no file path received.', 'error');
         }
     } catch (e) {
         console.error('Error uploading dev CV:', e);
-        showToast('Fout tijdens uploaden van CV: ' + e.message, 'error');
+        showToast('Error during CV upload: ' + e.message, 'error');
     } finally {
         if (btn && originalText) {
             btn.disabled = false;
@@ -5987,7 +5987,7 @@ async function downloadContractDocument(contractId) {
         const data = await apiFetch(`/api/contracts/${contractId}/document-url`);
         const url = data.url || (data.data && data.data.url);
         if (!url) {
-            showToast('Document-URL niet beschikbaar.', 'error');
+            showToast('Document URL not available.', 'error');
             return;
         }
 
@@ -5996,7 +5996,7 @@ async function downloadContractDocument(contractId) {
         a.download = `Contract_${contractId}.pdf`;
         a.click();
     } catch (err) {
-        showToast('Contract-document downloaden mislukt.', 'error');
+        showToast('Failed to download contract document.', 'error');
         console.error('Contract download error:', err);
     } finally {
         if (btn && originalText) {
@@ -6015,10 +6015,10 @@ async function saveSkills(devId, updatedSkills) {
       body: JSON.stringify({ skills: updatedSkills })
     });
 
-    showToast('Skills bijgewerkt', 'success');
+    showToast('Skills updated', 'success');
     return true;
   } catch (err) {
-    showToast('Skills opslaan mislukt. Probeer opnieuw.', 'error');
+    showToast('Failed to save skills. Please try again.', 'error');
     console.error('Skills save error:', err);
     return false;
   }
@@ -6043,15 +6043,15 @@ async function addDevSkill(devId) {
             }
         }
     } catch(e) {
-        showToast('⚠ Fout bij toevoegen skill: ' + e.message, 'error');
+        showToast('⚠ Error adding skill: ' + e.message, 'error');
     }
 }
 
 async function removeDevSkill(devId, skillToRemove) {
     bevestigModal({
-        titel: 'Skill verwijderen',
-        tekst: `Weet je zeker dat je "${skillToRemove}" wilt verwijderen?`,
-        bevestigTekst: 'Verwijderen',
+        titel: 'Remove skill',
+        tekst: `Are you sure you want to remove "${skillToRemove}"?`,
+        bevestigTekst: 'Remove',
         soort: 'gevaar',
         onConfirm: async () => {
             try {
@@ -6066,7 +6066,7 @@ async function removeDevSkill(devId, skillToRemove) {
                     loadDevProfile(); // reload the UI
                 }
             } catch(e) {
-                showToast('⚠ Fout bij verwijderen skill: ' + e.message, 'error');
+                showToast('⚠ Error removing skill: ' + e.message, 'error');
             }
         }
     });
@@ -6077,7 +6077,7 @@ async function downloadDeveloperCV(devId) {
     const data = await apiFetch(`/api/developers/${devId}/cv-url`);
     const url = data.url || (data.data && data.data.url);
     if (!url) {
-      showToast('CV niet beschikbaar. Upload eerst een CV via My Documents.', 'error');
+      showToast('CV not available. Please upload a CV via My Documents first.', 'error');
       return;
     }
 
@@ -6087,8 +6087,8 @@ async function downloadDeveloperCV(devId) {
     a.download = data.filename || (data.data && data.data.filename) || 'CV.pdf';
     a.click();
   } catch (err) {
-    showToast('CV niet beschikbaar. Upload eerst een CV via My Documents.', 'error');
-    console.error('CV download fout:', err);
+    showToast('CV not available. Please upload a CV via My Documents first.', 'error');
+    console.error('CV download error:', err);
   }
 }
 
