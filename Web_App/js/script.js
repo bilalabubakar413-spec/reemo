@@ -2064,6 +2064,15 @@ function renderDevProfilePage(dev, projecten, uren, cv) {
                                 </div>
                                 <span class="profile-info-val">${dev.email || '—'}</span>
                             </div>
+                            <div class="profile-info-row">
+                                <div style="display:flex;align-items:center;gap:0.75rem">
+                                    <div style="width:1.75rem;height:1.75rem;border-radius:0.375rem;background:rgba(255,255,255,0.03);display:flex;align-items:center;justify-content:center;color:var(--white-40)">
+                                        <i data-lucide="phone" style="width:14px;height:14px"></i>
+                                    </div>
+                                    <span class="profile-info-key" style="margin:0;padding:0;color:var(--white-40);text-transform:none;letter-spacing:normal">Telefoonnummer</span>
+                                </div>
+                                <span class="profile-info-val">${dev.telefoon || '—'}</span>
+                            </div>
                         </div>
                     </div>
 
@@ -2110,6 +2119,19 @@ function renderDevProfilePage(dev, projecten, uren, cv) {
 
                 <!-- RIGHT column -->
                 <div style="display:flex;flex-direction:column;gap:1.25rem">
+
+                    <!-- About / Bio card -->
+                    <div class="profile-card">
+                        <div class="profile-card-header">
+                            <div class="profile-card-title">
+                                <i data-lucide="info" style="width:13px;height:13px;color:#fbbf24"></i>
+                                About
+                            </div>
+                        </div>
+                        <div class="profile-card-body">
+                            <p style="font-size:0.8125rem;color:var(--white-60);line-height:1.5;white-space:pre-wrap">${dev.bio || '<span style="font-style:italic;color:var(--white-30)">No bio yet</span>'}</p>
+                        </div>
+                    </div>
 
                     <!-- Actieve Projecten -->
                     <div class="profile-card" style="${isOverAllocated ? 'border-color:rgba(239,68,68,0.3)' : ''}">
@@ -8240,7 +8262,7 @@ function onboardingGoToStep(step) {
     // Update progress text
     const progressText = document.getElementById('onboard-progress-text');
     if (progressText) {
-        progressText.textContent = `Stap ${step} van 3`;
+        progressText.textContent = `Step ${step} of 3`;
     }
 
     // Refresh dynamic icons
@@ -8285,7 +8307,7 @@ function prepopulateOnboardingFields() {
 function validateOnboardingStep2() {
     const nameInput = document.getElementById('onboard-naam');
     if (!nameInput || !nameInput.value.trim()) {
-        showToast('Naam mag niet leeg zijn', 'error');
+        showToast('Name cannot be empty', 'error');
         return;
     }
 
@@ -8308,17 +8330,17 @@ async function finishOnboarding() {
     const bioVal = bioInput ? bioInput.value.trim() : '';
 
     if (!naamVal) {
-        showToast('Naam mag niet leeg zijn', 'error');
+        showToast('Name cannot be empty', 'error');
         onboardingGoToStep(2);
         return;
     }
 
     const btn = document.getElementById('onboard-finish-btn');
-    let originalText = 'Afronden';
+    let originalText = 'Finish';
     if (btn) {
         btn.disabled = true;
         originalText = btn.innerHTML;
-        btn.innerHTML = 'Bezig... <i class="animate-spin" data-lucide="loader" style="width:14px; height:14px; margin-left:0.5rem"></i>';
+        btn.innerHTML = 'Saving... <i class="animate-spin" data-lucide="loader" style="width:14px; height:14px; margin-left:0.5rem"></i>';
         if (typeof lucide !== 'undefined') lucide.createIcons();
     }
 
@@ -8360,10 +8382,10 @@ async function finishOnboarding() {
 
         exitOnboardingMode();
         navigateTo('dev-dashboard');
-        showToast('✓ Profiel compleet! Welkom bij Reemo.', 'success');
+        showToast('✓ Profile complete! Welcome to Reemo.', 'success');
     } catch (err) {
         console.error('Error during onboarding save:', err);
-        showToast(err.message || 'Fout bij het opslaan van gegevens.', 'error');
+        showToast(err.message || 'Error saving profile details.', 'error');
     } finally {
         if (btn) {
             btn.disabled = false;
