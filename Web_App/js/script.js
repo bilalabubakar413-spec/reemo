@@ -344,7 +344,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const week = e.target.value; // bijv. "2026-W23"
         const weekNr = week.split('W')[1];
         const label = document.getElementById('week-label');
-        if (label) label.textContent = `Week ${weekNr} — maximaal 40 uur`;
+        if (label) label.textContent = `Week ${weekNr} — maximum 40 hours`;
     });
 
     // Check if there is an active session
@@ -870,7 +870,7 @@ function navigateTo(targetScreenId) {
             weekEl.value = getCurrentISOWeekString();
             const weekNr = weekEl.value.split('W')[1];
             const label = document.getElementById('week-label');
-            if (label) label.textContent = `Week ${weekNr} — maximaal 40 uur`;
+            if (label) label.textContent = `Week ${weekNr} — maximum 40 hours`;
         }
         // Clear hours to avoid stale values
         const urenEl = document.getElementById('timesheet-uren');
