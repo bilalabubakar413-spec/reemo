@@ -624,7 +624,7 @@
                         </div>
                         <div class="page-header-actions">
                             <button class="btn-outline" onclick="refreshTimesheetsSilent(this)">
-                                <i data-lucide="refresh-cw" style="width:14px;height:14px"></i> Vernieuwen
+                                <i data-lucide="refresh-cw" style="width:14px;height:14px"></i> Refresh
                             </button>
                             <button class="btn-outline">
                                 <i data-lucide="history" style="width:14px;height:14px"></i> History
@@ -827,7 +827,7 @@
                                 <select id="maand-dropdown" class="filter-select" style="display:none;width:150px;font-size:0.75rem;padding:0.25rem 0.5rem"></select>
                                 <button id="btn-genereer-facturen" class="btn-blue" onclick="genereerFacturen()" style="background:#10b981;border-color:#10b981;color:#fff;display:inline-flex;align-items:center;gap:6px">
                                     <i data-lucide="sparkles" style="width:14px;height:14px"></i>
-                                    <span id="btn-genereer-label">Genereer facturen</span>
+                                    <span id="btn-genereer-label">Generate Invoices</span>
                                     <span id="genereer-badge" class="badge" style="background:#065f46;color:#34d399;font-size:0.625rem;padding:0.1rem 0.4rem;border-radius:4px;display:none"></span>
                                 </button>
                             </div>
@@ -918,38 +918,33 @@
                                 </tbody>
                             </table>
                         </div>
-                    </div>
-                </div>
-
-
-                <!-- Toegangsbeheer Screen -->
-                <div id="screen-toegangsbeheer" class="screen-content">
+                         <div id="screen-toegangsbeheer" class="screen-content">
                     <div class="page-header">
                         <div class="page-header-left">
-                            <h2>Toegangsbeheer</h2>
-                            <p>Beheer wie toegang heeft tot het Reemo-adminpaneel.</p>
+                            <h2>Access Control</h2>
+                            <p>Manage who has access to the Reemo admin panel.</p>
                         </div>
                         <div class="page-header-actions">
                             <button class="btn-blue" onclick="openInviteModal()">
-                                <i data-lucide="user-plus" style="width:14px;height:14px"></i> Nodig iemand uit
+                                <i data-lucide="user-plus" style="width:14px;height:14px"></i> Invite User
                             </button>
                         </div>
                     </div>
-
+ 
                     <!-- Echte stat-kaarten -->
                     <div class="dashboard-kpi-grid" id="toegang-stats" style="margin-top: 1.5rem">
                         <!-- Wordt dynamisch gevuld door loadToegangsbeheer() -->
                     </div>
-
+ 
                     <!-- Zoekveld en Segmentfilters -->
                     <div style="display:flex;align-items:center;justify-content:space-between;gap:1rem;padding:0.5rem;border-radius:1rem;border:1px solid #1e1e1e;background:rgba(8,8,8,0.5);margin-top:1.5rem;margin-bottom:1.5rem">
                         <div style="flex:1;position:relative">
                             <i data-lucide="search" style="position:absolute;left:1rem;top:50%;transform:translateY(-50%);width:14px;height:14px;color:var(--white-30)"></i>
-                            <input id="toegang-search" type="text" placeholder="Zoek op e-mailadres of gekoppelde naam..." style="width:100%;background:transparent;border:none;padding:0.5rem 1rem 0.5rem 2.5rem;outline:none;font-size:0.875rem;color:var(--white)"
+                            <input id="toegang-search" type="text" placeholder="Search by email or linked name..." style="width:100%;background:transparent;border:none;padding:0.5rem 1rem 0.5rem 2.5rem;outline:none;font-size:0.875rem;color:var(--white)"
                                 oninput="filterToegangList()">
                         </div>
                         <div class="segment-filter" id="toegang-role-filter">
-                            <button class="segment-btn active" onclick="setToegangFilter('all', this)">Alle</button>
+                            <button class="segment-btn active" onclick="setToegangFilter('all', this)">All</button>
                             <button class="segment-btn" onclick="setToegangFilter('admin', this)">Admins</button>
                             <button class="segment-btn" onclick="setToegangFilter('developer', this)">Developers</button>
                         </div>

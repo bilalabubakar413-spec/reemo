@@ -986,7 +986,7 @@ async function loadToegangsbeheer() {
     const listContainer = document.getElementById('toegang-list');
     if (!listContainer) return;
 
-    listContainer.innerHTML = `<div style="grid-column:1/-1;display:flex;align-items:center;justify-content:center;padding:3rem;color:var(--white-30);font-size:0.875rem"><span class="spinner-small"></span>&nbsp; Gebruikers laden...</div>`;
+    listContainer.innerHTML = `<div style="grid-column:1/-1;display:flex;align-items:center;justify-content:center;padding:3rem;color:var(--white-30);font-size:0.875rem"><span class="spinner-small"></span>&nbsp; Loading users...</div>`;
 
     try {
         const users = await apiFetch('/api/admin/users');
@@ -1002,7 +1002,7 @@ async function loadToegangsbeheer() {
             const statsData = [
                 { label: 'Admins', value: adminCount, icon: 'shield', accent: '#3b82f6', bg: 'rgba(37,99,235,0.08)', border: 'rgba(37,99,235,0.18)', glow: 'rgba(59,130,246,0.12)' },
                 { label: 'Developers', value: devCount, icon: 'code-2', accent: '#10b981', bg: 'rgba(16,185,129,0.08)', border: 'rgba(16,185,129,0.18)', glow: 'rgba(16,185,129,0.12)' },
-                { label: 'Totaal', value: totalCount, icon: 'users', accent: '#f59e0b', bg: 'rgba(245,158,11,0.08)', border: 'rgba(245,158,11,0.18)', glow: 'rgba(245,158,11,0.12)' }
+                { label: 'Total', value: totalCount, icon: 'users', accent: '#f59e0b', bg: 'rgba(245,158,11,0.08)', border: 'rgba(245,158,11,0.18)', glow: 'rgba(245,158,11,0.12)' }
             ];
             statsContainer.innerHTML = statsData.map(s => `
                 <div style="display:flex;align-items:center;gap:0.875rem;padding:0.875rem 1rem;background:#0d0d0d;border:1px solid ${s.border};border-radius:0.875rem;box-shadow:0 0 0 1px rgba(255,255,255,0.02), 0 2px 12px ${s.glow};position:relative;overflow:hidden">
@@ -1022,7 +1022,7 @@ async function loadToegangsbeheer() {
         renderToegangTable();
     } catch (e) {
         console.error('Failed to load toegangsbeheer accounts:', e);
-        listContainer.innerHTML = `<div style="grid-column:1/-1;padding:3rem;text-align:center;color:#ef4444;font-size:0.875rem">Fout bij laden van gebruikers: ${e.message}</div>`;
+        listContainer.innerHTML = `<div style="grid-column:1/-1;padding:3rem;text-align:center;color:#ef4444;font-size:0.875rem">Error loading users: ${e.message}</div>`;
     }
 }
 
@@ -1054,8 +1054,8 @@ function renderToegangTable() {
             <div style="width:3rem;height:3rem;border-radius:0.75rem;background:rgba(255,255,255,0.04);border:1px solid var(--white-10);display:flex;align-items:center;justify-content:center;margin-bottom:0.75rem">
                 <i data-lucide="users" style="width:18px;height:18px;color:var(--white-30)"></i>
             </div>
-            <div style="font-size:0.875rem;font-weight:600;color:var(--white-50)">Geen gebruikers gevonden</div>
-            <div style="font-size:0.75rem;color:var(--white-30);margin-top:0.25rem">Pas je zoekopdracht of filter aan.</div>
+            <div style="font-size:0.875rem;font-weight:600;color:var(--white-50)">No users found</div>
+            <div style="font-size:0.75rem;color:var(--white-30);margin-top:0.25rem">Adjust your search or filter.</div>
         </div>`;
         if (typeof lucide !== 'undefined') lucide.createIcons();
         return;
@@ -1084,27 +1084,27 @@ function renderToegangTable() {
             actionHtml = `
                 <div style="display:flex;align-items:center;justify-content:center;gap:0.5rem;padding:0.625rem;background:rgba(255,255,255,0.03);border:1px solid var(--white-5);border-radius:0.625rem;color:var(--white-30);font-size:0.75rem;font-weight:600">
                     <i data-lucide="lock" style="width:13px;height:13px"></i>
-                    <span>Beveiligd account</span>
+                    <span>Protected account</span>
                 </div>
             `;
         } else {
             const toggleBtn = role === 'admin' ? `
-                <button onclick="setUserRole('${user.id}', 'developer')" title="Admin-rechten intrekken"
+                <button onclick="setUserRole('${user.id}', 'developer')" title="Revoke admin privileges"
                     style="flex:1;display:inline-flex;align-items:center;justify-content:center;gap:0.375rem;padding:0.5rem 0.75rem;border-radius:0.5rem;border:1px solid rgba(239,68,68,0.3);background:rgba(239,68,68,0.06);color:#f87171;cursor:pointer;font-size:0.75rem;font-weight:700;white-space:nowrap;transition:all 0.15s"
                     onmouseenter="this.style.background='rgba(239,68,68,0.15)';this.style.borderColor='rgba(239,68,68,0.5)'" onmouseleave="this.style.background='rgba(239,68,68,0.06)';this.style.borderColor='rgba(239,68,68,0.3)'">
-                    <i data-lucide="shield-off" style="width:13px;height:13px"></i> Intrekken
+                    <i data-lucide="shield-off" style="width:13px;height:13px"></i> Revoke
                 </button>
             ` : `
-                <button onclick="setUserRole('${user.id}', 'admin')" title="Maak admin"
+                <button onclick="setUserRole('${user.id}', 'admin')" title="Make admin"
                     style="flex:1;display:inline-flex;align-items:center;justify-content:center;gap:0.375rem;padding:0.5rem 0.75rem;border-radius:0.5rem;border:1px solid rgba(34,197,94,0.3);background:rgba(34,197,94,0.06);color:#4ade80;cursor:pointer;font-size:0.75rem;font-weight:700;white-space:nowrap;transition:all 0.15s"
                     onmouseenter="this.style.background='rgba(34,197,94,0.15)';this.style.borderColor='rgba(34,197,94,0.5)'" onmouseleave="this.style.background='rgba(34,197,94,0.06)';this.style.borderColor='rgba(34,197,94,0.3)'">
-                    <i data-lucide="shield" style="width:13px;height:13px"></i> Maak admin
+                    <i data-lucide="shield" style="width:13px;height:13px"></i> Make Admin
                 </button>
             `;
             
             // Reset button - Only for non-super-admin accounts
             const resetBtn = `
-                <button onclick="stuurResetLink('${user.email.replace(/'/g, "\\'")}', this)" title="Reset-link sturen"
+                <button onclick="stuurResetLink('${user.email.replace(/'/g, "\\'")}', this)" title="Send reset link"
                     style="display:inline-flex;align-items:center;justify-content:center;width:2.375rem;height:2.375rem;border-radius:0.5rem;border:1px solid rgba(99,102,241,0.25);background:rgba(99,102,241,0.04);color:#a5b4fc;cursor:pointer;transition:all 0.15s;flex-shrink:0"
                     onmouseenter="this.style.background='rgba(99,102,241,0.15)';this.style.borderColor='rgba(99,102,241,0.5)'" onmouseleave="this.style.background='rgba(99,102,241,0.04)';this.style.borderColor='rgba(99,102,241,0.25)'">
                     <i data-lucide="key-round" style="width:14px;height:14px"></i>
@@ -1112,7 +1112,7 @@ function renderToegangTable() {
             `;
             
             const deleteBtn = `
-                <button onclick="deleteUser('${user.id}', '${user.email.replace(/'/g, "\\'")}')" title="Account verwijderen"
+                <button onclick="deleteUser('${user.id}', '${user.email.replace(/'/g, "\\'")}')" title="Delete account"
                     style="display:inline-flex;align-items:center;justify-content:center;width:2.375rem;height:2.375rem;border-radius:0.5rem;border:1px solid rgba(239,68,68,0.25);background:rgba(239,68,68,0.04);color:#f87171;cursor:pointer;transition:all 0.15s;flex-shrink:0"
                     onmouseenter="this.style.background='rgba(239,68,68,0.15)';this.style.borderColor='rgba(239,68,68,0.5)'" onmouseleave="this.style.background='rgba(239,68,68,0.04)';this.style.borderColor='rgba(239,68,68,0.25)'">
                     <i data-lucide="trash-2" style="width:14px;height:14px"></i>
@@ -1131,7 +1131,7 @@ function renderToegangTable() {
                     <div style="width:2.75rem;height:2.75rem;border-radius:0.75rem;display:flex;align-items:center;justify-content:center;font-size:0.875rem;font-weight:600;flex-shrink:0;${avatarBg}">${initials}</div>
                     <div style="min-width:0;flex:1">
                         <div style="font-weight:600;font-size:0.875rem;color:var(--white);white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${user.email}">${user.email}</div>
-                        <div style="font-size:0.75rem;color:var(--white-40);font-weight:normal;margin-top:0.125rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${devName !== '—' ? devName : '<span style="color:var(--white-20)">Niet gekoppeld</span>'}</div>
+                        <div style="font-size:0.75rem;color:var(--white-40);font-weight:normal;margin-top:0.125rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${devName !== '—' ? devName : '<span style="color:var(--white-20)">Not linked</span>'}</div>
                     </div>
                 </div>
                 <span class="status-badge" style="flex-shrink:0;${badgeStyle}">${badgeText}</span>
@@ -4119,8 +4119,8 @@ function renderDevelopersGrid() {
             <div style="width:3.5rem;height:3.5rem;border-radius:1rem;background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.15);display:flex;align-items:center;justify-content:center;margin-bottom:1rem">
                 <i data-lucide="user-plus" style="width:22px;height:22px;color:#34d399"></i>
             </div>
-            <div style="font-size:0.9375rem;font-weight:700;color:var(--white);margin-bottom:0.375rem">Geen developers gevonden</div>
-            <div style="font-size:0.8125rem;color:var(--white-40);margin-bottom:1.25rem">Klik op 'Onboard Developer' om de eerste developer toe te voegen.</div>
+            <div style="font-size:0.9375rem;font-weight:700;color:var(--white);margin-bottom:0.375rem">No developers found</div>
+            <div style="font-size:0.8125rem;color:var(--white-40);margin-bottom:1.25rem">Click 'Onboard Developer' to add the first developer.</div>
             <button class="btn-emerald" onclick="openOnboardModal()" style="font-size:0.8125rem">
                 <i data-lucide="plus" style="width:14px;height:14px"></i> Onboard Developer
             </button>
@@ -4152,8 +4152,10 @@ function renderDevelopersGrid() {
         const showSkills = allSkills.slice(0, 3);
         const extraSkills = allSkills.length > 3 ? allSkills.length - 3 : 0;
         const skillsHtml = showSkills.length > 0 
-            ? showSkills.map(s => `<span style="background:var(--white-5);border:1px solid var(--white-10);padding:0.15rem 0.4rem;border-radius:0.25rem;font-size:0.6rem;color:var(--white-60)">${s}</span>`).join('') + (extraSkills > 0 ? `<span style="font-size:0.6rem;color:var(--white-40)">+${extraSkills} meer</span>` : '')
-            : `<span style="font-size:0.6rem;color:var(--white-30)">Geen skills</span>`;
+            ? showSkills.map(s => `<span style="background:var(--white-5);border:1px solid var(--white-10);padding:0.15rem 0.4rem;border-radius:0.25rem;font-size:0.6rem;color:var(--white-60)">${s}</span>`).join('') + (extraSkills > 0 ? `<span style="font-size:0.6rem;color:var(--white-40)">+${extraSkills} more</span>` : '')
+            : `<span style="font-size:0.6rem;color:var(--white-30)">No skills</span>`;
+
+        const devTypeMapped = dev.type === 'ZZP' ? 'Contractor' : (dev.type === 'Loondienst' ? 'Employee' : (dev.type || 'Contractor'));
 
         return `
         <div class="dev-card" style="animation: fadeIn 0.3s ease-out ${i * 0.1}s both; background: var(--surface); border: 1px solid rgba(96, 165, 250, 0.12); border-radius: 1rem; padding: 1.25rem; display: flex; flex-direction: column; gap: 1rem; backdrop-filter: blur(12px); box-shadow: 0 4px 20px rgba(0,0,0,0.2); transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease; cursor: pointer;"
@@ -4171,19 +4173,19 @@ function renderDevelopersGrid() {
                     })()}
                     <div style="min-width:0;flex:1">
                         <div style="font-weight:700;font-size:1rem;color:var(--white);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${devName}</div>
-                        <div style="font-size:0.7rem;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;color:var(--white-40);margin-top:0.15rem">${devRole}</div>
+                        <div style="font-size:0.7rem;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;color:var(--white-40);margin-top:0.15rem">${devRole} • ${devTypeMapped}</div>
                     </div>
                 </div>
                 <div style="display:flex;gap:0.35rem;align-items:center;">
-                    <button class="btn-outline" style="padding:0.35rem;width:auto;height:auto;border-radius:0.375rem" title="Assign to Project" onclick="event.stopPropagation(); openAssignProjectModal('${dev.id}')">
+                    <button class="btn-outline" style="padding:0.35rem;width:auto;height:auto;border-radius:0.375rem" title="Link to Project" onclick="event.stopPropagation(); openAssignProjectModal('${dev.id}')">
                         <i data-lucide="link" style="width:13px;height:13px;color:#60a5fa"></i>
                     </button>
                     ${dev.cv_url ? `
-                    <button class="btn-outline" style="padding:0.35rem;width:auto;height:auto;border-radius:0.375rem" title="Bekijk CV" onclick="event.stopPropagation(); viewDeveloperCV('${dev.id}')">
+                    <button class="btn-outline" style="padding:0.35rem;width:auto;height:auto;border-radius:0.375rem" title="View CV" onclick="event.stopPropagation(); viewDeveloperCV('${dev.id}')">
                         <i data-lucide="file-text" style="width:13px;height:13px;color:#34d399"></i>
                     </button>` : ''}
                     <button onclick="event.stopPropagation(); verwijderDeveloper('${dev.id}', '${devName}')" 
-                             title="Verwijder developer"
+                             title="Delete developer"
                              style="background:transparent; border:none; color:#EF4444; cursor:pointer; padding:4px; display:flex; align-items:center;">
                       <i class="ti ti-trash" style="font-size:16px;"></i>
                     </button>
@@ -4197,17 +4199,17 @@ function renderDevelopersGrid() {
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem">
                 <div style="background:rgba(255,255,255,0.03);border:1px solid var(--white-5);border-radius:0.75rem;padding:0.75rem;cursor:pointer;transition:border-color 0.2s" onmouseover="this.style.borderColor='var(--white-20)'" onmouseout="this.style.borderColor='var(--white-5)'" onclick="event.stopPropagation(); openDeveloperDetails('${dev.id}')">
                     <div style="display:flex;align-items:center;justify-content:space-between;font-size:0.625rem;font-weight:700;text-transform:uppercase;color:var(--white-60);margin-bottom:0.25rem">
-                        <span>Projecten</span>
+                        <span>Projects</span>
                         <i data-lucide="layout-grid" style="width:10px;height:10px"></i>
                     </div>
-                    <div style="font-weight:700;font-size:1rem;color:var(--white)">${devProjects} <span style="font-size:0.6875rem;color:var(--white-40);font-weight:500">actief</span></div>
+                    <div style="font-weight:700;font-size:1rem;color:var(--white)">${devProjects} <span style="font-size:0.6875rem;color:var(--white-40);font-weight:500">active</span></div>
                 </div>
                 <div style="background:rgba(255,255,255,0.03);border:1px solid var(--white-5);border-radius:0.75rem;padding:0.75rem;cursor:pointer;transition:border-color 0.2s" onmouseover="this.style.borderColor='var(--white-20)'" onmouseout="this.style.borderColor='var(--white-5)'" onclick="event.stopPropagation(); openDeveloperDetails('${dev.id}')">
                     <div style="display:flex;align-items:center;justify-content:space-between;font-size:0.625rem;font-weight:700;text-transform:uppercase;color:var(--white-60);margin-bottom:0.25rem">
-                        <span>Tarief</span>
+                        <span>Rate</span>
                         <i data-lucide="dollar-sign" style="width:10px;height:10px"></i>
                     </div>
-                    <div style="font-weight:700;font-size:1rem;color:var(--white)">€${devRate}<span style="font-size:0.6875rem;color:var(--white-40);font-weight:500">/u</span></div>
+                    <div style="font-weight:700;font-size:1rem;color:var(--white)">€${devRate}<span style="font-size:0.6875rem;color:var(--white-40);font-weight:500">/h</span></div>
                 </div>
             </div>
 
@@ -4221,7 +4223,7 @@ function renderDevelopersGrid() {
                                     <span style="font-size:0.625rem;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:${cfg.color}">${cfg.label}</span>`;
                         })()} 
                     </div>
-                    <span style="font-size:0.7rem;font-weight:700;color:${capacityColor}">${assignedHours} <span style="color:var(--white-30)">/ ${maxHours}u</span></span>
+                    <span style="font-size:0.7rem;font-weight:700;color:${capacityColor}">${assignedHours} <span style="color:var(--white-30)">/ ${maxHours}h</span></span>
                 </div>
                 <div style="width:100%;height:4px;background:var(--white-10);border-radius:2px;overflow:hidden">
                     <div style="height:100%;width:${capacityPct}%;background-color:${capacityColor};box-shadow:0 0 8px ${capacityColor}88;border-radius:2px;transition:width 0.4s ease"></div>
@@ -4347,10 +4349,10 @@ function renderTimesheetsTable(filterText = '', filterStatus = '') {
             </td>
             <td style="padding:0.875rem 1rem;text-align:right">
                 <div style="display:flex;justify-content:flex-end;gap:0.375rem">
-                    ${canApprove ? `<button class="ts-action-btn approve" title="Goedkeuren" onclick="approveTimesheet('${ts.id}', this)">
+                    ${canApprove ? `<button class="ts-action-btn approve" title="Approve" onclick="approveTimesheet('${ts.id}', this)">
                         <i data-lucide="check" style="width:13px;height:13px"></i>
                     </button>` : ''}
-                    ${canReject ? `<button class="ts-action-btn reject" title="Afkeuren" onclick="rejectTimesheet('${ts.id}', this)">
+                    ${canReject ? `<button class="ts-action-btn reject" title="Reject" onclick="rejectTimesheet('${ts.id}', this)">
                         <i data-lucide="x" style="width:13px;height:13px"></i>
                     </button>` : ''}
                 </div>
@@ -4373,12 +4375,12 @@ async function approveTimesheet(id, btnElement) {
             method: 'PATCH', body: JSON.stringify({ status: 'approved' })
         });
         await refreshTimesheetsSilent();
-        showToast('✓ Timesheet goedgekeurd');
+        showToast('✓ Timesheet approved');
         // Refresh dashboard live data
         if (typeof renderCashflowFunnel === 'function') renderCashflowFunnel();
         if (typeof renderOmzetTrendChart === 'function') renderOmzetTrendChart();
     } catch (e) {
-        showToast(`⚠ Fout bij goedkeuren: ${e.message}`);
+        showToast(`⚠ Error during approval: ${e.message}`);
         if (btnElement) {
             btnElement.disabled = false;
             btnElement.innerHTML = '<i data-lucide="check" style="width:13px;height:13px"></i>';
@@ -4397,9 +4399,9 @@ async function rejectTimesheet(id, btnElement) {
             method: 'PATCH', body: JSON.stringify({ status: 'rejected' })
         });
         await refreshTimesheetsSilent();
-        showToast('✓ Timesheet afgekeurd');
+        showToast('✓ Timesheet rejected');
     } catch (e) {
-        showToast(`⚠ Fout bij afkeuren: ${e.message}`);
+        showToast(`⚠ Error during rejection: ${e.message}`);
         if (btnElement) {
             btnElement.disabled = false;
             btnElement.innerHTML = '<i data-lucide="x" style="width:13px;height:13px"></i>';
@@ -4411,17 +4413,17 @@ async function rejectTimesheet(id, btnElement) {
 async function approveAllTimesheets(btnElement) {
     if (btnElement) {
         btnElement.disabled = true;
-        btnElement.innerHTML = '<div class="spinner" style="width:14px;height:14px;border:2px solid rgba(255,255,255,0.3);border-top-color:#fff;border-radius:50%;animation:spin 1s linear infinite;display:inline-block;vertical-align:middle;margin-right:8px"></div> Goedkeuren...';
+        btnElement.innerHTML = '<div class="spinner" style="width:14px;height:14px;border:2px solid rgba(255,255,255,0.3);border-top-color:#fff;border-radius:50%;animation:spin 1s linear infinite;display:inline-block;vertical-align:middle;margin-right:8px"></div> Approving...';
     }
     try {
         await apiFetch('/api/timesheets', { method: 'PATCH' });
         await refreshTimesheetsSilent();
-        showToast('✓ Alle openstaande timesheets goedgekeurd');
+        showToast('✓ All pending timesheets approved');
         // Refresh dashboard live data
         if (typeof renderCashflowFunnel === 'function') renderCashflowFunnel();
         if (typeof renderOmzetTrendChart === 'function') renderOmzetTrendChart();
     } catch (e) {
-        showToast(`⚠ Fout bij alles goedkeuren: ${e.message}`);
+        showToast(`⚠ Error during approving all: ${e.message}`);
     } finally {
         if (btnElement) {
             btnElement.disabled = false;
@@ -4506,7 +4508,7 @@ function renderCVDatabase(data) {
     if (rows.length === 0) {
         tbody.innerHTML = `<tr><td colspan="6" style="padding:3rem;text-align:center;color:var(--white-30);font-size:0.875rem">
             <div style="margin-bottom:0.75rem"><i data-lucide="file-x" style="width:28px;height:28px;opacity:0.3"></i></div>
-            Nog geen CVs gevonden — upload een CV via de knop hierboven.
+            No CVs found — upload a CV using the button above.
         </td></tr>`;
         if (typeof lucide !== 'undefined') lucide.createIcons();
         return;
@@ -4525,7 +4527,7 @@ function renderCVDatabase(data) {
 
         const statusHtml = cv.cv_url 
             ? `<span class="status-badge status-approved">Reemo Format</span>`
-            : `<span class="status-badge" style="background:rgba(255,255,255,0.05);color:var(--white-30);border:1px solid rgba(255,255,255,0.08)">Geen CV geüpload</span>`;
+            : `<span class="status-badge" style="background:rgba(255,255,255,0.05);color:var(--white-30);border:1px solid rgba(255,255,255,0.08)">No CV uploaded</span>`;
 
         const skills = typeof cv.skills === 'string' ? cv.skills.split(',').map(s => s.trim()) : (cv.skills || []);
         const skillsHtml = skills.slice(0,4).map(s =>
@@ -4550,7 +4552,7 @@ function renderCVDatabase(data) {
             <td style="padding:0.875rem 1.25rem">${statusHtml}</td>
             <td style="padding:0.875rem 1.25rem;text-align:right">
                 <div style="display:flex;justify-content:flex-end;gap:0.5rem;align-items:center">
-                    ${isInactive ? `<button class="login-ws-btn active" style="font-size:0.625rem;padding:0.25rem 0.5rem;height:auto;flex:none" onclick="activateCVasDeveloper('${cv.developer_id || cv.id}')">ACTIEF</button>` : ''}
+                    ${isInactive ? `<button class="login-ws-btn active" style="font-size:0.625rem;padding:0.25rem 0.5rem;height:auto;flex:none" onclick="activateCVasDeveloper('${cv.developer_id || cv.id}')">ACTIVE</button>` : ''}
                     ${cv.cv_url ? `
                     <button class="ts-action-btn view" title="View CV" onclick="previewCV('${cv.developer_id || cv.id}', '${(cv.naam || cv.name || '').replace(/'/g, "\\'")}', '${cv.cv_url || ''}')">
                         <i data-lucide="eye" style="width:13px;height:13px"></i>
@@ -4562,7 +4564,7 @@ function renderCVDatabase(data) {
                         <i class="ti ti-sparkles" style="font-size:13px"></i>
                     </button>` : ''}
                     <button onclick="verwijderCV('${cv.developer_id || cv.id}', '${(cv.naam || cv.name || '').replace(/'/g, "\\'")}', ${cv.cv_url ? 'true' : 'false'})" 
-                             title="${cv.cv_url ? 'Verwijder CV' : 'Verwijder kandidaat'}" 
+                             title="${cv.cv_url ? 'Delete CV' : 'Delete candidate'}" 
                              style="background:transparent; border:none; color:#EF4444; cursor:pointer; padding:4px; display:inline-flex; align-items:center; justify-content:center;">
                         <i class="ti ti-trash" style="font-size:14px"></i>
                     </button>
@@ -5052,7 +5054,7 @@ function renderInvoicesTable(data) {
         const status = inv.status || 'open';
         const isOverdue = status.toLowerCase() === 'overdue' || status.toLowerCase() === 'te_laat';
         const deadlineColor = isOverdue ? '#fb7185' : 'var(--white-40)';
-        const clientName = inv.clientName || 'Onbekende Klant';
+        const clientName = inv.clientName || 'Unknown Client';
         const amount = inv.amount || 0;
         return `
         <tr class="ts-row">
@@ -5093,10 +5095,10 @@ function renderInvoicesTable(data) {
                     <button class="ts-action-btn remind" title="Send Reminder">
                         <i data-lucide="bell" style="width:13px;height:13px"></i>
                     </button>
-                    <button title="Markeer als betaald" onclick="openMarkeerBetaaldModal('${inv.id}','${clientName}',${amount})"
+                    <button title="Mark as Paid" onclick="openMarkeerBetaaldModal('${inv.id}','${clientName}',${amount})"
                         style="display:inline-flex;align-items:center;gap:0.25rem;padding:0.3125rem 0.625rem;border-radius:0.375rem;border:1px solid rgba(16,185,129,0.35);background:rgba(16,185,129,0.08);color:#34d399;cursor:pointer;font-size:0.6875rem;font-weight:700;white-space:nowrap;transition:background 0.15s"
                         onmouseenter="this.style.background='rgba(16,185,129,0.18)'" onmouseleave="this.style.background='rgba(16,185,129,0.08)'">
-                        <i data-lucide="check-circle" style="width:11px;height:11px"></i> Betaald
+                        <i data-lucide="check-circle" style="width:11px;height:11px"></i> Paid
                     </button>` : ''}
                 </div>
             </td>
