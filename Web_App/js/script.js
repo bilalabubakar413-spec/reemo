@@ -169,6 +169,7 @@ async function loadDevelopers() {
             firstClientId: r.first_klant_id,
             skills: parsedSkills,
             cv_url: r.cv_url,
+            avatar_url: r.avatar_url,
             type: r.type,
             status: r.status
         };
@@ -1995,7 +1996,9 @@ function renderDevProfilePage(dev, projecten, uren, cv) {
     const devId = dev.id || dev.developer_id;
 
     // Status dropdown options
-    const statusOptions = Object.entries(_beschikbaarheidConfig).map(([key, cfg]) => `
+    const statusOptions = Object.entries(_beschikbaarheidConfig)
+        .filter(([key]) => ['available', 'on_assignment', 'unavailable'].includes(key))
+        .map(([key, cfg]) => `
         <button class="profile-status-option" onclick="setDevBeschikbaarheid('${key}');updateProfileStatusBadge('${key}')">
             <span class="profile-status-option-dot" style="background:${cfg.color}"></span>
             ${cfg.label}
