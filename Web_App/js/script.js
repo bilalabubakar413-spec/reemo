@@ -170,6 +170,7 @@ async function loadDevelopers() {
             skills: parsedSkills,
             cv_url: r.cv_url,
             avatar_url: r.avatar_url,
+            beschikbaarheid: r.beschikbaarheid,
             type: r.type,
             status: r.status
         };
@@ -3496,7 +3497,7 @@ async function openDeveloperDetails(id) {
     screenContents.forEach(s => s.classList.remove('active'));
     document.getElementById('screen-developer-details').classList.add('active');
     document.getElementById('developer-detail-content').innerHTML =
-        '<div style="padding:3rem;text-align:center;color:var(--white-40)">Laden...</div>';
+        '<div style="padding:3rem;text-align:center;color:var(--white-40)">Loading...</div>';
 
     try {
         const res = await apiFetch(`/api/developers/${id}`);
@@ -3504,7 +3505,7 @@ async function openDeveloperDetails(id) {
         renderDeveloperDetailView(developer, projecten, uren, cv);
     } catch (e) {
         document.getElementById('developer-detail-content').innerHTML =
-            `<div style="padding:2rem;color:#f43f5e">Fout: ${e.message}</div>`;
+            `<div style="padding:2rem;color:#f43f5e">Error: ${e.message}</div>`;
     }
 }
 
@@ -3518,13 +3519,13 @@ function renderDeveloperDetailView(dev, projecten, uren, cv) {
         if (dev.auth_user_id) {
             inviteBtnHtml = `
                 <span class="status-badge status-approved" style="display:inline-flex;align-items:center;gap:0.35rem;padding:0.5rem 0.875rem;font-size:0.8125rem;border-radius:0.5rem;background:rgba(16,185,129,0.1);color:#10b981;border:1px solid rgba(16,185,129,0.2)">
-                    <i data-lucide="check" style="width:14px;height:14px"></i> Gekoppeld aan account
+                    <i data-lucide="check" style="width:14px;height:14px"></i> Linked to account
                 </span>
             `;
         } else {
             inviteBtnHtml = `
                 <button class="btn-blue" id="btn-invite-dev" onclick="stuurDeveloperUitnodiging('${dev.developer_id}', ${dev.email ? `'${dev.email}'` : 'null'})">
-                    <i data-lucide="user-plus" style="width:14px;height:14px"></i> Stuur uitnodiging
+                    <i data-lucide="user-plus" style="width:14px;height:14px"></i> Send invitation
                 </button>
             `;
         }
@@ -3532,7 +3533,7 @@ function renderDeveloperDetailView(dev, projecten, uren, cv) {
         headerActions.innerHTML = `
             ${inviteBtnHtml}
             <button class="btn-outline" onclick="openAssignProjectModal('${dev.developer_id}')">
-                <i data-lucide="link" style="width:14px;height:14px"></i> Koppel aan Project
+                <i data-lucide="link" style="width:14px;height:14px"></i> Link to project
             </button>
         `;
     }
@@ -3551,14 +3552,18 @@ function renderDeveloperDetailView(dev, projecten, uren, cv) {
       <div style="display:flex;align-items:center;justify-content:space-between;padding:1rem 0;border-bottom:1px solid rgba(255,255,255,0.05)">
           <div>
               <div style="font-weight:700;color:var(--white);font-size:0.875rem">${u.projectnaam}</div>
-              <div style="font-size:0.75rem;color:var(--white-40);margin-top:0.25rem">${u.klant_naam || 'Onbekende Klant'}${u.omschrijving ? ` • ${u.omschrijving}` : ''}</div>
+              <div style="font-size:0.75rem;color:var(--white-40);margin-top:0.25rem">${u.klant_naam || 'Unknown Client'}${u.omschrijving ? ` • ${u.omschrijving}` : ''}</div>
           </div>
           <div style="text-align:right">
               <div style="font-family:monospace;color:var(--white);font-weight:700">${parseFloat(u.aantal_uren)}h</div>
               <div style="font-size:0.75rem;color:var(--white-40);margin-top:0.25rem">${formatDateString(u.datum)}</div>
           </div>
       </div>
-    `).join('') || '<div style="color:var(--white-40);font-size:0.875rem;padding:1rem 0">Geen urenregistraties gevonden.</div>';
+    `).join('') || `
+      <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:2.5rem 1.5rem;text-align:center;background:rgba(255,255,255,0.01);border:1px dashed rgba(255,255,255,0.08);border-radius:1rem;color:var(--white-30);margin:1rem 0">
+          <i data-lucide="clock" style="width:20px;height:20px;margin-bottom:0.5rem;opacity:0.5"></i>
+          <div style="font-size:0.8125rem;font-weight:600">No timesheet entries found.</div>
+      </div>`;
 
     // Calculate allocations & capacity breakdown
     const activeContracts = projecten || [];
@@ -3576,23 +3581,26 @@ function renderDeveloperDetailView(dev, projecten, uren, cv) {
 
     // Segmented bar
     let barHtml = activeContracts.length === 0
-        ? `<div style="width:100%;height:100%;background:rgba(255,255,255,0.04);border-radius:0.5rem;display:flex;align-items:center;justify-content:center"><span style="font-size:0.75rem;color:var(--white-30)">Geen allocaties</span></div>`
+        ? `<div style="width:100%;height:100%;background:rgba(255,255,255,0.04);border-radius:0.5rem;display:flex;align-items:center;justify-content:center"><span style="font-size:0.75rem;color:var(--white-30)">No allocations</span></div>`
         : activeContracts.map((c, i) => {
             const col = colPalette[i % colPalette.length];
             const hrs = parseInt(c.uren_per_week || 0);
             const pct = Math.min((hrs / totalCapacity) * 100, 100);
-            return `<div style="width:${pct}%;height:100%;background:${col.bg};display:flex;align-items:center;justify-content:center;gap:0.3rem;padding:0 0.5rem;overflow:hidden;box-shadow:inset 0 0 10px rgba(0,0,0,0.2)" title="${c.projectnaam}: ${hrs}u/wk"><span style="font-size:0.6875rem;font-weight:800;color:rgba(255,255,255,0.95);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${c.projectnaam}</span><span style="font-size:0.625rem;color:rgba(255,255,255,0.7);white-space:nowrap">${Math.round(pct)}%</span></div>`;
-          }).join('') + (availableHours > 0 ? `<div style="width:${(availableHours/totalCapacity)*100}%;background:rgba(255,255,255,0.05);border-left:1px dashed rgba(255,255,255,0.12);height:100%;display:flex;align-items:center;justify-content:center"><span style="font-size:0.625rem;color:var(--white-20)">Vrij ${availableHours}u</span></div>` : '');
+            return `<div style="width:${pct}%;height:100%;background:${col.bg};display:flex;align-items:center;justify-content:center;gap:0.3rem;padding:0 0.5rem;overflow:hidden;box-shadow:inset 0 0 10px rgba(0,0,0,0.2)" title="${c.projectnaam}: ${hrs}h/wk"><span style="font-size:0.6875rem;font-weight:800;color:rgba(255,255,255,0.95);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${c.projectnaam}</span><span style="font-size:0.625rem;color:rgba(255,255,255,0.7);white-space:nowrap">${Math.round(pct)}%</span></div>`;
+          }).join('') + (availableHours > 0 ? `<div style="width:${(availableHours/totalCapacity)*100}%;background:rgba(255,255,255,0.05);border-left:1px dashed rgba(255,255,255,0.12);height:100%;display:flex;align-items:center;justify-content:center"><span style="font-size:0.625rem;color:var(--white-20)">Free ${availableHours}h</span></div>` : '');
 
     // Contract cards
     let contractCardsHtml = activeContracts.length === 0
-        ? `<div style="grid-column:1/-1;padding:2rem;text-align:center;color:var(--white-30);font-size:0.875rem">Geen actieve contracten.</div>`
+        ? `<div style="grid-column:1/-1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:2.5rem 1.5rem;text-align:center;background:rgba(255,255,255,0.01);border:1px dashed rgba(255,255,255,0.08);border-radius:1rem;color:var(--white-30);margin:1rem 0">
+              <i data-lucide="folder-open" style="width:20px;height:20px;margin-bottom:0.5rem;opacity:0.5"></i>
+              <div style="font-size:0.8125rem;font-weight:600">No active contracts.</div>
+           </div>`
         : activeContracts.map((c, i) => {
             const col = colPalette[i % colPalette.length];
             const hrs = parseInt(c.uren_per_week || 0);
             const pct = Math.round(Math.min((hrs / totalCapacity) * 100, 100));
-            const start = c.startdatum ? new Date(c.startdatum).toLocaleDateString('nl-NL', { day: 'numeric', month: 'short', year: 'numeric' }) : '—';
-            const end   = c.einddatum  ? new Date(c.einddatum ).toLocaleDateString('nl-NL', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Doorlopend';
+            const start = c.startdatum ? new Date(c.startdatum).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' }) : '—';
+            const end   = c.einddatum  ? new Date(c.einddatum ).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Ongoing';
             const weekly = (hrs * parseFloat(c.uurtarief || 0)).toFixed(0);
             return `
             <div style="position:relative;background:${col.light};border:1px solid ${col.border};border-radius:1rem;padding:1.25rem;overflow:hidden;transition:transform 0.15s" onmouseover="this.style.transform='translateY(-1px)'" onmouseout="this.style.transform='translateY(0)'">
@@ -3605,7 +3613,7 @@ function renderDeveloperDetailView(dev, projecten, uren, cv) {
                             <div style="font-size:0.8125rem;color:var(--white-40)">${c.klant_naam}</div>
                         </div>
                         <div style="text-align:right">
-                            <div style="font-size:1.5rem;font-weight:800;color:${col.bg}">${hrs}u</div>
+                            <div style="font-size:1.5rem;font-weight:800;color:${col.bg}">${hrs}h</div>
                             <div style="font-size:0.7rem;color:var(--white-40)">per week &bull; ${pct}%</div>
                         </div>
                     </div>
@@ -3614,16 +3622,16 @@ function renderDeveloperDetailView(dev, projecten, uren, cv) {
                     </div>
                     <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0.625rem">
                         <div style="background:rgba(0,0,0,0.15);border-radius:0.625rem;padding:0.625rem">
-                            <div style="font-size:0.6rem;font-weight:700;text-transform:uppercase;color:var(--white-30);margin-bottom:0.2rem">Rol</div>
+                            <div style="font-size:0.6rem;font-weight:700;text-transform:uppercase;color:var(--white-30);margin-bottom:0.2rem">Role</div>
                             <div style="font-size:0.75rem;font-weight:700;color:var(--white)">${c.rol_op_project || 'Developer'}</div>
                         </div>
                         <div style="background:rgba(0,0,0,0.15);border-radius:0.625rem;padding:0.625rem">
-                            <div style="font-size:0.6rem;font-weight:700;text-transform:uppercase;color:var(--white-30);margin-bottom:0.2rem">Tarief</div>
-                            <div style="font-size:0.75rem;font-weight:700;color:#34d399">&euro;${parseFloat(c.uurtarief||0).toFixed(0)}/u</div>
+                            <div style="font-size:0.6rem;font-weight:700;text-transform:uppercase;color:var(--white-30);margin-bottom:0.2rem">Rate</div>
+                            <div style="font-size:0.75rem;font-weight:700;color:#34d399">&euro;${parseFloat(c.uurtarief||0).toFixed(0)}/h</div>
                         </div>
                         <div style="background:rgba(0,0,0,0.15);border-radius:0.625rem;padding:0.625rem">
-                            <div style="font-size:0.6rem;font-weight:700;text-transform:uppercase;color:var(--white-30);margin-bottom:0.2rem">Week €</div>
-                            <div style="font-size:0.75rem;font-weight:700;color:#fbbf24">&euro;${parseInt(weekly).toLocaleString('nl-NL')}</div>
+                            <div style="font-size:0.6rem;font-weight:700;text-transform:uppercase;color:var(--white-30);margin-bottom:0.2rem">Weekly €</div>
+                            <div style="font-size:0.75rem;font-weight:700;color:#fbbf24">&euro;${parseInt(weekly).toLocaleString('en-US')}</div>
                         </div>
                     </div>
                     <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.625rem;margin-top:0.625rem">
@@ -3632,7 +3640,7 @@ function renderDeveloperDetailView(dev, projecten, uren, cv) {
                             <div style="font-size:0.75rem;font-weight:700;color:var(--white)">${start}</div>
                         </div>
                         <div style="background:rgba(0,0,0,0.15);border-radius:0.625rem;padding:0.625rem">
-                            <div style="font-size:0.6rem;font-weight:700;text-transform:uppercase;color:var(--white-30);margin-bottom:0.2rem">Einde</div>
+                            <div style="font-size:0.6rem;font-weight:700;text-transform:uppercase;color:var(--white-30);margin-bottom:0.2rem">End</div>
                             <div style="font-size:0.75rem;font-weight:700;color:${c.einddatum ? 'var(--white)' : '#34d399'}">${end}</div>
                         </div>
                     </div>
@@ -3643,9 +3651,9 @@ function renderDeveloperDetailView(dev, projecten, uren, cv) {
             <div style="background:rgba(255,255,255,0.02);border:1px dashed rgba(255,255,255,0.1);border-radius:1rem;padding:1.25rem;display:flex;align-items:center;justify-content:space-between;grid-column:1/-1">
                 <div style="display:flex;align-items:center;gap:0.75rem">
                     <div style="width:2.5rem;height:2.5rem;border-radius:0.625rem;background:rgba(255,255,255,0.04);border:1px dashed rgba(255,255,255,0.1);display:flex;align-items:center;justify-content:center">
-                        <span style="font-size:0.8125rem;font-weight:800;color:var(--white-30)">${availableHours}u</span>
+                        <span style="font-size:0.8125rem;font-weight:800;color:var(--white-30)">${availableHours}h</span>
                     </div>
-                    <div><div style="font-weight:600;color:var(--white-40)">Beschikbare capaciteit</div><div style="font-size:0.75rem;color:var(--white-30)">Nog niet gealloceerd</div></div>
+                    <div><div style="font-weight:600;color:var(--white-40)">Available capacity</div><div style="font-size:0.75rem;color:var(--white-30)">Unallocated</div></div>
                 </div>
                 <div style="font-size:0.75rem;font-weight:700;color:var(--white-30)">${Math.round((availableHours/totalCapacity)*100)}%</div>
             </div>` : '');
@@ -3658,13 +3666,13 @@ function renderDeveloperDetailView(dev, projecten, uren, cv) {
                       <i data-lucide="bar-chart-2" style="width:14px;height:14px;color:#60a5fa"></i>
                   </div>
                   <div>
-                      <h3 style="font-size:0.9375rem;font-weight:800;color:var(--white);margin:0">Contracten & Capaciteit</h3>
-                      <div style="font-size:0.7rem;color:var(--white-40);margin-top:0.1rem">${activeContracts.length} actief contract${activeContracts.length !== 1 ? 'en' : ''} &bull; ${totalCapacity}u/wk totaal</div>
+                      <h3 style="font-size:0.9375rem;font-weight:800;color:var(--white);margin:0">Contracts & Capacity</h3>
+                      <div style="font-size:0.7rem;color:var(--white-40);margin-top:0.1rem">${activeContracts.length} active contract${activeContracts.length !== 1 ? 's' : ''} &bull; ${totalCapacity}h/wk total</div>
                   </div>
               </div>
-              <span style="font-size:0.875rem;font-weight:700;color:${isOverAllocated ? '#f43f5e' : allocatedHours === totalCapacity ? '#10b981' : '#fbbf24'}">${allocatedHours}/${totalCapacity}u</span>
+              <span style="font-size:0.875rem;font-weight:700;color:${isOverAllocated ? '#f43f5e' : allocatedHours === totalCapacity ? '#10b981' : '#fbbf24'}">${allocatedHours}/${totalCapacity}h</span>
           </div>
-          ${isOverAllocated ? `<div style="display:flex;align-items:center;gap:0.5rem;padding:0.75rem 1rem;background:rgba(244,63,94,0.1);border:1px solid rgba(244,63,94,0.2);border-radius:0.75rem;margin-bottom:1rem;color:#f43f5e;font-size:0.8125rem;font-weight:600"><i data-lucide="alert-triangle" style="width:14px;height:14px"></i> Overgealloceerd! ${allocatedHours - totalCapacity}u boven capaciteit.</div>` : ''}
+          ${isOverAllocated ? `<div style="display:flex;align-items:center;gap:0.5rem;padding:0.75rem 1rem;background:rgba(244,63,94,0.1);border:1px solid rgba(244,63,94,0.2);border-radius:0.75rem;margin-bottom:1rem;color:#f43f5e;font-size:0.8125rem;font-weight:600"><i data-lucide="alert-triangle" style="width:14px;height:14px"></i> Over-allocated! ${allocatedHours - totalCapacity}h above capacity.</div>` : ''}
           <div style="width:100%;height:2rem;display:flex;border-radius:0.5rem;overflow:hidden;margin-bottom:1.5rem;border:1px solid rgba(255,255,255,0.05)">${barHtml}</div>
           <div style="display:grid;grid-template-columns:repeat(auto-fill, minmax(300px, 1fr));gap:1rem">${contractCardsHtml}</div>
       </div>
@@ -3686,10 +3694,10 @@ function renderDeveloperDetailView(dev, projecten, uren, cv) {
             <div style="background:#111;border:1px solid #1e1e1e;border-radius:1rem;padding:1.5rem;margin-bottom:2rem">
                 <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem">
                     <h3 style="font-size:1rem;font-weight:700;display:flex;align-items:center;gap:0.5rem;color:var(--white)">
-                        <i data-lucide="file-text" style="width:16px;height:16px;color:#34d399"></i> CV Informatie
+                        <i data-lucide="file-text" style="width:16px;height:16px;color:#34d399"></i> CV Information
                     </h3>
                     <a href="/api/cv/file/${encodeURIComponent(cv.savedFilename || cv.cv_url || '')}" target="_blank" class="btn-outline" style="font-size:0.75rem;padding:0.4rem 0.8rem;text-decoration:none">
-                        <i data-lucide="download" style="width:12px;height:12px"></i> CV Downloaden
+                        <i data-lucide="download" style="width:12px;height:12px"></i> Download CV
                     </a>
                 </div>
                 ${skills.length > 0 ? `
@@ -3698,7 +3706,7 @@ function renderDeveloperDetailView(dev, projecten, uren, cv) {
                 </div>` : ''}
                 ${cv.experience || cv.summary ? `
                 <div style="margin-bottom:1rem">
-                    <div style="font-size:0.6875rem;font-weight:700;text-transform:uppercase;color:var(--white-40);margin-bottom:0.5rem">Samenvatting / Ervaring</div>
+                    <div style="font-size:0.6875rem;font-weight:700;text-transform:uppercase;color:var(--white-40);margin-bottom:0.5rem">Summary / Experience</div>
                     <div style="font-size:0.875rem;color:var(--white-60);line-height:1.6">${(cv.experience || cv.summary).substring(0, 400)}${(cv.experience || cv.summary).length > 400 ? '...' : ''}</div>
                 </div>` : ''}
             </div>
@@ -3708,15 +3716,17 @@ function renderDeveloperDetailView(dev, projecten, uren, cv) {
             <div style="background:#111;border:1px solid #1e1e1e;border-radius:1rem;padding:1.5rem;margin-bottom:2rem">
                 <div style="display:flex;align-items:center;justify-content:space-between">
                     <h3 style="font-size:1rem;font-weight:700;display:flex;align-items:center;gap:0.5rem;color:var(--white)">
-                        <i data-lucide="file-text" style="width:16px;height:16px;color:#34d399"></i> CV Informatie
+                        <i data-lucide="file-text" style="width:16px;height:16px;color:#34d399"></i> CV Information
                     </h3>
                     <a href="/api/storage/file/${encodeURIComponent(dev.cv_url)}" target="_blank" class="btn-outline" style="font-size:0.75rem;padding:0.4rem 0.8rem;text-decoration:none">
-                        <i data-lucide="download" style="width:12px;height:12px"></i> CV Downloaden
+                        <i data-lucide="download" style="width:12px;height:12px"></i> Download CV
                     </a>
                 </div>
             </div>
         `;
     }
+
+    const devTypeMapped = dev.type === 'ZZP' ? 'Contractor' : (dev.type === 'Loondienst' ? 'Employee' : (dev.type || 'Contractor'));
 
     d.innerHTML = `
       <div style="display:grid;grid-template-columns:300px 1fr;gap:2rem">
@@ -3724,7 +3734,7 @@ function renderDeveloperDetailView(dev, projecten, uren, cv) {
           <div>
               <div style="background:#111;border:1px solid #1e1e1e;border-radius:1.25rem;padding:2rem;text-align:center;position:relative">
                   <div style="position:absolute;top:1rem;right:1rem">
-                      <span class="status-badge status-approved">${dev.type || 'ZZP'}</span>
+                      <span class="status-badge status-approved">${devTypeMapped}</span>
                   </div>
                   <div style="width:5rem;height:5rem;border-radius:1rem;background:${genderColor}20;color:${genderColor};display:flex;align-items:center;justify-content:center;font-size:2rem;font-weight:800;margin:0 auto 1.25rem;padding:0;overflow:hidden">
                       ${dev.avatar_url 
@@ -3750,7 +3760,7 @@ function renderDeveloperDetailView(dev, projecten, uren, cv) {
                           <div style="font-size:0.75rem;font-weight:600;color:var(--white);word-break:break-word">${dev.email || '—'}</div>
                       </div>
                       <div>
-                          <div style="font-size:0.625rem;text-transform:uppercase;font-weight:700;color:var(--white-40);letter-spacing:0.1em;margin-bottom:0.25rem">Uurtarief</div>
+                          <div style="font-size:0.625rem;text-transform:uppercase;font-weight:700;color:var(--white-40);letter-spacing:0.1em;margin-bottom:0.25rem">Hourly rate</div>
                           <div style="font-size:0.8125rem;font-weight:600;color:var(--white)">€${uurtarief.toFixed(2)}</div>
                       </div>
                   </div>
@@ -3766,7 +3776,7 @@ function renderDeveloperDetailView(dev, projecten, uren, cv) {
                           <div style="width:2rem;height:2rem;border-radius:0.5rem;background:rgba(59,130,246,0.1);display:flex;align-items:center;justify-content:center">
                               <i data-lucide="clock" style="width:14px;height:14px;color:#60a5fa"></i>
                           </div>
-                          <div style="font-size:0.75rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--white-40)">Totaal Uren</div>
+                          <div style="font-size:0.75rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--white-40)">Total Hours</div>
                       </div>
                       <div style="font-size:1.75rem;font-weight:800;color:var(--white)">${totalHours}</div>
                   </div>
@@ -3784,9 +3794,9 @@ function renderDeveloperDetailView(dev, projecten, uren, cv) {
                           <div style="width:2rem;height:2rem;border-radius:0.5rem;background:rgba(244,114,182,0.1);display:flex;align-items:center;justify-content:center">
                               <i data-lucide="calendar" style="width:14px;height:14px;color:#f472b6"></i>
                           </div>
-                          <div style="font-size:0.75rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--white-40)">Capaciteit</div>
+                          <div style="font-size:0.75rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--white-40)">Capacity</div>
                       </div>
-                      <div style="font-size:1.75rem;font-weight:800;color:var(--white)">${dev.weekcapaciteit || 40}u <span style="font-size:1rem;color:var(--white-40)">/wk</span></div>
+                      <div style="font-size:1.75rem;font-weight:800;color:var(--white)">${dev.weekcapaciteit || 40}h <span style="font-size:1rem;color:var(--white-40)">/wk</span></div>
                   </div>
               </div>
               
@@ -3795,7 +3805,7 @@ function renderDeveloperDetailView(dev, projecten, uren, cv) {
 
               <!-- Recent Timesheets -->
               <div style="background:#111;border:1px solid #1e1e1e;border-radius:1rem;padding:1.5rem">
-                  <div style="font-size:1rem;font-weight:800;color:var(--white);margin-bottom:1rem">Recente Urenregistraties</div>
+                  <div style="font-size:1rem;font-weight:800;color:var(--white);margin-bottom:1rem">Recent Timesheets</div>
                   ${tsHtml}
               </div>
           </div>
