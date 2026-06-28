@@ -493,7 +493,7 @@
                     <!-- Back nav -->
                     <button class="client-back-btn" id="btn-back-to-clients">
                         <i data-lucide="arrow-left" style="width:14px;height:14px"></i>
-                        ← Terug naar Klanten
+                        ← Back to Clients
                     </button>
 
                     <!-- Hero header card (static shell, JS fills ids) -->
@@ -510,17 +510,17 @@
                         <!-- Stats strip -->
                         <div class="client-detail-stats">
                             <div class="client-detail-stat">
-                                <div class="client-detail-stat-label">Goedgekeurde uren</div>
+                                <div class="client-detail-stat-label">Approved Hours</div>
                                 <div class="client-detail-stat-value" id="detail-stat-hours">—</div>
                             </div>
                             <div class="client-detail-stat-sep"></div>
                             <div class="client-detail-stat">
-                                <div class="client-detail-stat-label">Totaal omzet</div>
+                                <div class="client-detail-stat-label">Total Revenue</div>
                                 <div class="client-detail-stat-value" id="detail-stat-billed">—</div>
                             </div>
                             <div class="client-detail-stat-sep"></div>
                             <div class="client-detail-stat">
-                                <div class="client-detail-stat-label">Open facturen</div>
+                                <div class="client-detail-stat-label">Outstanding Invoices</div>
                                 <div class="client-detail-stat-value" style="color:#fbbf24" id="detail-stat-pending">—</div>
                             </div>
                             <div class="client-detail-stat-sep"></div>
@@ -539,17 +539,17 @@
                                   <line x1="9" y1="9" x2="10" y2="9"/>
                                   <line x1="9" y1="13" x2="15" y2="13"/>
                                   <line x1="9" y1="17" x2="15" y2="17"/>
-                                </svg> Contracten
+                                </svg> Contracts
                             </button>
                             <button class="btn-outline" id="btn-edit-client-detail" onclick="toggleClientDetailEdit()">
-                                <i data-lucide="pencil" style="width:14px;height:14px"></i> Bewerken
+                                <i data-lucide="pencil" style="width:14px;height:14px"></i> Edit
                             </button>
                         </div>
                     </div>
 
                     <!-- Dynamic content (all 5 blocks rendered by JS) -->
                     <div id="client-detail-content" style="margin-top:1.25rem">
-                        <div style="padding:3rem;text-align:center;color:var(--white-40)">Laden...</div>
+                        <div style="padding:3rem;text-align:center;color:var(--white-40)">Loading...</div>
                     </div>
                 </div>
 

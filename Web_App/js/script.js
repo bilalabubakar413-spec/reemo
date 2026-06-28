@@ -2925,7 +2925,7 @@ function renderClientsGrid() {
     const sectorSelect = document.getElementById('cf-sector');
     if (sectorSelect) {
         const uniqueSectors = [...new Set(clients.map(c => c.sector).filter(Boolean))].sort();
-        sectorSelect.innerHTML = '<option value="">Alle sectoren</option>' + 
+        sectorSelect.innerHTML = '<option value="">All sectors</option>' + 
             uniqueSectors.map(s => `<option value="${s}" ${s.toLowerCase() === activeClientSectorFilter.toLowerCase() ? 'selected' : ''}>${s}</option>`).join('');
     }
 
@@ -2935,8 +2935,8 @@ function renderClientsGrid() {
             <div style="width:3.5rem;height:3.5rem;border-radius:1rem;background:rgba(37,99,235,0.08);border:1px solid rgba(37,99,235,0.15);display:flex;align-items:center;justify-content:center;margin-bottom:1rem">
                 <i data-lucide="users" style="width:22px;height:22px;color:#60a5fa"></i>
             </div>
-            <div style="font-size:0.9375rem;font-weight:700;color:var(--white);margin-bottom:0.375rem">Geen klanten gevonden</div>
-            <div style="font-size:0.8125rem;color:var(--white-40);margin-bottom:1.25rem">Klik op 'Add Client' om de eerste klant toe te voegen.</div>
+            <div style="font-size:0.9375rem;font-weight:700;color:var(--white);margin-bottom:0.375rem">No clients found</div>
+            <div style="font-size:0.8125rem;color:var(--white-40);margin-bottom:1.25rem">Click 'Add Client' to add the first client.</div>
             <button class="btn-blue" onclick="openAddClientModal()" style="font-size:0.8125rem">
                 <i data-lucide="plus" style="width:14px;height:14px"></i> Add Client
             </button>
@@ -2955,7 +2955,7 @@ function renderClientsGrid() {
             <div class="client-card-actions">
                 <span class="status-badge status-approved" style="font-size:0.5rem">${sector}</span>
                 <button onclick="event.stopPropagation(); openContractenModal('${id}', '${(c.naam||c.name||'').replace(/'/g,"\\'")}')" 
-                         title="Bekijk contracten" class="btn-contract">
+                         title="View contracts" class="btn-contract">
                   <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:block">
                     <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
                     <path d="M14 3v4a1 1 0 0 0 1 1h4"/>
@@ -2965,10 +2965,10 @@ function renderClientsGrid() {
                     <line x1="9" y1="17" x2="15" y2="17"/>
                   </svg>
                 </button>
-                <button class="client-card-btn" title="Bewerken" onclick="event.stopPropagation();openEditClientModal('${id}')">
+                <button class="client-card-btn" title="Edit" onclick="event.stopPropagation();openEditClientModal('${id}')">
                     <i data-lucide="pencil" style="width:12px;height:12px"></i>
                 </button>
-                <button class="client-card-btn" title="Verwijderen" style="color:#f43f5e" onclick="event.stopPropagation();verwijderKlant('${id}','${(c.naam||'').replace(/'/g,"\\'")}')">
+                <button class="client-card-btn" title="Delete" style="color:#f43f5e" onclick="event.stopPropagation();verwijderKlant('${id}','${(c.naam||'').replace(/'/g,"\\'")}')">
                     <i data-lucide="trash-2" style="width:12px;height:12px"></i>
                 </button>
             </div>
@@ -2991,20 +2991,20 @@ function renderClientsGrid() {
             </div>
             <div class="client-stat-grid">
                 <div class="client-stat-box">
-                    <div class="client-stat-label"><i data-lucide="mail" style="width:10px;height:10px;color:#60a5fa"></i> E-mail</div>
+                    <div class="client-stat-label"><i data-lucide="mail" style="width:10px;height:10px;color:#60a5fa"></i> Email</div>
                     <div class="client-stat-value" style="font-size:0.6875rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${c.email || '—'}">${c.email || '—'}</div>
                 </div>
                 <div class="client-stat-box">
-                    <div class="client-stat-label"><i data-lucide="phone" style="width:10px;height:10px;color:#34d399"></i> Telefoon</div>
+                    <div class="client-stat-label"><i data-lucide="phone" style="width:10px;height:10px;color:#34d399"></i> Phone</div>
                     <div class="client-stat-value" style="font-size:0.6875rem;font-weight:600">${c.telefoonnummer || '—'}</div>
                 </div>
                 <div class="client-stat-box">
-                    <div class="client-stat-label"><i data-lucide="folder" style="width:10px;height:10px;color:#fbbf24"></i> Projecten</div>
-                    <div class="client-stat-value" style="font-size:0.75rem;font-weight:700;color:var(--white)">${c.project_count || 0} actief</div>
+                    <div class="client-stat-label"><i data-lucide="folder" style="width:10px;height:10px;color:#fbbf24"></i> Projects</div>
+                    <div class="client-stat-value" style="font-size:0.75rem;font-weight:700;color:var(--white)">${c.project_count || 0} active</div>
                 </div>
                 <div class="client-stat-box">
                     <div class="client-stat-label"><i data-lucide="users" style="width:10px;height:10px;color:#a78bfa"></i> Developers</div>
-                    <div class="client-stat-value" style="font-size:0.75rem;font-weight:700;color:var(--white)">${c.developer_count || 0} actief</div>
+                    <div class="client-stat-value" style="font-size:0.75rem;font-weight:700;color:var(--white)">${c.developer_count || 0} active</div>
                 </div>
             </div>
         </div>`;
@@ -3237,27 +3237,27 @@ function _renderClientDetailContent(k, projecten, devs, uren, facturen) {
     const totUren   = parseFloat(uren?.totaal_uren   || 0);
     const totBilled = parseFloat(uren?.totaal_bedrag  || 0);
 
-    // ── BLOK 1: Klantgegevens ──────────────────────────────────────────────
+    // ── BLOK 1: Client Details ──────────────────────────────────────────────
     const blok1 = `<div class="profile-section-card" id="blok-klantgegevens">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
-        <div class="profile-section-header" style="margin-bottom:0"><i data-lucide="building-2" style="width:14px;height:14px;color:#60a5fa"></i> Klantgegevens</div>
+        <div class="profile-section-header" style="margin-bottom:0"><i data-lucide="building-2" style="width:14px;height:14px;color:#60a5fa"></i> Client Details</div>
         <div style="display:flex;gap:0.5rem">
-          <button id="btn-save-klant" class="btn-blue" style="display:none;font-size:0.75rem;padding:0.3rem 0.75rem" onclick="saveClientDetail(this)"><i data-lucide="save" style="width:12px;height:12px"></i> Opslaan</button>
-          <button id="btn-cancel-klant" class="btn-outline" style="display:none;font-size:0.75rem;padding:0.3rem 0.75rem" onclick="cancelClientDetailEdit()">Annuleren</button>
+          <button id="btn-save-klant" class="btn-blue" style="display:none;font-size:0.75rem;padding:0.3rem 0.75rem" onclick="saveClientDetail(this)"><i data-lucide="save" style="width:12px;height:12px"></i> Save</button>
+          <button id="btn-cancel-klant" class="btn-outline" style="display:none;font-size:0.75rem;padding:0.3rem 0.75rem" onclick="cancelClientDetailEdit()">Cancel</button>
         </div>
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem">
-        ${_ef('kd-naam','Naam',k.naam)}
+        ${_ef('kd-naam','Name',k.naam)}
         ${_ef('kd-sector','Sector',k.sector)}
-        ${_ef('kd-email','E-mail',k.email,'email')}
-        ${_ef('kd-tel','Telefoonnummer',k.telefoonnummer,'tel')}
-        ${_ef('kd-contact','Contactpersoon',k.contactpersoon)}
+        ${_ef('kd-email','Email',k.email,'email')}
+        ${_ef('kd-tel','Phone Number',k.telefoonnummer,'tel')}
+        ${_ef('kd-contact','Contact Person',k.contactpersoon)}
       </div>
     </div>`;
 
     // ── BLOK 2: Developers ────────────────────────────────────────────────
     const devRows = devs.length === 0
-      ? '<div style="color:var(--white-30);font-size:0.8125rem;padding:1rem 0">Nog geen developers gekoppeld.</div>'
+      ? '<div style="color:var(--white-30);font-size:0.8125rem;padding:1rem 0">No developers linked yet.</div>'
       : devs.map(d => {
           const isFem = ['Sarah','Elena','Niobe','Trinity'].some(n => d.naam.includes(n));
           const projs = (d.projecten || []).map(p => p.projectnaam).join(', ') || '—';
@@ -3272,7 +3272,7 @@ function _renderClientDetailContent(k, projecten, devs, uren, facturen) {
               </div>
             </div>
             <div style="font-family:monospace;font-size:0.8125rem;color:#34d399;flex-shrink:0;margin-right:0.5rem">€${d.uurtarief||'—'}/h</div>
-            <button class="ts-action-btn reject" title="Ontkoppelen" style="flex-shrink:0" onclick="unlinkDeveloper('${id}','${d.developer_id}','${devNaamEsc}',this)">
+            <button class="ts-action-btn reject" title="Unlink" style="flex-shrink:0" onclick="unlinkDeveloper('${id}','${d.developer_id}','${devNaamEsc}',this)">
               <i data-lucide="unlink" style="width:12px;height:12px"></i>
             </button>
           </div>`;
@@ -3282,29 +3282,39 @@ function _renderClientDetailContent(k, projecten, devs, uren, facturen) {
       <div style="display:flex;justify-content:space-between;align-items:center">
         <div class="profile-section-header" style="margin-bottom:0"><i data-lucide="users" style="width:14px;height:14px;color:#34d399"></i> Developers (${devs.length})</div>
         <button class="btn-blue" style="font-size:0.6875rem;padding:0.3rem 0.75rem" onclick="openAddDevToClientModal('${id}')">
-          <i data-lucide="user-plus" style="width:11px;height:11px"></i> Developer toevoegen
+          <i data-lucide="user-plus" style="width:11px;height:11px"></i> Add Developer
         </button>
       </div>
       <div style="display:flex;flex-direction:column;gap:0.5rem;margin-top:0.75rem">${devRows}</div>
     </div>`;
 
     // ── BLOK 3: Projecten ──────────────────────────────────────────────────
-    const stC = s => { s=(s||'actief').toLowerCase(); return s==='actief'?'#34d399':s==='afgerond'?'#60a5fa':'#fbbf24'; };
+    const stC = s => {
+        const val = (s || 'actief').toLowerCase();
+        return val === 'actief' ? '#34d399' : val === 'afgerond' ? '#60a5fa' : '#fbbf24';
+    };
+    const mapProjectStatus = s => {
+        const val = (s || 'actief').toLowerCase();
+        if (val === 'actief') return 'Active';
+        if (val === 'concept') return 'Draft';
+        if (val === 'afgerond') return 'Completed';
+        return s || 'Active';
+    };
     const projRows = projecten.length === 0
-      ? '<div style="color:var(--white-30);font-size:0.8125rem;padding:1rem 0">Nog geen projecten gevonden.</div>'
+      ? '<div style="color:var(--white-30);font-size:0.8125rem;padding:1rem 0">No projects found.</div>'
       : projecten.map(p => `<div style="display:flex;justify-content:space-between;align-items:center;padding:0.6rem 0;border-bottom:1px solid rgba(255,255,255,0.05)">
           <div>
             <div style="font-weight:700;font-size:0.8125rem;color:var(--white)">${p.projectnaam}</div>
             <div style="font-size:0.6875rem;color:var(--white-40)">${p.type||'—'} • ${p.developer_count || 0} dev(s) • ${formatDateString(p.startdatum)} → ${formatDateString(p.einddatum)}</div>
           </div>
-          <span style="font-size:0.5625rem;font-weight:700;text-transform:uppercase;padding:0.2rem 0.5rem;border-radius:0.375rem;background:rgba(16,185,129,0.08);color:${stC(p.status)};border:1px solid rgba(16,185,129,0.2)">${p.status||'Actief'}</span>
+          <span style="font-size:0.5625rem;font-weight:700;text-transform:uppercase;padding:0.2rem 0.5rem;border-radius:0.375rem;background:rgba(16,185,129,0.08);color:${stC(p.status)};border:1px solid rgba(16,185,129,0.2)">${mapProjectStatus(p.status)}</span>
         </div>`).join('');
 
     const blok3 = `<div class="profile-section-card" id="blok-projecten">
       <div style="display:flex;justify-content:space-between;align-items:center">
-        <div class="profile-section-header" style="margin-bottom:0"><i data-lucide="folder" style="width:14px;height:14px;color:#60a5fa"></i> Projecten (${projecten.length})</div>
+        <div class="profile-section-header" style="margin-bottom:0"><i data-lucide="folder" style="width:14px;height:14px;color:#60a5fa"></i> Projects (${projecten.length})</div>
         <button class="btn-blue" style="font-size:0.6875rem;padding:0.3rem 0.75rem" onclick="openAddProjectModal('${id}')">
-          <i data-lucide="plus" style="width:11px;height:11px"></i> Project
+          <i data-lucide="plus" style="width:11px;height:11px"></i> Add Project
         </button>
       </div>
       <div style="margin-top:0.5rem">${projRows}</div>
@@ -3312,15 +3322,15 @@ function _renderClientDetailContent(k, projecten, devs, uren, facturen) {
 
     // ── BLOK 4: Uren & Omzet ──────────────────────────────────────────────
     const blok4 = `<div class="profile-section-card" id="blok-uren" style="background:linear-gradient(135deg,rgba(16,185,129,0.04),transparent)">
-      <div class="profile-section-header"><i data-lucide="clock" style="width:14px;height:14px;color:#fbbf24"></i> Uren &amp; Omzet <span style="font-size:0.625rem;color:var(--white-30)">(alleen goedgekeurd)</span></div>
+      <div class="profile-section-header"><i data-lucide="clock" style="width:14px;height:14px;color:#fbbf24"></i> Hours &amp; Revenue <span style="font-size:0.625rem;color:var(--white-30)">(approved only)</span></div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-top:0.75rem">
         <div style="text-align:center">
           <div style="font-size:2.25rem;font-weight:900;color:var(--white);line-height:1">${totUren.toFixed(0)}<span style="font-size:1rem;color:var(--white-40)">h</span></div>
-          <div style="font-size:0.6875rem;color:var(--white-40);margin-top:0.375rem">Totaal goedgekeurde uren</div>
+          <div style="font-size:0.6875rem;color:var(--white-40);margin-top:0.375rem">Total approved hours</div>
         </div>
         <div style="text-align:center">
           <div style="font-size:2.25rem;font-weight:900;color:#34d399;line-height:1">${fmt(totBilled)}</div>
-          <div style="font-size:0.6875rem;color:var(--white-40);margin-top:0.375rem">Totale omzet</div>
+          <div style="font-size:0.6875rem;color:var(--white-40);margin-top:0.375rem">Total revenue</div>
         </div>
       </div>
     </div>`;
@@ -3328,28 +3338,32 @@ function _renderClientDetailContent(k, projecten, devs, uren, facturen) {
     // ── BLOK 5: Facturen ──────────────────────────────────────────────────
     const stBadge = st => {
         st = (st||'open').toLowerCase();
-        const cfg = { betaald:['rgba(16,185,129,0.12)','#34d399','Betaald'], open:['rgba(245,158,11,0.1)','#fbbf24','Open'], te_laat:['rgba(244,63,94,0.1)','#f43f5e','Te laat'] };
+        const cfg = {
+            betaald: ['rgba(16,185,129,0.12)', '#34d399', 'Paid'],
+            open: ['rgba(245,158,11,0.1)', '#fbbf24', 'Open'],
+            te_laat: ['rgba(244,63,94,0.1)', '#f43f5e', 'Overdue']
+        };
         const [bg,c,label] = cfg[st] || cfg.open;
         return `<span style="font-size:0.5625rem;font-weight:700;text-transform:uppercase;padding:0.2rem 0.5rem;border-radius:0.375rem;background:${bg};color:${c};border:1px solid ${c}55">${label}</span>`;
     };
     const factRows = facturen.length === 0
-      ? '<div style="color:var(--white-30);font-size:0.8125rem;padding:1rem 0">Nog geen facturen gevonden.</div>'
+      ? '<div style="color:var(--white-30);font-size:0.8125rem;padding:1rem 0">No invoices found.</div>'
       : facturen.map(f => `<div style="display:flex;justify-content:space-between;align-items:center;padding:0.6rem 0;border-bottom:1px solid rgba(255,255,255,0.05)">
           <div>
             <div style="font-weight:700;font-size:0.8125rem;color:var(--white)">${formatDateString(f.factuurdatum)}</div>
-            <div style="font-size:0.6875rem;color:var(--white-40)">Vervalt: ${formatDateString(f.vervaldatum)}</div>
+            <div style="font-size:0.6875rem;color:var(--white-40)">Due: ${formatDateString(f.vervaldatum)}</div>
           </div>
           <div style="display:flex;align-items:center;gap:0.625rem">
-            <div style="font-weight:700;font-family:monospace;color:var(--white)">€${parseFloat(f.totaalbedrag||0).toLocaleString('nl-NL')}</div>
+            <div style="font-weight:700;font-family:monospace;color:var(--white)">€${parseFloat(f.totaalbedrag||0).toLocaleString('en-US')}</div>
             ${stBadge(f.betalingsstatus)}
           </div>
         </div>`).join('');
 
     const blok5 = `<div class="profile-section-card" id="blok-facturen">
       <div style="display:flex;justify-content:space-between;align-items:center">
-        <div class="profile-section-header" style="margin-bottom:0"><i data-lucide="receipt" style="width:14px;height:14px;color:#a78bfa"></i> Facturen (${facturen.length})</div>
+        <div class="profile-section-header" style="margin-bottom:0"><i data-lucide="receipt" style="width:14px;height:14px;color:#a78bfa"></i> Invoices (${facturen.length})</div>
         <button class="btn-blue" style="font-size:0.6875rem;padding:0.3rem 0.75rem" onclick="openAddFactuurModal('${id}')">
-          <i data-lucide="plus" style="width:11px;height:11px"></i> Genereer factuur
+          <i data-lucide="plus" style="width:11px;height:11px"></i> Generate Invoice
         </button>
       </div>
       <div style="margin-top:0.5rem">${factRows}</div>
