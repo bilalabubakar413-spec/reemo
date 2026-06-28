@@ -1843,6 +1843,92 @@ function populateDevContractsDropdown(contracts) {
 }
 
 
+function triggerDevAvatarUpload() {
+    const input = document.getElementById('dev-avatar-input');
+    if (input) {
+        input.value = '';
+        input.click();
+    }
+}
+
+async function handleDevAvatarUpload(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
+    if (!allowedTypes.includes(file.type)) {
+        showToast('Only JPG, PNG or WEBP images are allowed.', 'error');
+        event.target.value = '';
+        return;
+    }
+
+    const maxSize = 2 * 1024 * 1024; // 2MB
+    if (file.size > maxSize) {
+        showToast('Image is too large (max 2MB).', 'error');
+        event.target.value = '';
+        return;
+    }
+
+    const avatarContainer = document.querySelector('.profile-hero-avatar');
+    const originalHtml = avatarContainer ? avatarContainer.innerHTML : '';
+    if (avatarContainer) {
+        avatarContainer.innerHTML = `<div class="spinner" style="width:24px;height:24px;border:2px solid rgba(255,255,255,0.1);border-top-color:#3b82f6;border-radius:50%;animation:spin 0.8s linear infinite;"></div>`;
+    }
+
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('bucket', 'avatars');
+    formData.append('developer_id', activeDeveloper.id);
+
+    try {
+        const { data: sessionData } = await sbClient.auth.getSession();
+        const token = sessionData?.session?.access_token;
+        
+        const headers = {};
+        if (token) {
+            headers['Authorization'] = `Bearer ${token}`;
+        }
+
+        const response = await fetch('/api/storage/upload', {
+            method: 'POST',
+            headers: headers,
+            body: formData
+        });
+
+        if (response.ok) {
+            const resData = await response.json();
+            const filePath = resData.filePath || resData.data?.filePath;
+            if (filePath) {
+                activeDeveloper.avatar_url = filePath;
+                showToast('✓ Photo updated', 'success');
+                
+                await loadDevProfile();
+                
+                const hAvatar = document.getElementById('header-user-avatar');
+                renderUserAvatar(userProfileAvatar, activeDeveloper);
+                renderUserAvatar(hAvatar, activeDeveloper);
+            } else {
+                showToast('Upload failed: no file path received.', 'error');
+                if (avatarContainer) avatarContainer.innerHTML = originalHtml;
+            }
+        } else {
+            let errorMsg = 'Upload failed.';
+            try {
+                const errData = await response.json();
+                errorMsg = errData.error || errData.message || errorMsg;
+            } catch (_) {}
+            showToast(errorMsg, 'error');
+            if (avatarContainer) avatarContainer.innerHTML = originalHtml;
+        }
+    } catch (e) {
+        console.error('Error uploading profile avatar:', e);
+        showToast('Error during avatar upload: ' + e.message, 'error');
+        if (avatarContainer) avatarContainer.innerHTML = originalHtml;
+    } finally {
+        event.target.value = '';
+    }
+}
+
 // ── Developer Profile loading and rendering ──────────────────────────────────
 async function loadDevProfile() {
     // Use the active/logged-in developer or fall back to the first developer
@@ -1980,7 +2066,15 @@ function renderDevProfilePage(dev, projecten, uren, cv) {
             <!-- Hero card -->
             <div class="profile-hero">
                 <div style="position:relative;flex-shrink:0">
-                    <div class="profile-hero-avatar" style="background:linear-gradient(135deg, ${avatarColor}20, ${avatarColor}05);color:${avatarColor};border:1px solid ${avatarColor}40;box-shadow: 0 8px 24px -4px ${avatarColor}15;position:relative;padding:0">${avatarContent}</div>
+                    <input type="file" id="dev-avatar-input" accept="image/jpeg,image/png,image/webp" style="display:none" onchange="handleDevAvatarUpload(event)">
+                    <div class="profile-hero-avatar" 
+                         style="background:linear-gradient(135deg, ${avatarColor}20, ${avatarColor}05);color:${avatarColor};border:1px solid ${avatarColor}40;box-shadow: 0 8px 24px -4px ${avatarColor}15;position:relative;padding:0;cursor:pointer"
+                         onclick="triggerDevAvatarUpload()">
+                        ${avatarContent}
+                        <div class="avatar-overlay" style="position:absolute;inset:0;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity 0.2s;border-radius:50%" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0">
+                            <i data-lucide="camera" style="width:18px;height:18px;color:white"></i>
+                        </div>
+                    </div>
                     <div style="position:absolute;bottom:2px;right:2px;width:1rem;height:1rem;border-radius:50%;background:#0c0c0c;display:flex;align-items:center;justify-content:center;border:1px solid rgba(255,255,255,0.05)">
                         <div id="profile-avatar-status-dot" style="width:0.625rem;height:0.625rem;border-radius:50%;background:${statusCfg.color};box-shadow:0 0 8px ${statusCfg.color}"></div>
                     </div>
@@ -3609,8 +3703,11 @@ function renderDeveloperDetailView(dev, projecten, uren, cv) {
                   <div style="position:absolute;top:1rem;right:1rem">
                       <span class="status-badge status-approved">${dev.type || 'ZZP'}</span>
                   </div>
-                  <div style="width:5rem;height:5rem;border-radius:1rem;background:${genderColor}20;color:${genderColor};display:flex;align-items:center;justify-content:center;font-size:2rem;font-weight:800;margin:0 auto 1.25rem">
-                      ${getInitials(dev.naam)}
+                  <div style="width:5rem;height:5rem;border-radius:1rem;background:${genderColor}20;color:${genderColor};display:flex;align-items:center;justify-content:center;font-size:2rem;font-weight:800;margin:0 auto 1.25rem;padding:0;overflow:hidden">
+                      ${dev.avatar_url 
+                          ? `<img src="${getAvatarUrl(dev.avatar_url)}" alt="${dev.naam || ''}" style="width:100%; height:100%; object-fit:cover;" />`
+                          : getInitials(dev.naam)
+                      }
                   </div>
                   <h2 style="font-size:1.25rem;font-weight:800;margin-bottom:0.25rem;color:var(--white)">${dev.naam}</h2>
                   <div style="color:var(--white-40);font-size:0.875rem;margin-bottom:1.5rem">${dev.rol || 'Developer'}</div>
@@ -4007,7 +4104,12 @@ function renderDevelopersGrid() {
             
             <div style="display:flex;justify-content:space-between;align-items:flex-start">
                 <div style="display:flex;align-items:center;gap:0.75rem;min-width:0;flex:1">
-                    <div style="width:2.75rem;height:2.75rem;border-radius:0.75rem;display:flex;align-items:center;justify-content:center;font-size:1rem;font-weight:800;flex-shrink:0;${avatarBg}">${getInitials(devName)}</div>
+                    ${(() => {
+                        const avatarHtml = dev.avatar_url 
+                            ? `<img src="${getAvatarUrl(dev.avatar_url)}" alt="${devName}" style="width:100%; height:100%; object-fit:cover; border-radius:inherit;" />`
+                            : getInitials(devName);
+                        return `<div style="width:2.75rem;height:2.75rem;border-radius:0.75rem;display:flex;align-items:center;justify-content:center;font-size:1rem;font-weight:800;flex-shrink:0;${avatarBg};padding:0;overflow:hidden">${avatarHtml}</div>`;
+                    })()}
                     <div style="min-width:0;flex:1">
                         <div style="font-weight:700;font-size:1rem;color:var(--white);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${devName}</div>
                         <div style="font-size:0.7rem;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;color:var(--white-40);margin-top:0.15rem">${devRole}</div>

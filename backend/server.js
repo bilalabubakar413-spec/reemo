@@ -861,7 +861,7 @@ app.get('/api/developers', async (req, res) => {
   try {
     const rows = await q(`
       SELECT d.developer_id, d.naam, d.email, d.type, d.rol, d.uurtarief, d.weekcapaciteit,
-             d.aangemaakt_op, d.skills, d.beschikbaarheid, d.cv_url, d.status,
+             d.aangemaakt_op, d.skills, d.beschikbaarheid, d.cv_url, d.status, d.avatar_url,
              (SELECT COUNT(*) FROM developer_project dp WHERE dp.developer_id = d.developer_id AND (dp.eind_datum IS NULL OR dp.eind_datum >= CURRENT_DATE)) as project_count,
              (SELECT SUM(aantal_uren) FROM urenregistratie u WHERE u.developer_id = d.developer_id AND u.status = 'approved' AND u.datum >= date_trunc('week', CURRENT_DATE)) as uren_week,
              (SELECT SUM(dp.uren_per_week) FROM developer_project dp WHERE dp.developer_id = d.developer_id AND (dp.eind_datum IS NULL OR dp.eind_datum >= CURRENT_DATE)) as assigned_hours,
