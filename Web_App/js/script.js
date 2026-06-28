@@ -240,11 +240,13 @@ function renderUserAvatar(containerEl, userObj) {
     
     if (avatarUrl) {
         const publicUrl = getAvatarUrl(avatarUrl);
-        containerEl.innerHTML = `<img src="${publicUrl}" alt="${userObj?.naam || ''}" style="width:100%; height:100%; object-fit:cover; border-radius:50%;" />`;
+        containerEl.innerHTML = `<img src="${publicUrl}" alt="${userObj?.naam || ''}" style="width:100%; height:100%; object-fit:cover; border-radius:inherit;" />`;
         containerEl.style.padding = '0';
+        containerEl.style.overflow = 'hidden';
     } else {
         containerEl.textContent = initials;
         containerEl.style.padding = '';
+        containerEl.style.overflow = '';
     }
 }
 
@@ -1632,6 +1634,9 @@ async function setDevBeschikbaarheid(status) {
             body: JSON.stringify({ beschikbaarheid: status })
         });
         updateDevStatusBadge(status);
+        if (activeDeveloper) {
+            activeDeveloper.beschikbaarheid = status;
+        }
         if (window._devDashboardData) window._devDashboardData.devBeschikbaarheid = status;
         // Also refresh the dev in the developers array for admin view
         const devIdx = developers.findIndex(d => d.id == devId || d.developer_id == devId);
@@ -1958,7 +1963,7 @@ function renderDevProfilePage(dev, projecten, uren, cv) {
     const initials = getInitials(dev.naam || '?');
     const hasAvatar = dev.avatar_url;
     const avatarContent = hasAvatar
-        ? `<img src="${getAvatarUrl(dev.avatar_url)}" alt="${dev.naam || ''}" style="width:100%; height:100%; object-fit:cover; border-radius:50%;" />`
+        ? `<img src="${getAvatarUrl(dev.avatar_url)}" alt="${dev.naam || ''}" style="width:100%; height:100%; object-fit:cover; border-radius:inherit;" />`
         : initials;
     const role = dev.rol || 'Developer';
     const rate = parseFloat(dev.uurtarief) || 0;
@@ -2071,7 +2076,7 @@ function renderDevProfilePage(dev, projecten, uren, cv) {
                          style="background:linear-gradient(135deg, ${avatarColor}20, ${avatarColor}05);color:${avatarColor};border:1px solid ${avatarColor}40;box-shadow: 0 8px 24px -4px ${avatarColor}15;position:relative;padding:0;cursor:pointer"
                          onclick="triggerDevAvatarUpload()">
                         ${avatarContent}
-                        <div class="avatar-overlay" style="position:absolute;inset:0;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity 0.2s;border-radius:50%" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0">
+                        <div class="avatar-overlay" style="position:absolute;inset:0;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity 0.2s;border-radius:inherit" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0">
                             <i data-lucide="camera" style="width:18px;height:18px;color:white"></i>
                         </div>
                     </div>

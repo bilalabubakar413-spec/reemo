@@ -1563,7 +1563,7 @@ body.dev-portal .nav-item.active .nav-icon { color: #34d399; }
     gap: 2rem;
     margin-bottom: 1.5rem;
     position: relative;
-    overflow: hidden;
+    overflow: visible;
     box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
     transition: all 0.3s ease;
 }
@@ -1594,6 +1594,7 @@ body.dev-portal .nav-item.active .nav-icon { color: #34d399; }
     flex-shrink: 0;
     letter-spacing: -0.05em;
     border: 1px solid rgba(255, 255, 255, 0.1);
+    overflow: hidden;
 }
 .profile-hero-info { flex: 1; min-width: 0; }
 .profile-hero-name {
