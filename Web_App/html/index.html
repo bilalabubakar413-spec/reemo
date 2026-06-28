@@ -218,7 +218,7 @@
                     </li>
                     <button data-target="toegangsbeheer" class="nav-item">
                         <i data-lucide="shield-check" class="w-5 h-5 nav-icon"></i>
-                        Toegangsbeheer
+                        Access Control
                     </button>
                     <button data-target="settings" class="nav-item">
                         <i data-lucide="settings" class="w-5 h-5 nav-icon"></i>
@@ -321,20 +321,18 @@
 
                     <!-- Cashflow funnel — wordt gevuld door renderCashflowFunnel() -->
                     <div class="dashboard-card" style="margin-top: 1.75rem; padding: 20px 24px 16px;">
-                        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:4px;">
-                            <div>
-                                <h3 style="font-size:14px; font-weight:700; color:#fff; margin:0;">Cashflow Pipeline</h3>
-                                <p style="font-size:11px; color:#475569; margin:2px 0 0;">MTD — verwacht → geleverd → gefactureerd → ontvangen</p>
+                        <div style="display:flex; align-items:center; justify-content:space-between; mar                                <h3 style="font-size:14px; font-weight:700; color:#fff; margin:0;">Cashflow Pipeline</h3>
+                                <p style="font-size:11px; color:#475569; margin:2px 0 0;">MTD — expected → delivered → invoiced → received</p>
                             </div>
                             <span id="cashflow-maand-label" style="font-size:11px; color:#3B82F6; font-weight:600; background:rgba(59,130,246,0.1); border:1px solid rgba(59,130,246,0.25); padding:3px 10px; border-radius:20px;"></span>
                         </div>
                         <div style="display:flex; gap:8px; margin-top:12px; margin-bottom:10px;">
                           <button class="funnel-filter-btn" onclick="setFunnelPeriode('week', this)">Week</button>
-                          <button class="funnel-filter-btn active" onclick="setFunnelPeriode('maand', this)">Maand</button>
-                          <button class="funnel-filter-btn" onclick="setFunnelPeriode('kwartaal', this)">Kwartaal</button>
-                          <button class="funnel-filter-btn" onclick="setFunnelPeriode('jaar', this)">Jaar</button>
+                          <button class="funnel-filter-btn active" onclick="setFunnelPeriode('maand', this)">Month</button>
+                          <button class="funnel-filter-btn" onclick="setFunnelPeriode('kwartaal', this)">Quarter</button>
+                          <button class="funnel-filter-btn" onclick="setFunnelPeriode('jaar', this)">Year</button>
                         </div>
-                        <p id="funnel-periode-label" style="font-size:11px; color:#94A3B8; margin-bottom:8px;">Deze maand (MTD)</p>
+                        <p id="funnel-periode-label" style="font-size:11px; color:#94A3B8; margin-bottom:8px;">This month (MTD)</p>
                         <div id="dashboard-cashflow-funnel"></div>
                     </div>
 
@@ -343,8 +341,8 @@
                         <div class="dashboard-card" id="omzet-trend-card">
                             <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:16px;">
                               <div>
-                                <h3>Omzet-trend</h3>
-                                <p id="chart-subtitle" style="color:#94A3B8; font-size:12px;">Werkelijk vs verwacht</p>
+                                <h3>Revenue Trend</h3>
+                                <p id="chart-subtitle" style="color:#94A3B8; font-size:12px;">Actual vs Expected</p>
                               </div>
                               <div style="display:flex; gap:8px;">
                                 <select id="chart-year-select" onchange="renderOmzetTrendChart()" style="background:#1E293B; color:white; border:1px solid #334155; padding:6px 10px; border-radius:6px; font-size:12px;">
@@ -352,12 +350,12 @@
                                   <option value="2025">2025</option>
                                 </select>
                                 <select id="chart-quarter-select" onchange="renderOmzetTrendChart()" style="background:#1E293B; color:white; border:1px solid #334155; padding:6px 10px; border-radius:6px; font-size:12px;">
-                                  <option value="all">Volledig jaar</option>
-                                  <option value="Q1">Q1 jan–mrt</option>
-                                  <option value="Q2">Q2 apr–jun</option>
-                                  <option value="Q3">Q3 jul–sep</option>
-                                  <option value="Q4">Q4 okt–dec</option>
-                                  <option value="6m">Laatste 6 maanden</option>
+                                  <option value="all">Full Year</option>
+                                  <option value="Q1">Q1 Jan–Mar</option>
+                                  <option value="Q2">Q2 Apr–Jun</option>
+                                  <option value="Q3">Q3 Jul–Sep</option>
+                                  <option value="Q4">Q4 Oct–Dec</option>
+                                  <option value="6m">Last 6 Months</option>
                                 </select>
                               </div>
                             </div>
@@ -367,8 +365,8 @@
                         </div>
                         <div class="dashboard-card" id="aging-card">
                             <div class="card-header" style="margin-bottom: 0.75rem;">
-                                <h3>Openstaande Facturen</h3>
-                                <p class="card-sub">Overzicht van onbetaalde facturen per vervaltermijn</p>
+                                <h3>Outstanding Invoices</h3>
+                                <p class="card-sub">Overview of unpaid invoices by aging bucket</p>
                             </div>
                             <div id="dashboard-aging-body" style="flex-grow:1; display:flex; flex-direction:column; justify-content:center;"></div>
                         </div>
@@ -378,28 +376,28 @@
                     <div class="dashboard-row" style="display:grid; grid-template-columns: 2fr 1fr; gap:1.5rem; margin-bottom:1.5rem;">
                         <div class="dashboard-card" style="padding:0;overflow:hidden">
                             <div class="card-header" style="padding:1.25rem 1.25rem 0">
-                                <h3>Resultaten per Klant (MTD)</h3>
-                                <p class="card-sub">Onderverdeling van contractwaarde, leveringen en facturaties per actieve relatie</p>
+                                <h3>Client Performance (MTD)</h3>
+                                <p class="card-sub">Breakdown of contract value, delivery, and billing</p>
                             </div>
                             <table class="data-table">
                                 <thead>
                                     <tr>
-                                        <th style="padding:0.625rem 1.25rem;">Klant</th>
-                                        <th style="padding:0.625rem 1.25rem;text-align:right">Verwacht (contract)</th>
-                                        <th style="padding:0.625rem 1.25rem;text-align:right">Geleverd (uren)</th>
-                                        <th style="padding:0.625rem 1.25rem;text-align:right">Gefactureerd</th>
-                                        <th style="padding:0.625rem 1.25rem;text-align:right">Realisatie %</th>
+                                        <th style="padding:0.625rem 1.25rem;">Client</th>
+                                        <th style="padding:0.625rem 1.25rem;text-align:right">Expected (Contract)</th>
+                                        <th style="padding:0.625rem 1.25rem;text-align:right">Delivered (Hours)</th>
+                                        <th style="padding:0.625rem 1.25rem;text-align:right">Invoiced</th>
+                                        <th style="padding:0.625rem 1.25rem;text-align:right">Realization %</th>
                                     </tr>
                                 </thead>
                                 <tbody id="dashboard-per-klant-body">
-                                    <tr><td colspan="5" style="text-align:center; color:var(--white-30); padding:2rem;">Laden...</td></tr>
+                                    <tr><td colspan="5" style="text-align:center; color:var(--white-30); padding:2rem;">Loading...</td></tr>
                                 </tbody>
                             </table>
                         </div>
                         <div class="dashboard-card" id="bezetting-card">
                             <div class="card-header" style="margin-bottom: 0.75rem;">
-                                <h3>Bezetting & Capaciteit</h3>
-                                <p class="card-sub">Mensen op projecten versus op de bank</p>
+                                <h3>Utilization & Capacity</h3>
+                                <p class="card-sub">People on projects vs. unassigned</p>
                             </div>
                             <div id="bezetting-donut-container" style="display:flex; flex-direction:row; flex-wrap:nowrap; align-items:center; justify-content:space-between; gap:1.5rem; padding:0.5rem 0 0.25rem; flex-grow:1; width:100%;">
                                 <!-- Left side: Circular Progress -->
@@ -415,12 +413,12 @@
                                         </svg>
                                         <div style="position:absolute; display:flex; flex-direction:column; align-items:center; justify-content:center;">
                                             <div id="bezetting-circle-pct" style="font-size:2.5rem; font-weight:800; color:var(--white); line-height:1; letter-spacing:-0.03em;">0%</div>
-                                            <div style="font-size:9px; font-weight:800; color:var(--white-40); letter-spacing:0.12em; margin-top:6px; text-transform:uppercase;">Bezetting</div>
+                                            <div style="font-size:9px; font-weight:800; color:var(--white-40); letter-spacing:0.12em; margin-top:6px; text-transform:uppercase;">Utilization</div>
                                         </div>
                                     </div>
-                                    <div id="bezetting-circle-hours" style="font-size:0.875rem; font-weight:700; color:var(--white-60); margin-top:8px;">0 / 0u</div>
+                                    <div id="bezetting-circle-hours" style="font-size:0.875rem; font-weight:700; color:var(--white-60); margin-top:8px;">0 / 0h</div>
                                 </div>
-
+ 
                                 <!-- Right side: Detailed Cards -->
                                 <div id="bezetting-details-container" style="display:flex; flex-direction:column; gap:0.75rem; flex-grow:1; max-width:200px;">
                                     <!-- Rendered dynamically via JS -->
@@ -428,24 +426,24 @@
                             </div>
                         </div>
                     </div>
-
+ 
                     <!-- Rij 4: Laatste timesheets -->
                     <div class="dashboard-card" style="padding:0;overflow:hidden;margin-bottom:1.5rem;">
                         <div class="card-header" style="padding:1.25rem 1.25rem 0">
-                            <h3>Laatste Timesheets</h3>
-                            <p class="card-sub">Recent ingediend door developers over de laatste periode</p>
+                            <h3>Recent Timesheets</h3>
+                            <p class="card-sub">Recently submitted by developers</p>
                         </div>
                         <table class="data-table">
                             <thead>
                                 <tr>
                                     <th style="padding:0.625rem 1.25rem;">Developer</th>
-                                    <th style="padding:0.625rem 1.25rem;">Klant</th>
-                                    <th style="padding:0.625rem 1.25rem;">Uren</th>
+                                    <th style="padding:0.625rem 1.25rem;">Client</th>
+                                    <th style="padding:0.625rem 1.25rem;">Hours</th>
                                     <th style="padding:0.625rem 1.25rem;">Status</th>
                                 </tr>
                             </thead>
                             <tbody id="dashboard-timesheets-body">
-                                <tr><td colspan="4" style="text-align:center; color:var(--white-30); padding:2rem;">Laden...</td></tr>
+                                <tr><td colspan="4" style="text-align:center; color:var(--white-30); padding:2rem;">Loading...</td></tr>
                             </tbody>
                         </table>
                     </div>

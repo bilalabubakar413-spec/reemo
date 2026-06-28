@@ -2402,7 +2402,7 @@ async function renderDashboardStats() {
         geleverd:     cashflowRaw.geleverd     || 0,
         gefactureerd: cashflowRaw.gefactureerd || 0,
         ontvangen:    cashflowRaw.ontvangen    || 0,
-        maand:        new Date().toLocaleDateString('nl-NL', { month: 'long', year: 'numeric' })
+        maand:        new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
     };
     const cashflowTotaal = cashflowRaw.totaal || { ooit_gefactureerd: 0, ooit_ontvangen: 0, openstaand: 0 };
     const realisatie_percentage = cashflowRaw.realisatie_percentage || 0;
@@ -2420,10 +2420,10 @@ async function renderDashboardStats() {
     const bezettingPct = totalCap > 0 ? ((totalAssigned / totalCap) * 100).toFixed(1) : 0;
 
     const stats = [
-        { label: 'Actieve Klanten', value: activeClients, icon: 'users', accent: '#3b82f6', bg: 'rgba(37,99,235,0.08)', border: 'rgba(37,99,235,0.18)', glow: 'rgba(59,130,246,0.15)', trend: '+2 vs. vorige maand', trendUp: true },
-        { label: 'Bezetting', value: bezettingPct + '%', icon: 'briefcase', accent: '#10b981', bg: 'rgba(16,185,129,0.08)', border: 'rgba(16,185,129,0.18)', glow: 'rgba(16,185,129,0.15)', trend: `${totalAssigned} / ${totalCap}u`, trendUp: true },
-        { label: 'Omzet MTD', value: '€' + (cashflow.geleverd / 1000).toFixed(1) + 'k', icon: 'trending-up', accent: '#f59e0b', bg: 'rgba(245,158,11,0.08)', border: 'rgba(245,158,11,0.18)', glow: 'rgba(245,158,11,0.15)', trend: '+8.4% vs. vorige maand', trendUp: true },
-        { label: 'Realisatie', value: realisatie_percentage + '%', icon: 'pie-chart', accent: '#6366f1', bg: 'rgba(99,102,241,0.08)', border: 'rgba(99,102,241,0.18)', glow: 'rgba(99,102,241,0.15)', trend: 'geleverd / verwacht', trendUp: realisatie_percentage >= 80, isRealisatie: true }
+        { label: 'Active Clients', value: activeClients, icon: 'users', accent: '#3b82f6', bg: 'rgba(37,99,235,0.08)', border: 'rgba(37,99,235,0.18)', glow: 'rgba(59,130,246,0.15)', trend: '+2 vs. last month', trendUp: true },
+        { label: 'Utilization', value: bezettingPct + '%', icon: 'briefcase', accent: '#10b981', bg: 'rgba(16,185,129,0.08)', border: 'rgba(16,185,129,0.18)', glow: 'rgba(16,185,129,0.15)', trend: `${totalAssigned} / ${totalCap}h`, trendUp: true },
+        { label: 'Revenue MTD', value: '€' + (cashflow.geleverd / 1000).toFixed(1) + 'k', icon: 'trending-up', accent: '#f59e0b', bg: 'rgba(245,158,11,0.08)', border: 'rgba(245,158,11,0.18)', glow: 'rgba(245,158,11,0.15)', trend: '+8.4% vs. last month', trendUp: true },
+        { label: 'Realization', value: realisatie_percentage + '%', icon: 'pie-chart', accent: '#6366f1', bg: 'rgba(99,102,241,0.08)', border: 'rgba(99,102,241,0.18)', glow: 'rgba(99,102,241,0.15)', trend: 'delivered / expected', trendUp: realisatie_percentage >= 80, isRealisatie: true }
     ];
 
     statsContainer.innerHTML = stats.map((s, i) => `
@@ -2680,10 +2680,10 @@ async function renderCashflowFunnel() {
     const html = `
       <div class="cashflow-funnel">
         <div class="funnel-step verwacht">
-          <div class="step-number">Stap 1 / 4</div>
-          <div class="step-label">Verwacht</div>
+          <div class="step-number">Step 1 / 4</div>
+          <div class="step-label">Expected</div>
           <div class="step-value">${fmt(v)}</div>
-          <div class="step-sub">Op basis van contracten</div>
+          <div class="step-sub">Based on contracts</div>
           <div class="step-bar-wrap"><div class="step-bar" style="width:100%"></div></div>
         </div>
 
@@ -2693,10 +2693,10 @@ async function renderCashflowFunnel() {
         </div>
 
         <div class="funnel-step geleverd">
-          <div class="step-number">Stap 2 / 4</div>
-          <div class="step-label">Geleverd</div>
+          <div class="step-number">Step 2 / 4</div>
+          <div class="step-label">Delivered</div>
           <div class="step-value">${fmt(g)}</div>
-          <div class="step-sub">Goedgekeurde uren</div>
+          <div class="step-sub">Approved hours</div>
           <div class="step-bar-wrap"><div class="step-bar" style="width:${pG}%"></div></div>
         </div>
 
@@ -2706,10 +2706,10 @@ async function renderCashflowFunnel() {
         </div>
 
         <div class="funnel-step gefact">
-          <div class="step-number">Stap 3 / 4</div>
-          <div class="step-label">Gefactureerd</div>
+          <div class="step-number">Step 3 / 4</div>
+          <div class="step-label">Invoiced</div>
           <div class="step-value">${fmt(f)}</div>
-          <div class="step-sub">Factuur verstuurd</div>
+          <div class="step-sub">Invoice sent</div>
           <div class="step-bar-wrap"><div class="step-bar" style="width:${pF}%"></div></div>
         </div>
 
@@ -2719,35 +2719,35 @@ async function renderCashflowFunnel() {
         </div>
 
         <div class="funnel-step ontvangen">
-          <div class="step-number">Stap 4 / 4</div>
-          <div class="step-label">Ontvangen</div>
+          <div class="step-number">Step 4 / 4</div>
+          <div class="step-label">Received</div>
           <div class="step-value">${fmt(o)}</div>
-          <div class="step-sub">Betaald op bank</div>
+          <div class="step-sub">Paid in bank</div>
           <div class="step-bar-wrap"><div class="step-bar" style="width:${pO}%"></div></div>
         </div>
       </div>
 
       <div class="funnel-gap-row">
-        <span>${gapBench > 0 ? '-' + fmt(gapBench) : '—'} <small>bench verlies</small></span>
-        <span>${gapFacturatie > 0 ? '-' + fmt(gapFacturatie) : '—'} <small>te factureren</small></span>
-        <span>${gapDebiteuren > 0 ? '-' + fmt(gapDebiteuren) : '—'} <small>openstaand debiteur</small></span>
+        <span>${gapBench > 0 ? '-' + fmt(gapBench) : '—'} <small>bench loss</small></span>
+        <span>${gapFacturatie > 0 ? '-' + fmt(gapFacturatie) : '—'} <small>to be invoiced</small></span>
+        <span>${gapDebiteuren > 0 ? '-' + fmt(gapDebiteuren) : '—'} <small>outstanding A/R</small></span>
       </div>
 
       <div class="funnel-totaal-row">
-        <span>Ooit gefactureerd: <strong style="color:#94A3B8;">${fmt(totaal.ooit_gefactureerd)}</strong></span>
-        <span>Ontvangen: <strong style="color:#94A3B8;">${fmt(totaal.ooit_ontvangen)}</strong></span>
-        <span>Openstaand: <strong style="color:#F59E0B;">${fmt(totaal.openstaand)}</strong></span>
+        <span>Total Invoiced: <strong style="color:#94A3B8;">${fmt(totaal.ooit_gefactureerd)}</strong></span>
+        <span>Received: <strong style="color:#94A3B8;">${fmt(totaal.ooit_ontvangen)}</strong></span>
+        <span>Outstanding: <strong style="color:#F59E0B;">${fmt(totaal.openstaand)}</strong></span>
       </div>
     `;
 
     const container = document.getElementById('dashboard-cashflow-funnel');
     if (container) container.innerHTML = html;
-    else console.error('dashboard-cashflow-funnel container niet gevonden');
+    else console.error('dashboard-cashflow-funnel container not found');
 
   } catch(err) {
-    console.error('Funnel laden mislukt:', err);
+    console.error('Failed to load funnel data:', err);
     const container = document.getElementById('dashboard-cashflow-funnel');
-    if (container) container.innerHTML = '<p style="color:#EF4444;font-size:12px;padding:8px 0;">Funnel data kon niet worden geladen.</p>';
+    if (container) container.innerHTML = '<p style="color:#EF4444;font-size:12px;padding:8px 0;">Failed to load funnel data.</p>';
   }
 }
 
