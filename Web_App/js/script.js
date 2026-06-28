@@ -1574,6 +1574,21 @@ const _beschikbaarheidConfig = {
     'verlof':           { color: '#EF4444', bg: '#450A0A', border: '#EF444450', label: 'Unavailable' },
 };
 
+function normalizeBeschikbaarheid(value) {
+    if (!value) return 'available';
+    const val = value.toLowerCase().trim();
+    const map = {
+        'beschikbaar':      'available',
+        'gedeeltelijk':     'on_assignment',
+        'niet beschikbaar': 'unavailable',
+        'verlof':           'unavailable',
+        'available':        'available',
+        'on_assignment':    'on_assignment',
+        'unavailable':      'unavailable'
+    };
+    return map[val] || 'available';
+}
+
 function updateDevStatusBadge(status) {
     const cfg = _beschikbaarheidConfig[status] || _beschikbaarheidConfig['available'] || _beschikbaarheidConfig['beschikbaar'];
     const btn = document.getElementById('dev-status-btn');
@@ -3718,7 +3733,16 @@ function renderDeveloperDetailView(dev, projecten, uren, cv) {
                       }
                   </div>
                   <h2 style="font-size:1.25rem;font-weight:800;margin-bottom:0.25rem;color:var(--white)">${dev.naam}</h2>
-                  <div style="color:var(--white-40);font-size:0.875rem;margin-bottom:1.5rem">${dev.rol || 'Developer'}</div>
+                  <div style="color:var(--white-40);font-size:0.875rem;margin-bottom:0.75rem">${dev.rol || 'Developer'}</div>
+                  ${(() => {
+                      const statusKey = normalizeBeschikbaarheid(dev.beschikbaarheid);
+                      const cfg = _beschikbaarheidConfig[statusKey] || _beschikbaarheidConfig['available'];
+                      return `
+                      <div style="display:inline-flex;align-items:center;gap:0.35rem;margin:0 auto 1.5rem;padding:0.35rem 0.75rem;border-radius:9999px;background:${cfg.bg};border:1px solid ${cfg.border}">
+                          <div style="width:6px;height:6px;border-radius:50%;background:${cfg.color};box-shadow:0 0 5px ${cfg.color}"></div>
+                          <span style="font-size:0.6875rem;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:${cfg.color}">${cfg.label}</span>
+                      </div>`;
+                  })()}
                   
                   <div style="display:grid;grid-template-columns:1fr;gap:1.25rem;text-align:left;margin-top:2rem;padding-top:1.5rem;border-top:1px solid rgba(255,255,255,0.05)">
                       <div>
@@ -4167,14 +4191,8 @@ function renderDevelopersGrid() {
                 <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:0.4rem">
                     <div style="display:flex;align-items:center;gap:0.35rem">
                         ${(() => {
-                            const b = dev.beschikbaarheid || 'beschikbaar';
-                            const cfgMap = {
-                                'beschikbaar':      { color: '#34d399', label: 'Beschikbaar' },
-                                'gedeeltelijk':     { color: '#fbbf24', label: 'Gedeeltelijk' },
-                                'niet beschikbaar': { color: '#f43f5e', label: 'Niet beschikbaar' },
-                                'verlof':           { color: '#818cf8', label: 'Verlof' },
-                            };
-                            const cfg = cfgMap[b] || cfgMap['beschikbaar'];
+                            const statusKey = normalizeBeschikbaarheid(dev.beschikbaarheid);
+                            const cfg = _beschikbaarheidConfig[statusKey] || _beschikbaarheidConfig['available'];
                             return `<div style="width:6px;height:6px;border-radius:50%;background:${cfg.color};box-shadow:0 0 5px ${cfg.color}"></div>
                                     <span style="font-size:0.625rem;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:${cfg.color}">${cfg.label}</span>`;
                         })()} 
