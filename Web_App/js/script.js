@@ -4108,7 +4108,10 @@ function renderDevelopersGrid() {
             : `<span style="font-size:0.6rem;color:var(--white-30)">Geen skills</span>`;
 
         return `
-        <div class="dev-card" style="animation: fadeIn 0.3s ease-out ${i * 0.1}s both; background: var(--surface); border: 1px solid var(--white-5); border-radius: 1rem; padding: 1.25rem; display: flex; flex-direction: column; gap: 1rem; backdrop-filter: blur(12px); box-shadow: 0 4px 20px rgba(0,0,0,0.2);">
+        <div class="dev-card" style="animation: fadeIn 0.3s ease-out ${i * 0.1}s both; background: var(--surface); border: 1px solid var(--white-10); border-radius: 1rem; padding: 1.25rem; display: flex; flex-direction: column; gap: 1rem; backdrop-filter: blur(12px); box-shadow: 0 4px 20px rgba(0,0,0,0.2); transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease; cursor: pointer;"
+             onmouseover="this.style.transform='translateY(-2px)'; this.style.borderColor='var(--white-20)'; this.style.boxShadow='0 8px 30px rgba(0,0,0,0.4)';"
+             onmouseout="this.style.transform='none'; this.style.borderColor='var(--white-10)'; this.style.boxShadow='0 4px 20px rgba(0,0,0,0.2)';"
+             onclick="openDeveloperDetails('${dev.id}')">
             
             <div style="display:flex;justify-content:space-between;align-items:flex-start">
                 <div style="display:flex;align-items:center;gap:0.75rem;min-width:0;flex:1">
@@ -4124,14 +4127,14 @@ function renderDevelopersGrid() {
                     </div>
                 </div>
                 <div style="display:flex;gap:0.35rem;align-items:center;">
-                    <button class="btn-outline" style="padding:0.35rem;width:auto;height:auto;border-radius:0.375rem" title="Assign to Project" onclick="openAssignProjectModal('${dev.id}')">
+                    <button class="btn-outline" style="padding:0.35rem;width:auto;height:auto;border-radius:0.375rem" title="Assign to Project" onclick="event.stopPropagation(); openAssignProjectModal('${dev.id}')">
                         <i data-lucide="link" style="width:13px;height:13px;color:#60a5fa"></i>
                     </button>
                     ${dev.cv_url ? `
-                    <button class="btn-outline" style="padding:0.35rem;width:auto;height:auto;border-radius:0.375rem" title="Bekijk CV" onclick="viewDeveloperCV('${dev.id}')">
+                    <button class="btn-outline" style="padding:0.35rem;width:auto;height:auto;border-radius:0.375rem" title="Bekijk CV" onclick="event.stopPropagation(); viewDeveloperCV('${dev.id}')">
                         <i data-lucide="file-text" style="width:13px;height:13px;color:#34d399"></i>
                     </button>` : ''}
-                    <button onclick="verwijderDeveloper('${dev.id}', '${devName}')" 
+                    <button onclick="event.stopPropagation(); verwijderDeveloper('${dev.id}', '${devName}')" 
                              title="Verwijder developer"
                              style="background:transparent; border:none; color:#EF4444; cursor:pointer; padding:4px; display:flex; align-items:center;">
                       <i class="ti ti-trash" style="font-size:16px;"></i>
@@ -4144,15 +4147,15 @@ function renderDevelopersGrid() {
             </div>
 
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem">
-                <div style="background:var(--base);border:1px solid var(--white-5);border-radius:0.75rem;padding:0.75rem;cursor:pointer;transition:border-color 0.2s" onmouseover="this.style.borderColor='var(--white-20)'" onmouseout="this.style.borderColor='var(--white-5)'" onclick="event.stopPropagation(); if(${dev.firstClientId}){ openClientDetails('${dev.firstClientId}') } else { showToast('Nog niet gekoppeld aan een klant') }">
-                    <div style="display:flex;align-items:center;justify-content:space-between;font-size:0.625rem;font-weight:700;text-transform:uppercase;color:var(--white-40);margin-bottom:0.25rem">
+                <div style="background:rgba(255,255,255,0.03);border:1px solid var(--white-5);border-radius:0.75rem;padding:0.75rem;cursor:pointer;transition:border-color 0.2s" onmouseover="this.style.borderColor='var(--white-20)'" onmouseout="this.style.borderColor='var(--white-5)'" onclick="event.stopPropagation(); openDeveloperDetails('${dev.id}')">
+                    <div style="display:flex;align-items:center;justify-content:space-between;font-size:0.625rem;font-weight:700;text-transform:uppercase;color:var(--white-60);margin-bottom:0.25rem">
                         <span>Projecten</span>
                         <i data-lucide="layout-grid" style="width:10px;height:10px"></i>
                     </div>
                     <div style="font-weight:700;font-size:1rem;color:var(--white)">${devProjects} <span style="font-size:0.6875rem;color:var(--white-40);font-weight:500">actief</span></div>
                 </div>
-                <div style="background:var(--base);border:1px solid var(--white-5);border-radius:0.75rem;padding:0.75rem">
-                    <div style="display:flex;align-items:center;justify-content:space-between;font-size:0.625rem;font-weight:700;text-transform:uppercase;color:var(--white-40);margin-bottom:0.25rem">
+                <div style="background:rgba(255,255,255,0.03);border:1px solid var(--white-5);border-radius:0.75rem;padding:0.75rem;cursor:pointer;transition:border-color 0.2s" onmouseover="this.style.borderColor='var(--white-20)'" onmouseout="this.style.borderColor='var(--white-5)'" onclick="event.stopPropagation(); openDeveloperDetails('${dev.id}')">
+                    <div style="display:flex;align-items:center;justify-content:space-between;font-size:0.625rem;font-weight:700;text-transform:uppercase;color:var(--white-60);margin-bottom:0.25rem">
                         <span>Tarief</span>
                         <i data-lucide="dollar-sign" style="width:10px;height:10px"></i>
                     </div>
@@ -4183,7 +4186,7 @@ function renderDevelopersGrid() {
                 </div>
             </div>
 
-            <button class="btn-outline" style="width:100%;justify-content:center;margin-top:0.5rem" onclick="openDeveloperDetails('${dev.id}')">View Profile</button>
+            <button class="btn-outline" style="width:100%;justify-content:center;margin-top:0.5rem" onclick="event.stopPropagation(); openDeveloperDetails('${dev.id}')">View Profile</button>
         </div>
         `;
     }).join('');
