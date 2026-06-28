@@ -80,9 +80,9 @@ if (_needsSave) saveCVs();
 // ── Generic API fetch helper ──────────────────────────────────────────────────
 // Also translates PostgreSQL errors to Dutch user-friendly messages
 const FK_ERRORS = {
-    'violates foreign key constraint': 'De gekoppelde record bestaat niet (controleer of de klant/developer/project bestaat).',
-    'violates not-null constraint':    'Een verplicht veld ontbreekt. Vul alle velden in.',
-    'duplicate key value':             'Er bestaat al een record met deze gegevens.',
+    'violates foreign key constraint': 'The linked record does not exist (check whether the client/developer/project exists).',
+    'violates not-null constraint':    'A required field is missing. Please fill in all fields.',
+    'duplicate key value':             'A record with these details already exists.',
 };
 async function apiFetch(path, options = {}) {
     const headers = {
@@ -111,10 +111,10 @@ async function apiFetch(path, options = {}) {
         const json = await r.json();
         if (!r.ok || json.ok === false) {
             const raw = (json.error || r.statusText || '').toLowerCase();
-            const dutch = Object.entries(FK_ERRORS).find(([k]) => raw.includes(k))?.[1]
-                || json.error || 'Onbekende fout — probeer het opnieuw.';
+            const english = Object.entries(FK_ERRORS).find(([k]) => raw.includes(k))?.[1]
+                || json.error || 'Unknown error — please try again.';
             console.warn('[API]', path, json.error);
-            throw new Error(dutch);
+            throw new Error(english);
         }
         return json.data ?? json;
     } catch (e) {
@@ -395,7 +395,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (!session) {
             const spError = document.getElementById('sp-error');
             if (spError) {
-                spError.textContent = 'Deze link is verlopen of ongeldig. Vraag een nieuwe uitnodiging aan.';
+                spError.textContent = 'This link has expired or is invalid. Please request a new invitation.';
                 spError.style.display = 'block';
             }
             const spSubmit = document.getElementById('sp-submit');
@@ -543,7 +543,7 @@ async function handleSetPassword(e) {
 
     if (p1.length < 8) {
         if (spError) {
-            spError.textContent = 'Wachtwoord moet minimaal 8 tekens lang zijn.';
+            spError.textContent = 'Password must be at least 8 characters long.';
             spError.style.display = 'block';
         }
         return;
@@ -551,7 +551,7 @@ async function handleSetPassword(e) {
 
     if (p1 !== p2) {
         if (spError) {
-            spError.textContent = 'Wachtwoorden komen niet overeen.';
+            spError.textContent = 'Passwords do not match.';
             spError.style.display = 'block';
         }
         return;
@@ -560,7 +560,7 @@ async function handleSetPassword(e) {
     const originalText = spSubmit ? spSubmit.innerHTML : '';
     if (spSubmit) {
         spSubmit.disabled = true;
-        spSubmit.innerHTML = '<span class="spinner-small"></span> Bezig...';
+        spSubmit.innerHTML = '<span class="spinner-small"></span> Processing...';
     }
 
     try {
@@ -574,7 +574,7 @@ async function handleSetPassword(e) {
     } catch (err) {
         console.error('Failed to set password:', err);
         if (spError) {
-            spError.textContent = err.message || 'Fout bij instellen van wachtwoord.';
+            spError.textContent = err.message || 'Error setting password.';
             spError.style.display = 'block';
         }
         if (spSubmit) {
@@ -868,11 +868,11 @@ function navigateTo(targetScreenId) {
             const sel = document.getElementById('dev-ts-project');
             if (!sel) return;
             if (!contracts || contracts.length === 0) {
-                sel.innerHTML = '<option value="">— Geen actieve contracten —</option>';
+                sel.innerHTML = '<option value="">— No active contracts —</option>';
                 return;
             }
             sel.innerHTML = contracts.map(c =>
-                `<option value="${c.project_id}">${c.klant_naam || 'Onbekende Klant'} — ${c.projectnaam}</option>`
+                `<option value="${c.project_id}">${c.klant_naam || 'Unknown Client'} — ${c.projectnaam}</option>`
             ).join('');
         }
         
@@ -1166,7 +1166,7 @@ async function stuurResetLink(email, btn) {
     if (!email) return;
     
     bevestigModal({
-        titel: 'Reset-link sturen',
+        titel: 'Send reset link',
         tekst: `Send password reset link to ${email}?`,
         bevestigTekst: 'Send',
         soort: 'actie',
@@ -1242,7 +1242,7 @@ function openInviteModal() {
     }
     if (submitBtn) {
         submitBtn.disabled = false;
-        submitBtn.innerHTML = 'Uitnodiging versturen';
+        submitBtn.innerHTML = 'Send Invitation';
     }
 
     openModal('modal-invite-user');
@@ -1856,7 +1856,7 @@ function populateDevContractsDropdown(contracts) {
     const select = document.getElementById('dev-ts-project');
     if (!select) return;
     if (!contracts || contracts.length === 0) {
-        select.innerHTML = '<option value="">Geen actieve contracten</option>';
+        select.innerHTML = '<option value="">No active contracts</option>';
         return;
     }
     select.innerHTML = contracts.map(c => 
@@ -3015,7 +3015,7 @@ function renderClientsGrid() {
 // ── Add Client ─────────────────────────────────────────────────────────────────
 function openAddClientModal() {
     _editingClientId = null;
-    document.getElementById('client-modal-title').textContent = 'Klant Toevoegen';
+    document.getElementById('client-modal-title').textContent = 'Add Client';
     ['client-f-naam','client-f-email','client-f-tel','client-f-sector','client-f-contact'].forEach(id => {
         const el = document.getElementById(id); if (el) el.value = '';
     });
@@ -3026,7 +3026,7 @@ function openEditClientModal(id) {
     const c = clients.find(x => (x.klant_id || x.id) == id);
     if (!c) return;
     _editingClientId = id;
-    document.getElementById('client-modal-title').textContent = 'Klant Bewerken';
+    document.getElementById('client-modal-title').textContent = 'Edit Client';
     document.getElementById('client-f-naam').value    = c.naam    || '';
     document.getElementById('client-f-email').value   = c.email   || '';
     document.getElementById('client-f-tel').value     = c.telefoonnummer || '';
@@ -3080,23 +3080,23 @@ async function verwijderKlant(klantId, naam) {
   const data = await apiFetch(`/api/clients/${klantId}/check-actief`);
 
   document.getElementById('vk-naam').textContent =
-    `Weet je zeker dat je ${naam} wilt verwijderen?`;
+    `Are you sure you want to delete ${naam}?`;
 
   const impact = document.getElementById('vk-impact');
   if (data.actief) {
     document.getElementById('vk-stat-projecten').textContent = data.projecten.length;
     document.getElementById('vk-stat-facturen').textContent = data.aantalFacturen;
     document.getElementById('vk-stat-waarde').textContent =
-      '€' + Math.round(data.totaleWaarde).toLocaleString('nl-NL');
+      '€' + Math.round(data.totaleWaarde).toLocaleString('en-US');
 
     document.getElementById('vk-projecten-lijst').innerHTML = data.projecten
       .map(p => `<li>${p.naam} <span style="color:#64748B;">(${p.status})</span></li>`).join('');
 
     const extra = [];
-    if (data.aantalUren > 0) extra.push(`${data.aantalUren} urenregistraties`);
-    if (data.openFacturen > 0) extra.push(`${data.openFacturen} openstaande factu(u)r(en)`);
+    if (data.aantalUren > 0) extra.push(`${data.aantalUren} timesheet entries`);
+    if (data.openFacturen > 0) extra.push(`${data.openFacturen} outstanding invoice(s)`);
     if (data.gekoppeldeDevelopers.length > 0)
-      extra.push(`Contracten van: ${data.gekoppeldeDevelopers.join(', ')} (developers zelf blijven bestaan)`);
+      extra.push(`Contracts of: ${data.gekoppeldeDevelopers.join(', ')} (developers themselves will remain)`);
     document.getElementById('vk-extra-info').textContent = extra.join(' • ');
 
     impact.style.display = 'block';
@@ -3199,7 +3199,7 @@ async function openClientDetails(id) {
         _renderClientDetailContent(klant, projecten, devs, uren, facturen);
     } catch (e) {
         document.getElementById('client-detail-content').innerHTML =
-            `<div style="padding:2rem;color:#f43f5e">Fout: ${e.message}</div>`;
+            `<div style="padding:2rem;color:#f43f5e">Error: ${e.message}</div>`;
     }
 }
 
@@ -3444,13 +3444,13 @@ async function openAddDevToClientModal(clientId) {
     const projSel = document.getElementById('add-dev-project-select');
 
     devSel.innerHTML = devList.length === 0
-        ? '<option value="">Alle developers al gekoppeld</option>'
-        : '<option value="">— Selecteer developer —</option>' +
+        ? '<option value="">All developers already linked</option>'
+        : '<option value="">— Select developer —</option>' +
           devList.map(d => `<option value="${d.developer_id}">${d.naam} (${d.rol||'Developer'} • €${d.uurtarief||'?'}/h)</option>`).join('');
 
     projSel.innerHTML = projList.length === 0
-        ? '<option value="">Maak eerst een project aan</option>'
-        : '<option value="">— Selecteer project —</option>' +
+        ? '<option value="">Create a project first</option>'
+        : '<option value="">— Select project —</option>' +
           projList.map(p => `<option value="${p.project_id}">${p.projectnaam}</option>`).join('');
 
     document.getElementById('modal-add-dev-to-client').dataset.clientId = clientId;
@@ -3834,14 +3834,14 @@ async function stuurDeveloperUitnodiging(developerId, devEmail) {
 
     if (devEmail) {
         bevestigModal({
-            titel: 'Uitnodiging sturen',
-            tekst: `Een uitnodiging sturen naar ${devEmail}?`,
-            bevestigTekst: 'Versturen',
+            titel: 'Send Invitation',
+            tekst: `Send an invitation to ${devEmail}?`,
+            bevestigTekst: 'Send',
             soort: 'actie',
             onConfirm: async () => {
                 if (btn) {
                     btn.disabled = true;
-                    btn.innerHTML = 'Bezig...';
+                    btn.innerHTML = 'Sending...';
                 }
 
                 try {
@@ -3852,7 +3852,7 @@ async function stuurDeveloperUitnodiging(developerId, devEmail) {
 
                     if (res.ok || res.data) {
                         const alreadyExisted = res.data?.alreadyExisted;
-                        showToast(`✓ Uitnodiging verstuurd${alreadyExisted ? ' (bestaand account gekoppeld)' : ''}`, 'success');
+                        showToast(`✓ Invitation sent${alreadyExisted ? ' (linked to existing account)' : ''}`, 'success');
                         // Refresh detail screen
                         await openDeveloperDetails(developerId);
                     }
@@ -3861,7 +3861,7 @@ async function stuurDeveloperUitnodiging(developerId, devEmail) {
                 } finally {
                     if (btn) {
                         btn.disabled = false;
-                        btn.innerHTML = `<i data-lucide="user-plus" style="width:14px;height:14px"></i> Stuur uitnodiging`;
+                        btn.innerHTML = `<i data-lucide="user-plus" style="width:14px;height:14px"></i> Send Invitation`;
                         if (typeof lucide !== 'undefined') lucide.createIcons();
                     }
                 }
@@ -3882,7 +3882,7 @@ async function stuurDeveloperUitnodiging(developerId, devEmail) {
         }
         if (submitBtn) {
             submitBtn.disabled = false;
-            submitBtn.innerHTML = `<i data-lucide="mail" style="width:14px;height:14px"></i> Uitnodigen`;
+            submitBtn.innerHTML = `<i data-lucide="mail" style="width:14px;height:14px"></i> Invite`;
             if (typeof lucide !== 'undefined') lucide.createIcons();
         }
 
@@ -3898,7 +3898,7 @@ async function stuurDeveloperUitnodiging(developerId, devEmail) {
 
                 if (!email) {
                     if (errorEl) {
-                        errorEl.textContent = 'E-mailadres is verplicht.';
+                        errorEl.textContent = 'Email address is required.';
                         errorEl.style.display = 'block';
                     }
                     return;
@@ -3907,14 +3907,14 @@ async function stuurDeveloperUitnodiging(developerId, devEmail) {
                 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
                 if (!emailRegex.test(email)) {
                     if (errorEl) {
-                        errorEl.textContent = 'Ongeldig e-mailadres.';
+                        errorEl.textContent = 'Invalid email address.';
                         errorEl.style.display = 'block';
                     }
                     return;
                 }
 
                 submitBtn.disabled = true;
-                submitBtn.innerHTML = 'Bezig...';
+                submitBtn.innerHTML = 'Sending...';
 
                 try {
                     const res = await apiFetch(`/api/admin/developers/${developerId}/invite`, {
@@ -3924,7 +3924,7 @@ async function stuurDeveloperUitnodiging(developerId, devEmail) {
 
                     if (res.ok || res.data) {
                         const alreadyExisted = res.data?.alreadyExisted;
-                        showToast(`✓ Uitnodiging verstuurd${alreadyExisted ? ' (bestaand account gekoppeld)' : ''}`, 'success');
+                        showToast(`✓ Invitation sent${alreadyExisted ? ' (linked to existing account)' : ''}`, 'success');
                         closeModal('modal-dev-invite-email');
                         // Refresh detail screen
                         await openDeveloperDetails(developerId);
@@ -3938,7 +3938,7 @@ async function stuurDeveloperUitnodiging(developerId, devEmail) {
                     }
                 } finally {
                     submitBtn.disabled = false;
-                    submitBtn.innerHTML = `<i data-lucide="mail" style="width:14px;height:14px"></i> Uitnodigen`;
+                    submitBtn.innerHTML = `<i data-lucide="mail" style="width:14px;height:14px"></i> Invite`;
                     if (typeof lucide !== 'undefined') lucide.createIcons();
                 }
             };
@@ -3955,7 +3955,7 @@ function openAssignProjectModal(devId) {
 
     const sel = document.getElementById('assign-project-id');
     if (projects.length === 0) {
-        sel.innerHTML = '<option value="">— Geen projecten beschikbaar —</option>';
+        sel.innerHTML = '<option value="">— No projects available —</option>';
     } else {
         sel.innerHTML = projects.map(p => 
             `<option value="${p.project_id}">${p.klant_naam} — ${p.projectnaam}</option>`
@@ -3992,13 +3992,13 @@ async function submitAssignProject() {
         });
         
         closeModal('modal-assign-project');
-        showToast('✓ Developer succesvol toegewezen!');
+        showToast('✓ Developer successfully assigned!');
         
         // Refresh developers to update 'activeProjects' count
         await loadDevelopers();
         renderDevelopersGrid();
     } catch (e) {
-        showToast(`⚠ Fout bij toewijzen: ${e.message}`);
+        showToast(`⚠ Error assigning: ${e.message}`);
     }
 }
 
@@ -4247,7 +4247,7 @@ async function verwijderDeveloper(devId, naam) {
 
   // Vul de modal
   document.getElementById('vd-naam').textContent =
-    `Weet je zeker dat je ${naam} wilt verwijderen?`;
+    `Are you sure you want to delete ${naam}?`;
 
   const waarschuwing = document.getElementById('vd-waarschuwing');
   if (data.actief) {
@@ -4273,23 +4273,23 @@ async function bevestigVerwijderDeveloper() {
 
   const btn = document.getElementById('vd-bevestig-btn');
   btn.disabled = true;
-  btn.textContent = 'Bezig...';
+  btn.textContent = 'Deleting...';
 
   try {
     await apiFetch(`/api/developers/${_verwijderDevId}`, { method: 'DELETE' });
 
     btn.disabled = false;
-    btn.textContent = 'Permanent verwijderen';
+    btn.textContent = 'Permanently delete';
 
   sluitVerwijderDevModal();
-  showToast('Developer is verwijderd', 'success');
+  showToast('Developer deleted', 'success');
   await loadDevelopers();
   if (typeof renderDevelopersGrid === 'function') renderDevelopersGrid();
   if (typeof renderDashboardStats === 'function') renderDashboardStats();
   } catch (err) {
     btn.disabled = false;
-    btn.textContent = 'Permanent verwijderen';
-    showToast(`Verwijderen mislukt: ${err.message || 'onbekende fout'}`, 'error');
+    btn.textContent = 'Permanently delete';
+    showToast(`Deletion failed: ${err.message || 'unknown error'}`, 'error');
   }
 }
 
@@ -4634,11 +4634,11 @@ async function downloadCV(cvId) {
                 a.href = signedUrl;
                 a.click();
             } else {
-                showToast('⚠ CV-downloadlink niet beschikbaar');
+                showToast('⚠ CV download link not available');
             }
         } catch (e) {
             console.error('Download error:', e);
-            showToast('⚠ Fout bij ophalen downloadlink: ' + e.message);
+            showToast('⚠ Error fetching download link: ' + e.message);
         }
         return;
     }
@@ -4681,7 +4681,7 @@ async function previewCV(devId, naam, cvUrl) {
     // Haal signed URL op via bestaande endpoint
     const res = await apiFetch(`/api/developers/${devId}/cv-url`);
     const signedUrl = res.url || res.data?.url;
-    if (!signedUrl) throw new Error('Geen URL');
+    if (!signedUrl) throw new Error('No URL');
 
     const isPdf = signedUrl.toLowerCase().includes('.pdf') || (cvUrl||'').toLowerCase().includes('.pdf');
 
@@ -4808,7 +4808,7 @@ async function confirmMarkeerBetaald(invId) {
             body: JSON.stringify({ betalingsdatum: datum })
         });
 
-        showToast(`✓ Factuur #${invId} gemarkeerd als betaald`, 'success');
+        showToast(`✓ Invoice #${invId} marked as paid`, 'success');
 
         // Refresh invoices + stats + dashboard funnel
         await loadInvoices();
@@ -4819,7 +4819,7 @@ async function confirmMarkeerBetaald(invId) {
         if (typeof renderCashflowFunnel === 'function') renderCashflowFunnel();
         if (typeof renderOmzetTrendChart === 'function') renderOmzetTrendChart();
     } catch (e) {
-        showToast('Fout: ' + e.message, 'error');
+        showToast('Error: ' + e.message, 'error');
     }
 }
 
@@ -4835,13 +4835,13 @@ async function updateInvoiceStatus(id, newStatus) {
             method: 'PATCH',
             body: JSON.stringify({ betalingsstatus: newStatus })
         });
-        showToast(`✓ Factuur status geüpdatet`);
+        showToast(`✓ Invoice status updated`);
         await loadInvoices();
         renderInvoicesTable();
         updateInvoiceStats();
         renderDashboardStats();
     } catch (e) {
-        showToast(`⚠ Fout bij updaten status: ${e.message}`);
+        showToast(`⚠ Error updating status: ${e.message}`);
         renderInvoicesTable();
     }
 }
@@ -4851,7 +4851,7 @@ async function openCreateInvoiceModal() {
     await loadClients();
 
     if (clients.length === 0) {
-        showToast('⚠ Voeg eerst een klant toe via de Clients pagina.');
+        showToast('⚠ Please add a client first via the Clients page.');
         return;
     }
 
@@ -4868,7 +4868,7 @@ async function submitCreateInvoice() {
     const clientName = selEl?.options[selEl.selectedIndex]?.dataset.name || '';
     const amount   = parseFloat(document.getElementById('new-inv-amount')?.value);
     const deadline = document.getElementById('new-inv-deadline')?.value;
-    if (!klant_id || !amount || amount < 1 || !deadline) { showToast('⚠ Vul alle velden in.'); return; }
+    if (!klant_id || !amount || amount < 1 || !deadline) { showToast('⚠ Please fill in all fields.'); return; }
     const today = new Date().toISOString().slice(0,10);
     try {
         await apiFetch('/api/facturen', {
@@ -4879,7 +4879,7 @@ async function submitCreateInvoice() {
         await loadInvoices();
         renderInvoicesTable();
         updateInvoiceStats();
-        showToast(`✓ Factuur voor ${clientName} aangemaakt!`);
+        showToast(`✓ Invoice for ${clientName} created!`);
     } catch (e) {
         showToast(`⚠ ${e.message}`);
     }
@@ -4900,9 +4900,9 @@ async function loadFactuurAanbeveling() {
 
         if (!maanden || maanden.length === 0) {
             // Geen uren klaar
-            if (label) label.textContent = 'Genereer facturen';
+            if (label) label.textContent = 'Generate Invoices';
             btn.disabled = true;
-            btn.title = 'Geen goedgekeurde uren gevonden die nog gefactureerd moeten worden';
+            btn.title = 'No approved hours found that still need to be invoiced';
             if (badge) badge.style.display = 'none';
             if (dropdown) dropdown.style.display = 'none';
             return;
@@ -4912,14 +4912,14 @@ async function loadFactuurAanbeveling() {
         const aanbeveling = maanden[0];
         const maandLabel = formatMaand(aanbeveling.maand); // bijv. "juni 2026"
 
-        if (label) label.textContent = `Genereer facturen ${maandLabel}`;
+        if (label) label.textContent = `Generate Invoices ${maandLabel}`;
         btn.disabled = false;
         btn.title = '';
         btn.dataset.maand = aanbeveling.maand;
 
         // Badge met aantal uren
         if (badge) {
-            badge.textContent = `${aanbeveling.aantalUren} uren klaar`;
+            badge.textContent = `${aanbeveling.aantalUren} hours ready`;
             badge.style.display = 'inline';
         }
 
@@ -4936,8 +4936,8 @@ async function loadFactuurAanbeveling() {
 
 function formatMaand(maandString) {
     const [jaar, maand] = maandString.split('-');
-    const namen = ['januari','februari','maart','april','mei','juni',
-                   'juli','augustus','september','oktober','november','december'];
+    const namen = ['January','February','March','April','May','June',
+                   'July','August','September','October','November','December'];
     return `${namen[parseInt(maand) - 1]} ${jaar}`;
 }
 
@@ -4946,7 +4946,7 @@ function toonMaandDropdown(maanden) {
     if (!dropdown) return;
 
     dropdown.innerHTML = maanden.map(m =>
-        `<option value="${m.maand}">${formatMaand(m.maand)} (${m.aantalUren} uren)</option>`
+        `<option value="${m.maand}">${formatMaand(m.maand)} (${m.aantalUren} hours)</option>`
     ).join('');
     dropdown.style.display = 'block';
 
@@ -4966,7 +4966,7 @@ function handleDropdownChange(e) {
     const btn = document.getElementById('btn-genereer-facturen');
     const label = document.getElementById('btn-genereer-label');
     btn.dataset.maand = e.target.value;
-    if (label) label.textContent = `Genereer facturen ${formatMaand(e.target.value)}`;
+    if (label) label.textContent = `Generate Invoices ${formatMaand(e.target.value)}`;
 }
 
 async function genereerFacturen() {
@@ -4975,12 +4975,12 @@ async function genereerFacturen() {
     const maand = btn?.dataset.maand;
 
     if (!maand) {
-        showToast('⚠ Geen maand geselecteerd', 'error');
+        showToast('⚠ No month selected', 'error');
         return;
     }
 
     if (btn) btn.disabled = true;
-    if (label) label.textContent = 'Bezig met genereren...';
+    if (label) label.textContent = 'Generating...';
 
     try {
         const data = await apiFetch('/api/facturen/genereer-maand', {
@@ -4992,9 +4992,9 @@ async function genereerFacturen() {
         const aantalNieuw = resultaten.length || 0;
 
         if (aantalNieuw === 0) {
-            showToast('⚠ Geen nieuwe facturen aangemaakt — zijn alle uren al gefactureerd?', 'warning');
+            showToast('⚠ No new invoices created — have all hours already been invoiced?', 'warning');
         } else {
-            showToast(`✓ ${aantalNieuw} factuur${aantalNieuw > 1 ? 'en' : ''} aangemaakt voor ${formatMaand(maand)}`, 'success');
+            showToast(`✓ ${aantalNieuw} invoice${aantalNieuw !== 1 ? 's' : ''} created for ${formatMaand(maand)}`, 'success');
         }
 
         // Refresh alles
@@ -5007,9 +5007,9 @@ async function genereerFacturen() {
         if (typeof renderOmzetTrendChart === 'function') renderOmzetTrendChart();
         await loadFactuurAanbeveling(); // Knop update naar volgende openstaande maand
     } catch (err) {
-        showToast(`⚠ Fout bij genereren: ${err.message}`, 'error');
+        showToast(`⚠ Error generating: ${err.message}`, 'error');
         if (btn) btn.disabled = false;
-        if (label) label.textContent = `Genereer facturen ${formatMaand(maand)}`;
+        if (label) label.textContent = `Generate Invoices ${formatMaand(maand)}`;
     }
 }
 
@@ -5037,7 +5037,7 @@ function exportInvoices() {
     const blob = new Blob([lines.join('\n')], { type: 'text/csv' });
     const url = URL.createObjectURL(blob); const a = document.createElement('a');
     a.href = url; a.download = 'Facturen_Export.csv'; a.click(); URL.revokeObjectURL(url);
-    showToast('✓ Facturen geëxporteerd!');
+    showToast('✓ Invoices exported!');
 }
 
 function renderInvoicesTable(data) {
@@ -5441,7 +5441,7 @@ async function initCharts() {
         _drawHoursChart(hoursRows.map(r => r[nameKey]), hoursRows.map(r => parseFloat(r[hoursKey]) || 0));
         console.log('[Charts] Hours-per-client loaded \u2713');
     } else {
-        _drawHoursChart(['Geen data'], [0]);
+        _drawHoursChart(['No data'], [0]);
     }
 }
 
@@ -5931,7 +5931,7 @@ function filterDevTimesheets(searchText) {
 function exportDevTimesheets() {
     const currentDevId = activeDeveloper?.id;
     if (!currentDevId) {
-        showToast('Geen developer-gegevens gevonden', 'error');
+        showToast('No developer details found', 'error');
         return;
     }
     const lines = ['Date,Project,Hours,Type,Status,Description'];
@@ -6428,7 +6428,7 @@ async function openBulkUploadModal() {
   }
   const cancelBtn = document.querySelector('#modal-bulk-upload .btn-secondary');
   if (cancelBtn) {
-    cancelBtn.textContent = 'Annuleer';
+    cancelBtn.textContent = 'Cancel';
     cancelBtn.onclick = closeBulkUploadModal;
   }
 }
@@ -6602,7 +6602,7 @@ function updateBulkProgress(huidig, totaal, bestandsnaam) {
 
   const statusEl = document.getElementById(`status-${cleanName}`);
   if (statusEl) {
-    statusEl.innerHTML = '<span style="color:#fbbf24;">Bezig...</span>';
+    statusEl.innerHTML = '<span style="color:#fbbf24;">Uploading...</span>';
   }
 }
 
@@ -6614,9 +6614,9 @@ function markBulkFileStatus(bestandsnaam, status) {
   const statusEl = document.getElementById(`status-${cleanName}`);
   if (statusEl) {
     if (status === 'success') {
-      statusEl.innerHTML = '<span style="color:#22C55E;">✓ Klaar</span>';
+      statusEl.innerHTML = '<span style="color:#22C55E;">✓ Done</span>';
     } else {
-      statusEl.innerHTML = '<span style="color:#EF4444;">✗ Fout</span>';
+      statusEl.innerHTML = '<span style="color:#EF4444;">✗ Error</span>';
     }
   }
 }
@@ -6642,14 +6642,14 @@ function showBulkUploadResultaat(resultaten) {
   // Update footer buttons to allow closing or viewing the results
   const cancelBtn = document.querySelector('#modal-bulk-upload .btn-secondary');
   if (cancelBtn) {
-    cancelBtn.textContent = 'Sluiten';
+    cancelBtn.textContent = 'Close';
     cancelBtn.onclick = closeBulkUploadModal;
   }
 
   const startBtn = document.getElementById('btn-start-bulk-upload');
   if (startBtn) {
     startBtn.style.display = 'inline-block';
-    startBtn.textContent = 'Bekijk geüploade CVs';
+    startBtn.textContent = 'View uploaded CVs';
     startBtn.disabled = false;
     startBtn.onclick = () => {
       closeBulkUploadModal();
@@ -6720,7 +6720,7 @@ async function uploadAndParseCV(file) {
 
     } catch (e) {
         $('cv-parsing').style.display = 'none';
-        $('cv-parse-error-msg').textContent = 'Verbindingsfout: ' + e.message;
+        $('cv-parse-error-msg').textContent = 'Connection error: ' + e.message;
         $('cv-parse-error').style.display = 'block';
         $('cv-upload-zone').style.display = 'block';
     }
@@ -6801,12 +6801,12 @@ async function saveParsedCV() {
     const rate         = parseFloat(document.getElementById('cv-r-rate')?.value) || null;
     const weekcap      = parseInt(document.getElementById('cv-r-weekcap')?.value) || 40;
 
-    if (!naam) { showToast('⚠ Naam is verplicht om op te slaan.'); return; }
-    if (!email) { showToast('⚠ E-mailadres is verplicht.'); return; }
+    if (!naam) { showToast('⚠ Name is required to save.'); return; }
+    if (!email) { showToast('⚠ E-mail address is required.'); return; }
 
     // Disable button while saving
     const btn = document.querySelector('[onclick="saveParsedCV()"]');
-    if (btn) { btn.disabled = true; btn.textContent = 'Opslaan...'; }
+    if (btn) { btn.disabled = true; btn.textContent = 'Saving...'; }
 
     try {
         let result;
@@ -6876,14 +6876,14 @@ async function saveParsedCV() {
                         body: JSON.stringify({ cv_url: filePath })
                     });
                     console.log('[DEBUG] saveParsedCV - PATCH successful');
-                    showToast('CV succesvol geüpload!', 'success');
+                    showToast('CV uploaded successfully!', 'success');
                 } else {
-                    console.error('Upload mislukt: geen filePath ontvangen');
-                    showToast('Developer opgeslagen maar CV upload mislukt', 'warning');
+                    console.error('Upload failed: no filePath received');
+                    showToast('Developer saved but CV upload failed', 'warning');
                 }
             } catch (storageErr) {
-                console.error('Netwerkfout bij storage upload:', storageErr);
-                showToast('Fout bij verbinden met storage: ' + storageErr.message, 'error');
+                console.error('Network error during storage upload:', storageErr);
+                showToast('Error connecting to storage: ' + storageErr.message, 'error');
             }
         }
         
@@ -6919,15 +6919,15 @@ async function saveParsedCV() {
         renderDashboardStats();
 
         const msg = isUpdate
-            ? `✓ Developer "${naam}" bijgewerkt (email bestond al).`
-            : `✓ ${naam} toegevoegd als developer!`;
+            ? `✓ Developer "${naam}" updated (email already existed).`
+            : `✓ ${naam} added as developer!`;
         showToast(msg);
 
     } catch (e) {
         console.error('[ERROR] saveParsedCV:', e);
         showToast(`⚠ ${e.message}`);
     } finally {
-        if (btn) { btn.disabled = false; btn.innerHTML = '<i data-lucide="user-plus" style="width:14px;height:14px"></i> Opslaan als Developer'; if(typeof lucide!=='undefined') lucide.createIcons(); }
+        if (btn) { btn.disabled = false; btn.innerHTML = '<i data-lucide="user-plus" style="width:14px;height:14px"></i> Save as Developer'; if(typeof lucide!=='undefined') lucide.createIcons(); }
     }
 }
 
@@ -6939,10 +6939,10 @@ async function saveParsedCVDatabase() {
     const email = document.getElementById('cv-r-email')?.value.trim() || null;
     const weekcap = parseInt(document.getElementById('cv-r-weekcap')?.value) || 40;
 
-    if (!naam) { showToast('⚠ Naam is verplicht.'); return; }
+    if (!naam) { showToast('⚠ Name is required.'); return; }
 
     const btn = document.querySelector('[onclick="saveParsedCVDatabase()"]');
-    if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spinner-small"></span> Bezig...'; }
+    if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spinner-small"></span> Saving...'; }
 
     try {
         let result;
@@ -7010,13 +7010,13 @@ async function saveParsedCVDatabase() {
         await loadCVDatabase();
         renderCVDatabase();
         updateCVStats();
-        showToast(`✓ CV van ${naam} toegevoegd aan de database.`);
+        showToast(`✓ CV of ${naam} added to the database.`);
         
     } catch (e) {
         console.error('[ERROR] saveParsedCVDatabase:', e);
         showToast(`⚠ ${e.message}`);
     } finally {
-        if (btn) { btn.disabled = false; btn.innerHTML = '<i data-lucide="database" style="width:14px;height:14px"></i> Alleen in CV Database'; if(typeof lucide!=='undefined') lucide.createIcons(); }
+        if (btn) { btn.disabled = false; btn.innerHTML = '<i data-lucide="database" style="width:14px;height:14px"></i> Only in CV Database'; if(typeof lucide!=='undefined') lucide.createIcons(); }
     }
 }
 
@@ -7298,15 +7298,15 @@ async function handleLogoUpload(event) {
         }
     } catch (e) {
         console.error('Error uploading logo:', e);
-        alert('Fout tijdens uploaden van logo: ' + e.message);
+        alert('Error uploading logo: ' + e.message);
     }
 }
 
 async function removeLogo(clientId) {
     bevestigModal({
-        titel: 'Logo verwijderen',
-        tekst: 'Weet je zeker dat je het logo wilt verwijderen?',
-        bevestigTekst: 'Verwijderen',
+        titel: 'Delete Logo',
+        tekst: 'Are you sure you want to delete the logo?',
+        bevestigTekst: 'Delete',
         soort: 'gevaar',
         onConfirm: async () => {
             document.querySelectorAll('.client-logo-dropdown').forEach(el => el.remove());
@@ -7340,7 +7340,7 @@ async function removeLogo(clientId) {
                 }
             } catch (e) {
                 console.error('Error removing logo:', e);
-                alert('Fout tijdens verwijderen van logo: ' + e.message);
+                alert('Error deleting logo: ' + e.message);
             }
         }
     });
@@ -7410,10 +7410,10 @@ async function loadClientContracts(clientId) {
                         <span class="status-badge" style="font-size:0.625rem;padding:0.25rem 0.5rem;border-radius:4px;font-weight:700;background:rgba(16,185,129,0.1);color:#10b981;border:1px solid rgba(16,185,129,0.2)">
                             <i class="ti ti-check" style="font-size:10px;vertical-align:middle;margin-right:2px"></i>Document
                         </span>
-                        <button class="client-card-btn view" title="Vervang PDF" onclick="triggerContractUpload(${contract.contract_id})" style="width:1.6rem;height:1.6rem;border-radius:0.375rem;display:flex;align-items:center;justify-content:center;font-size:0.75rem;padding:0;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:var(--white-70);cursor:pointer">
+                        <button class="client-card-btn view" title="Replace PDF" onclick="triggerContractUpload(${contract.contract_id})" style="width:1.6rem;height:1.6rem;border-radius:0.375rem;display:flex;align-items:center;justify-content:center;font-size:0.75rem;padding:0;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:var(--white-70);cursor:pointer">
                             <i class="ti ti-upload" style="font-size:12px"></i>
                         </button>
-                        <button class="client-card-btn reject" title="Verwijder PDF" onclick="deleteContractDocument(${contract.contract_id}, ${contract.klant_id})" style="width:1.6rem;height:1.6rem;border-radius:0.375rem;display:flex;align-items:center;justify-content:center;font-size:0.75rem;padding:0;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.2);color:#ef4444;cursor:pointer">
+                        <button class="client-card-btn reject" title="Delete PDF" onclick="deleteContractDocument(${contract.contract_id}, ${contract.klant_id})" style="width:1.6rem;height:1.6rem;border-radius:0.375rem;display:flex;align-items:center;justify-content:center;font-size:0.75rem;padding:0;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.2);color:#ef4444;cursor:pointer">
                             <i class="ti ti-trash" style="font-size:12px"></i>
                         </button>
                     </div>
@@ -7421,7 +7421,7 @@ async function loadClientContracts(clientId) {
             } else {
                 docActionHtml = `
                     <button class="btn-outline" onclick="triggerContractUpload(${contract.contract_id})" style="font-size:0.75rem;padding:0.3rem 0.6rem;display:flex;align-items:center;gap:0.25rem" id="btn-upload-contract-${contract.contract_id}">
-                        <i class="ti ti-upload" style="font-size:12px"></i> PDF uploaden
+                        <i class="ti ti-upload" style="font-size:12px"></i> Upload PDF
                     </button>
                 `;
             }
@@ -7501,25 +7501,25 @@ function toggleAddContractForm() {
 async function populateContractFormDropdowns(clientId) {
     const projectSelect = document.getElementById('contract-project-id');
     if (projectSelect) {
-        projectSelect.innerHTML = '<option value="">Projecten laden...</option>';
+        projectSelect.innerHTML = '<option value="">Loading projects...</option>';
         try {
             const res = await apiFetch(`/api/klanten/${clientId}`);
             const clientProjects = res?.projecten || [];
             if (clientProjects.length === 0) {
-                projectSelect.innerHTML = '<option value="" disabled selected>Geen projecten — maak eerst een project aan</option>';
+                projectSelect.innerHTML = '<option value="" disabled selected>No projects — create a project first</option>';
             } else {
-                projectSelect.innerHTML = '<option value="">Selecteer project...</option>' + 
+                projectSelect.innerHTML = '<option value="">Select project...</option>' + 
                     clientProjects.map(p => `<option value="${p.project_id}">${p.projectnaam}</option>`).join('');
             }
         } catch (e) {
             console.error('Error fetching projects for dropdown:', e);
-            projectSelect.innerHTML = '<option value="">— Fout bij laden projecten —</option>';
+            projectSelect.innerHTML = '<option value="">— Error loading projects —</option>';
         }
     }
 
     const developerSelect = document.getElementById('contract-developer-id');
     if (developerSelect) {
-        developerSelect.innerHTML = '<option value="">Selecteer developer...</option>' + 
+        developerSelect.innerHTML = '<option value="">Select developer...</option>' + 
             developers.map(d => `<option value="${d.id}">${d.name || d.naam}</option>`).join('');
     }
 
@@ -7579,10 +7579,10 @@ async function submitContractForm() {
         await loadClients();
         renderClientsGrid();
         toggleAddContractForm();
-        showToast('✓ Contract succesvol aangemaakt!', 'success');
+        showToast('✓ Contract successfully created!', 'success');
     } catch (e) {
         console.error('Error saving contract:', e);
-        showToast('Opslaan mislukt: ' + e.message, 'error');
+        showToast('Save failed: ' + e.message, 'error');
     }
 }
 
@@ -7598,13 +7598,13 @@ async function handleContractDocumentUpload(event) {
     if (!file) return;
 
     if (file.type !== 'application/pdf') {
-        showToast('Alleen PDF-bestanden zijn toegestaan.', 'error');
+        showToast('Only PDF files are allowed.', 'error');
         event.target.value = '';
         return;
     }
 
     if (file.size > 10 * 1024 * 1024) {
-        showToast('Bestand is te groot (max 10MB).', 'error');
+        showToast('File is too large (max 10MB).', 'error');
         event.target.value = '';
         return;
     }
@@ -7617,7 +7617,7 @@ async function handleContractDocumentUpload(event) {
     
     if (btn) {
         btn.disabled = true;
-        btn.innerHTML = 'Bezig...';
+        btn.innerHTML = 'Uploading...';
     }
 
     const formData = new FormData();
@@ -7640,12 +7640,12 @@ async function handleContractDocumentUpload(event) {
         });
 
         if (response.ok) {
-            showToast('✓ Contract-document geüpload', 'success');
+            showToast('✓ Contract document uploaded', 'success');
             if (clientId) {
                 await loadClientContracts(clientId);
             }
         } else {
-            let errorMsg = 'Upload mislukt.';
+            let errorMsg = 'Upload failed.';
             try {
                 const errData = await response.json();
                 errorMsg = errData.error || errData.message || errorMsg;
@@ -7654,7 +7654,7 @@ async function handleContractDocumentUpload(event) {
         }
     } catch (e) {
         console.error('Error uploading contract document:', e);
-        showToast('Fout tijdens uploaden van contract-document: ' + e.message, 'error');
+        showToast('Error uploading contract document: ' + e.message, 'error');
     } finally {
         if (btn && originalText) {
             btn.disabled = false;
@@ -7667,9 +7667,9 @@ async function handleContractDocumentUpload(event) {
 
 async function deleteContractDocument(contractId, clientId) {
     bevestigModal({
-        titel: 'Contract-document verwijderen',
-        tekst: 'Weet je zeker dat je het gekoppelde PDF-document wilt verwijderen?',
-        bevestigTekst: 'Verwijderen',
+        titel: 'Delete Contract Document',
+        tekst: 'Are you sure you want to delete the linked PDF document?',
+        bevestigTekst: 'Delete',
         soort: 'gevaar',
         onConfirm: async () => {
             try {
@@ -7677,16 +7677,16 @@ async function deleteContractDocument(contractId, clientId) {
                     method: 'DELETE'
                 });
                 if (res.ok) {
-                    showToast('✓ Document verwijderd', 'success');
+                    showToast('✓ Document deleted', 'success');
                     if (clientId) {
                         await loadClientContracts(clientId);
                     }
                 } else {
-                    showToast(res.error || 'Verwijderen mislukt.', 'error');
+                    showToast(res.error || 'Deletion failed.', 'error');
                 }
             } catch (e) {
                 console.error('Error deleting contract document:', e);
-                showToast('Fout tijdens verwijderen van document: ' + e.message, 'error');
+                showToast('Error deleting document: ' + e.message, 'error');
             }
         }
     });
@@ -8301,7 +8301,7 @@ async function verwijderCV(devId, naam, hasCV) {
     document.getElementById('vcv-body-kandidaat').style.display = 'flex';
     
     const confirmBtn = document.getElementById('vcv-confirm-btn');
-    confirmBtn.textContent = 'Permanent verwijderen';
+    confirmBtn.textContent = 'Permanently Delete';
     confirmBtn.style.display = 'block';
     
     _verwijderKeuze = 'hele-kandidaat';
