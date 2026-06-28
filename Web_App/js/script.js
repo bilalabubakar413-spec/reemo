@@ -644,7 +644,7 @@ async function handlePinChange() {
 
     if (!pinCurrent || !pinNew || !pinConfirm) {
         if (pinError) {
-            pinError.textContent = 'Huidige, nieuwe PIN en bevestiging zijn verplicht.';
+            pinError.textContent = 'Current, new PIN and confirmation are required.';
             pinError.style.display = 'block';
         }
         return;
@@ -652,7 +652,7 @@ async function handlePinChange() {
 
     if (!/^\d{4}$/.test(pinNew)) {
         if (pinError) {
-            pinError.textContent = 'De nieuwe PIN moet uit 4 cijfers bestaan.';
+            pinError.textContent = 'The new PIN must be 4 digits.';
             pinError.style.display = 'block';
         }
         return;
@@ -660,7 +660,7 @@ async function handlePinChange() {
 
     if (pinNew !== pinConfirm) {
         if (pinError) {
-            pinError.textContent = 'De nieuwe PIN en bevestiging komen niet overeen.';
+            pinError.textContent = 'The new PIN and confirmation do not match.';
             pinError.style.display = 'block';
         }
         return;
@@ -669,7 +669,7 @@ async function handlePinChange() {
     const originalHtml = pinSaveBtn ? pinSaveBtn.innerHTML : '';
     if (pinSaveBtn) {
         pinSaveBtn.disabled = true;
-        pinSaveBtn.innerHTML = '<span class="spinner-small"></span> Bezig...';
+        pinSaveBtn.innerHTML = '<span class="spinner-small"></span> Updating...';
     }
 
     try {
@@ -678,7 +678,7 @@ async function handlePinChange() {
             body: JSON.stringify({ currentPin: pinCurrent, newPin: pinNew })
         });
 
-        showToast('✓ PIN gewijzigd', 'success');
+        showToast('✓ PIN successfully updated', 'success');
 
         // Clear input fields
         const c = document.getElementById('pin-current'); if (c) c.value = '';
@@ -688,7 +688,7 @@ async function handlePinChange() {
     } catch (err) {
         console.error('[handlePinChange]', err.message);
         if (pinError) {
-            pinError.textContent = err.message || 'Fout bij het wijzigen van de PIN.';
+            pinError.textContent = err.message || 'Error updating PIN.';
             pinError.style.display = 'block';
         }
     } finally {
@@ -713,7 +713,7 @@ async function handlePasswordChange() {
 
     if (!pwCurrent || !pwNew || !pwConfirm) {
         if (pwError) {
-            pwError.textContent = 'Huidig wachtwoord, nieuw wachtwoord en bevestiging zijn verplicht.';
+            pwError.textContent = 'Current password, new password and confirmation are required.';
             pwError.style.display = 'block';
         }
         return;
@@ -721,7 +721,7 @@ async function handlePasswordChange() {
 
     if (pwNew.length < 8) {
         if (pwError) {
-            pwError.textContent = 'Het nieuwe wachtwoord moet minimaal 8 tekens zijn.';
+            pwError.textContent = 'The new password must be at least 8 characters.';
             pwError.style.display = 'block';
         }
         return;
@@ -729,7 +729,7 @@ async function handlePasswordChange() {
 
     if (pwNew !== pwConfirm) {
         if (pwError) {
-            pwError.textContent = 'Het nieuwe wachtwoord en bevestiging komen niet overeen.';
+            pwError.textContent = 'The new password and confirmation do not match.';
             pwError.style.display = 'block';
         }
         return;
@@ -738,13 +738,13 @@ async function handlePasswordChange() {
     const originalHtml = pwSaveBtn ? pwSaveBtn.innerHTML : '';
     if (pwSaveBtn) {
         pwSaveBtn.disabled = true;
-        pwSaveBtn.innerHTML = 'Bezig...';
+        pwSaveBtn.innerHTML = 'Updating...';
     }
 
     try {
         const { data: userData, error: userErr } = await sbClient.auth.getUser();
         if (userErr || !userData?.user?.email) {
-            throw new Error(userErr?.message || 'Geen ingelogde gebruiker gevonden.');
+            throw new Error(userErr?.message || 'No logged-in user found.');
         }
 
         const email = userData.user.email;
@@ -757,7 +757,7 @@ async function handlePasswordChange() {
 
         if (signInErr) {
             if (pwError) {
-                pwError.textContent = 'Huidig wachtwoord is onjuist.';
+                pwError.textContent = 'Current password is incorrect.';
                 pwError.style.display = 'block';
             }
             return;
@@ -769,7 +769,7 @@ async function handlePasswordChange() {
             throw updErr;
         }
 
-        showToast('✓ Wachtwoord gewijzigd', 'success');
+        showToast('✓ Password successfully updated', 'success');
 
         // Clear fields
         const c = document.getElementById('pw-current'); if (c) c.value = '';
@@ -779,7 +779,7 @@ async function handlePasswordChange() {
     } catch (err) {
         console.error('[handlePasswordChange]', err.message);
         if (pwError) {
-            pwError.textContent = err.message || 'Fout bij het wijzigen van het wachtwoord.';
+            pwError.textContent = err.message || 'Error updating password.';
             pwError.style.display = 'block';
         }
     } finally {
