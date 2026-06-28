@@ -567,7 +567,7 @@ async function handleSetPassword(e) {
         const { error } = await sbClient.auth.updateUser({ password: p1 });
         if (error) throw error;
 
-        showToast('✓ Wachtwoord ingesteld! Een moment geduld...');
+        showToast('✓ Password set! One moment please...');
         setTimeout(() => {
             window.location.href = '/';
         }, 1500);
@@ -1154,11 +1154,11 @@ async function setUserRole(userId, role) {
             method: 'POST',
             body: JSON.stringify({ role })
         });
-        showToast('✓ Rol succesvol bijgewerkt');
+        showToast('✓ Role successfully updated');
         loadToegangsbeheer();
     } catch (e) {
         console.error('Failed to update user role:', e);
-        showToast(`⚠ Fout bij bijwerken: ${e.message}`);
+        showToast(`⚠ Error updating: ${e.message}`);
     }
 }
 
@@ -1167,8 +1167,8 @@ async function stuurResetLink(email, btn) {
     
     bevestigModal({
         titel: 'Reset-link sturen',
-        tekst: `Wachtwoord-reset-link sturen naar ${email}?`,
-        bevestigTekst: 'Versturen',
+        tekst: `Send password reset link to ${email}?`,
+        bevestigTekst: 'Send',
         soort: 'actie',
         onConfirm: async () => {
             const originalHtml = btn ? btn.innerHTML : '';
@@ -1182,10 +1182,10 @@ async function stuurResetLink(email, btn) {
                     method: 'POST',
                     body: JSON.stringify({ email })
                 });
-                showToast(`✓ Reset-link verstuurd naar ${email}`, 'success');
+                showToast(`✓ Reset link sent to ${email}`, 'success');
             } catch (err) {
                 console.error('[stuurResetLink]', err.message);
-                showToast(err.message || 'Fout bij het versturen van de reset-link.', 'error');
+                showToast(err.message || 'Error sending reset link.', 'error');
             } finally {
                 if (btn) {
                     btn.disabled = false;
@@ -1208,18 +1208,18 @@ function deleteUser(id, email) {
     // Set up the click handler for deletion
     confirmBtn.onclick = async () => {
         confirmBtn.disabled = true;
-        confirmBtn.innerHTML = '<span class="spinner-small"></span> Verwijderen...';
+        confirmBtn.innerHTML = '<span class="spinner-small"></span> Deleting...';
         try {
             await apiFetch(`/api/admin/users/${id}`, { method: 'DELETE' });
-            showToast('✓ Account succesvol verwijderd');
+            showToast('✓ Account successfully deleted');
             closeModal('modal-verwijder-user');
             loadToegangsbeheer();
         } catch (e) {
             console.error('Failed to delete user:', e);
-            showToast(`⚠ Fout bij verwijderen: ${e.message}`);
+            showToast(`⚠ Error deleting: ${e.message}`);
         } finally {
             confirmBtn.disabled = false;
-            confirmBtn.innerHTML = 'Permanent verwijderen';
+            confirmBtn.innerHTML = 'Permanently delete';
         }
     };
 }
@@ -1278,7 +1278,7 @@ function openInviteModal() {
             }
 
             submitBtn.disabled = true;
-            submitBtn.innerHTML = '<span class="spinner-small"></span> Bezig...';
+            submitBtn.innerHTML = '<span class="spinner-small"></span> Sending...';
 
             try {
                 await apiFetch('/api/admin/users/invite', {
@@ -1286,16 +1286,16 @@ function openInviteModal() {
                     body: JSON.stringify({ email, role })
                 });
                 closeModal('modal-invite-user');
-                showToast('✓ Uitnodiging verstuurd naar ' + email);
+                showToast('✓ Invitation sent to ' + email);
                 loadToegangsbeheer();
             } catch (err) {
                 console.error('Failed to invite user:', err);
                 if (errorEl) {
-                    errorEl.textContent = err.message || 'Fout bij uitnodigen.';
+                    errorEl.textContent = err.message || 'Error sending invitation.';
                     errorEl.style.display = 'block';
                 }
                 submitBtn.disabled = false;
-                submitBtn.innerHTML = 'Uitnodiging versturen';
+                submitBtn.innerHTML = 'Send Invitation';
             }
         };
     }
@@ -3043,11 +3043,11 @@ async function submitClientForm(btnElement) {
         sector:         document.getElementById('client-f-sector').value.trim(),
         contactpersoon: document.getElementById('client-f-contact').value.trim(),
     };
-    if (!payload.naam) { showToast('⚠ Naam is verplicht.'); return; }
+    if (!payload.naam) { showToast('⚠ Name is required.'); return; }
 
     if (btnElement) {
         btnElement.disabled = true;
-        btnElement.innerHTML = '<div class="spinner" style="width:14px;height:14px;border:2px solid rgba(255,255,255,0.3);border-top-color:#fff;border-radius:50%;animation:spin 1s linear infinite;display:inline-block;vertical-align:middle;margin-right:8px"></div> Opslaan...';
+        btnElement.innerHTML = '<div class="spinner" style="width:14px;height:14px;border:2px solid rgba(255,255,255,0.3);border-top-color:#fff;border-radius:50%;animation:spin 1s linear infinite;display:inline-block;vertical-align:middle;margin-right:8px"></div> Saving...';
     }
 
     const isEdit   = !!_editingClientId;
@@ -3060,13 +3060,13 @@ async function submitClientForm(btnElement) {
         renderClientsGrid();
         if (typeof renderDashboardStats === 'function') renderDashboardStats();
         closeModal('modal-client-form');
-        showToast(isEdit ? `✓ Klant bijgewerkt.` : `✓ ${payload.naam} toegevoegd!`);
+        showToast(isEdit ? `✓ Client updated.` : `✓ ${payload.naam} added!`);
     } catch (e) { 
         showToast(`⚠ ${e.message}`); 
     } finally {
         if (btnElement) {
             btnElement.disabled = false;
-            btnElement.innerHTML = '<i data-lucide="save" style="width:14px;height:14px"></i> Opslaan';
+            btnElement.innerHTML = '<i data-lucide="save" style="width:14px;height:14px"></i> Save';
             if (typeof lucide !== 'undefined') lucide.createIcons();
         }
     }
@@ -3140,7 +3140,7 @@ async function bevestigVerwijderKlant() {
 
   const btn = document.getElementById('vk-bevestig-btn');
   btn.disabled = true;
-  btn.textContent = 'Bezig met verwijderen...';
+  btn.textContent = 'Deleting...';
 
   try {
     const data = await apiFetch(`/api/clients/${_verwijderKlantId}`, {
@@ -3148,17 +3148,17 @@ async function bevestigVerwijderKlant() {
       headers: { 'x-admin-pin': pin }
     });
 
-    btn.textContent = 'Permanent verwijderen 🗑️';
+    btn.textContent = 'Permanently delete 🗑️';
 
   sluitVerwijderKlantModal();
   const v = data.verwijderd;
-  showToast(`Klant verwijderd (${v.projecten} projecten, ${v.facturen} facturen, ${v.uren} uren)`, 'success');
+  showToast(`Client deleted (${v.projecten} projects, ${v.facturen} invoices, ${v.uren} hours)`, 'success');
   await loadClients();
   renderClientsGrid();
   if (typeof renderDashboardStats === 'function') renderDashboardStats();
   } catch (err) {
-    btn.textContent = 'Permanent verwijderen 🗑️';
-    showToast(`Verwijderen mislukt: ${err.message || 'onbekende fout'}`, 'error');
+    btn.textContent = 'Permanently delete 🗑️';
+    showToast(`Deletion failed: ${err.message || 'unknown error'}`, 'error');
     btn.disabled = false;
   }
 }
@@ -3415,21 +3415,21 @@ async function saveClientDetail(btnElement) {
         telefoonnummer: g('kd-tel-input'),
         contactpersoon: g('kd-contact-input'),
     };
-    if (!payload.naam) { showToast('⚠ Naam is verplicht.'); return; }
+    if (!payload.naam) { showToast('⚠ Name is required.'); return; }
     if (btnElement) {
         btnElement.disabled = true;
-        btnElement.innerHTML = '<div class="spinner" style="width:12px;height:12px;border:2px solid rgba(255,255,255,0.3);border-top-color:#fff;border-radius:50%;animation:spin 1s linear infinite;display:inline-block;vertical-align:middle;margin-right:6px"></div> Opslaan...';
+        btnElement.innerHTML = '<div class="spinner" style="width:12px;height:12px;border:2px solid rgba(255,255,255,0.3);border-top-color:#fff;border-radius:50%;animation:spin 1s linear infinite;display:inline-block;vertical-align:middle;margin-right:6px"></div> Saving...';
     }
     try {
         await apiFetch(`/api/clients/${_currentClientId}`, { method: 'PATCH', body: JSON.stringify(payload) });
-        showToast('✓ Klantgegevens opgeslagen!');
+        showToast('✓ Client details saved!');
         await openClientDetails(_currentClientId);
         await loadClients(); renderClientsGrid();
     } catch (e) {
         showToast(`⚠ ${e.message}`);
         if (btnElement) {
             btnElement.disabled = false;
-            btnElement.innerHTML = '<i data-lucide="save" style="width:12px;height:12px"></i> Opslaan';
+            btnElement.innerHTML = '<i data-lucide="save" style="width:12px;height:12px"></i> Save';
             if (typeof lucide !== 'undefined') lucide.createIcons();
         }
     }
@@ -3462,8 +3462,8 @@ async function submitAddDevToClient(btnElement) {
     const clientId    = document.getElementById('modal-add-dev-to-client').dataset.clientId;
     const developerId = document.getElementById('add-dev-select').value;
     const projectId   = document.getElementById('add-dev-project-select').value;
-    if (!developerId) { showToast('⚠ Selecteer een developer.'); return; }
-    if (!projectId)   { showToast('⚠ Selecteer een project.'); return; }
+    if (!developerId) { showToast('⚠ Select a developer.'); return; }
+    if (!projectId)   { showToast('⚠ Select a project.'); return; }
     if (btnElement) btnElement.disabled = true;
     try {
         await apiFetch(`/api/clients/${clientId}/developers`, {
@@ -3471,7 +3471,7 @@ async function submitAddDevToClient(btnElement) {
             body: JSON.stringify({ developer_id: developerId, project_id: projectId })
         });
         closeModal('modal-add-dev-to-client');
-        showToast('✓ Developer gekoppeld!');
+        showToast('✓ Developer assigned to project!');
         await openClientDetails(clientId);
         await loadDevelopers(); renderDevelopersGrid();
     } catch (e) {
@@ -3483,15 +3483,15 @@ async function submitAddDevToClient(btnElement) {
 
 async function unlinkDeveloper(clientId, developerId, devNaam, btnElement) {
     bevestigModal({
-        titel: 'Developer ontkoppelen',
-        tekst: `Weet je zeker dat je "${devNaam}" wilt ontkoppelen van alle projecten van deze klant?`,
-        bevestigTekst: 'Ontkoppelen',
+        titel: 'Unlink Developer',
+        tekst: `Are you sure you want to unlink "${devNaam}" from all projects of this client?`,
+        bevestigTekst: 'Unlink',
         soort: 'gevaar',
         onConfirm: async () => {
             if (btnElement) btnElement.disabled = true;
             try {
                 await apiFetch(`/api/clients/${clientId}/developers/${developerId}`, { method: 'DELETE' });
-                showToast(`✓ ${devNaam} ontkoppeld.`);
+                showToast(`✓ ${devNaam} unlinked.`);
                 await openClientDetails(clientId);
                 await loadDevelopers(); renderDevelopersGrid();
             } catch (e) {
@@ -4061,12 +4061,12 @@ async function submitFactuurForm() {
         vervaldatum:  document.getElementById('fact-f-verval').value || null,
         totaalbedrag: parseFloat(document.getElementById('fact-f-bedrag').value) || null,
     };
-    if (!payload.factuurdatum || !payload.totaalbedrag) { showToast('⚠ Datum en bedrag zijn verplicht.'); return; }
+    if (!payload.factuurdatum || !payload.totaalbedrag) { showToast('⚠ Date and amount are required.'); return; }
     try {
         await apiFetch('/api/facturen', { method: 'POST', body: JSON.stringify(payload) });
         closeModal('modal-factuur-form');
         await openClientDetails(payload.klant_id);
-        showToast(`✓ Factuur aangemaakt!`);
+        showToast(`✓ Invoice created!`);
     } catch (e) { showToast(`⚠ ${e.message}`); }
 }
 
@@ -8327,12 +8327,12 @@ async function verwijderCV(devId, naam, hasCV) {
       const projectCount = data.aantalContracten || 0;
       const hoursCount = data.aantalUren || 0;
       document.getElementById('vcv-tekst-developer').innerHTML = 
-        `<strong>${naam}</strong> is actief op <strong>${projectCount}</strong> project(en) met <strong>${hoursCount}</strong> urenregistratie(s).<br><br>Daarom wordt alleen het CV-bestand verwijderd, niet de developer zelf.`;
+        `<strong>${naam}</strong> is active on <strong>${projectCount}</strong> project(s) with <strong>${hoursCount}</strong> work log(s).<br><br>Therefore, only the CV file will be deleted, not the developer itself.`;
       
       document.getElementById('vcv-body-developer').style.display = 'flex';
       
       const confirmBtn = document.getElementById('vcv-confirm-btn');
-      confirmBtn.textContent = 'Alleen CV verwijderen';
+      confirmBtn.textContent = 'Delete CV Only';
       confirmBtn.style.display = 'block';
       
       _verwijderKeuze = 'alleen-cv';
@@ -8342,15 +8342,15 @@ async function verwijderCV(devId, naam, hasCV) {
       document.getElementById('vcv-body-kandidaat').style.display = 'flex';
       
       const confirmBtn = document.getElementById('vcv-confirm-btn');
-      confirmBtn.textContent = 'Permanent verwijderen';
+      confirmBtn.textContent = 'Permanently Delete';
       confirmBtn.style.display = 'block';
       
       _verwijderKeuze = 'hele-kandidaat';
     }
   } catch (err) {
-    console.error('Fout bij controleren actief-status:', err);
+    console.error('Error checking active status:', err);
     document.getElementById('vcv-body-loading').style.display = 'none';
-    showToast('Fout bij ophalen developer status', 'error');
+    showToast('Error retrieving developer status', 'error');
     sluitVerwijderCVModal();
   }
 }
@@ -8370,7 +8370,7 @@ async function bevestigVerwijderCV() {
     cvs = cvs.filter(c => String(c.id || c.developer_id) !== String(_verwijderCVId));
     saveCVs();
     sluitVerwijderCVModal();
-    showToast('CV verwijderd', 'success');
+    showToast('CV deleted', 'success');
     if (typeof loadCVDatabase === 'function') {
       await loadCVDatabase();
     } else {
@@ -8391,13 +8391,13 @@ async function bevestigVerwijderCV() {
   const btn = document.getElementById('vcv-confirm-btn');
   const originalText = btn.textContent;
   btn.disabled = true;
-  btn.textContent = 'Bezig...';
+  btn.textContent = 'Deleting...';
 
   try {
     await apiFetch(url, { method });
 
     sluitVerwijderCVModal();
-    showToast(_verwijderKeuze === 'alleen-cv' ? 'CV-bestand succesvol verwijderd' : 'Kandidaat succesvol permanent verwijderd', 'success');
+    showToast(_verwijderKeuze === 'alleen-cv' ? 'CV file successfully deleted' : 'Candidate successfully permanently deleted', 'success');
     
     // Reload developers and CV database to update UI stats and tables
     if (typeof loadDevelopers === 'function') {
@@ -8409,8 +8409,8 @@ async function bevestigVerwijderCV() {
       renderCVDatabase();
     }
   } catch (err) {
-    console.error('Verwijder CV error:', err);
-    showToast('Er is een fout opgetreden bij het verwijderen', 'error');
+    console.error('Delete CV error:', err);
+    showToast('An error occurred during deletion', 'error');
   } finally {
     btn.disabled = false;
     btn.textContent = originalText;
