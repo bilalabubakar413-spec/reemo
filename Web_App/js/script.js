@@ -4108,9 +4108,9 @@ function renderDevelopersGrid() {
             : `<span style="font-size:0.6rem;color:var(--white-30)">Geen skills</span>`;
 
         return `
-        <div class="dev-card" style="animation: fadeIn 0.3s ease-out ${i * 0.1}s both; background: var(--surface); border: 1px solid var(--white-10); border-radius: 1rem; padding: 1.25rem; display: flex; flex-direction: column; gap: 1rem; backdrop-filter: blur(12px); box-shadow: 0 4px 20px rgba(0,0,0,0.2); transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease; cursor: pointer;"
-             onmouseover="this.style.transform='translateY(-2px)'; this.style.borderColor='var(--white-20)'; this.style.boxShadow='0 8px 30px rgba(0,0,0,0.4)';"
-             onmouseout="this.style.transform='none'; this.style.borderColor='var(--white-10)'; this.style.boxShadow='0 4px 20px rgba(0,0,0,0.2)';"
+        <div class="dev-card" style="animation: fadeIn 0.3s ease-out ${i * 0.1}s both; background: var(--surface); border: 1px solid rgba(96, 165, 250, 0.12); border-radius: 1rem; padding: 1.25rem; display: flex; flex-direction: column; gap: 1rem; backdrop-filter: blur(12px); box-shadow: 0 4px 20px rgba(0,0,0,0.2); transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease; cursor: pointer;"
+             onmouseover="this.style.transform='translateY(-2px)'; this.style.borderColor='rgba(96, 165, 250, 0.4)'; this.style.boxShadow='0 8px 30px rgba(59, 130, 246, 0.15)';"
+             onmouseout="this.style.transform='none'; this.style.borderColor='rgba(96, 165, 250, 0.12)'; this.style.boxShadow='0 4px 20px rgba(0,0,0,0.2)';"
              onclick="openDeveloperDetails('${dev.id}')">
             
             <div style="display:flex;justify-content:space-between;align-items:flex-start">
