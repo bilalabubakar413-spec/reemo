@@ -89,6 +89,7 @@ async function authVerify(req, res, next) {
         { method: 'GET',    re: /^\/timesheets$/ },
         { method: 'POST',   re: /^\/timesheets$/ },
         { method: 'DELETE', re: /^\/timesheets\/[^/]+$/ },
+        { method: 'POST',   re: /^\/storage\/upload$/ },
       ];
 
       const ok = DEVELOPER_ALLOWED.some(r => r.method === req.method && r.re.test(req.path));
@@ -1049,6 +1050,12 @@ app.post('/api/storage/upload', storageUpload.single('file'), async (req, res) =
 
   if (!file || !bucket || !developer_id) {
     return res.status(400).json({ ok: false, error: 'Bestand, bucket en developer_id zijn verplicht' });
+  }
+
+  if (req.authRole !== 'admin') {
+    if ((bucket !== 'avatars' && bucket !== 'cvs') || String(developer_id) !== String(req.myDeveloperId)) {
+      return res.status(403).json({ ok: false, error: 'Geen toegang tot deze actie.' });
+    }
   }
 
   try {
