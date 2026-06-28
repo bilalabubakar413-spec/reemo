@@ -1044,20 +1044,17 @@
                 <!-- Data Management Screen -->
                 <div id="screen-data-management" class="screen-content">
                     <!-- Header kaart -->
-                    <div class="dm-header-card">
-                        <div class="dm-header-left">
-                            <span class="dm-badge operations">OPERATIONS</span>
-                            <h1 class="dm-title">Reemo Data Engine</h1>
+                                              <h1 class="dm-title">Reemo Data Engine</h1>
                             <p class="dm-subtitle">
-                                Uniform CSV-importbesturingssysteem & Beveiligde auditvriendelijke record opschoning.
+                                Unified CSV Import Engine & Secured Audit-Friendly Record Purge.
                             </p>
                         </div>
                         <div class="dm-section-toggle">
                             <button id="toggle-import" class="dm-toggle-btn active" onclick="switchDMSection('import')">
-                                <i class="ti ti-upload"></i> Sectie 1: Importeren
+                                <i class="ti ti-upload"></i> Section 1: Import
                             </button>
                             <button id="toggle-gevaarlijk" class="dm-toggle-btn danger" onclick="switchDMSection('gevaarlijk')">
-                                <i class="ti ti-trash"></i> Sectie 2: Gevaarlijke Acties
+                                <i class="ti ti-trash"></i> Section 2: Danger Zone
                             </button>
                         </div>
                     </div>
@@ -1069,15 +1066,15 @@
                             <!-- Auto-sortering kaart -->
                             <div class="dm-card dm-card-wide">
                                 <div class="dm-card-icon"><i class="ti ti-sparkles"></i></div>
-                                <h3>Intelligente Auto-Sortering</h3>
-                                <p>Drop hier direct eender welk CSV-bestand. Ons systeem herkent automatisch de kolomkoppen, vergelijkt ze met onze database-schema's en selecteert de juiste bestemming (Timesheets, Facturen, Klanten, Projecten of Developers).</p>
+                                <h3>Intelligent Auto-Sorting</h3>
+                                <p>Drop any CSV file directly here. Our system automatically detects column headers, maps them to database schemas, and selects the correct destination.</p>
                             </div>
 
                             <!-- Sjablonen kaart -->
                             <div class="dm-card dm-card-narrow">
                                 <div class="dm-card-icon"><i class="ti ti-download"></i></div>
-                                <h3>Sjablonen nodig?</h3>
-                                <p>Download de perfect geformatteerde CSV-structuren:</p>
+                                <h3>Need templates?</h3>
+                                <p>Download perfectly formatted CSV templates:</p>
                                 <div class="dm-template-grid">
                                     <button class="dm-template-btn" onclick="downloadTemplate('operations')">
                                         <i class="ti ti-clock"></i> Operations
@@ -1104,12 +1101,12 @@
                              ondragover="event.preventDefault()"
                              ondrop="handleDMAutoDrop(event)">
                             <i class="ti ti-cloud-upload" style="font-size:40px; color:#3B82F6;"></i>
-                            <h3>Sleep uw CSV-bestand hiernaartoe of klik om te bladeren</h3>
-                            <p>Nederlands & Europees Excel-formaat ondersteund (automatische scheidingsteken detectie: ";" of ",")</p>
+                            <h3>Drag & drop your CSV file here or click to browse</h3>
+                            <p>Dutch & European Excel format supported (automatic delimiter detection: ';' or ',')</p>
                             <div class="dm-dropzone-tags">
-                                <span class="dm-tag">Urenregistratie</span>
-                                <span class="dm-tag">Omzetsheets</span>
-                                <span class="dm-tag">Relaties</span>
+                                <span class="dm-tag">Timesheets</span>
+                                <span class="dm-tag">Revenue sheets</span>
+                                <span class="dm-tag">Clients</span>
                                 <span class="dm-tag">Freelancer lists</span>
                             </div>
                         </div>
@@ -1117,41 +1114,41 @@
                                onchange="handleDMAutoFileSelect(event)" />
 
                         <!-- Handmatige configuratie -->
-                        <div class="dm-manual-label">OF CONFIGUREER HANDMATIG:</div>
+                        <div class="dm-manual-label">OR CONFIGURE MANUALLY:</div>
                         <div class="dm-manual-grid">
                             <div class="dm-manual-card" onclick="openDMImportModal('timesheets')">
                                 <span class="dm-badge operations">OPERATIONS</span>
                                 <i class="ti ti-clock dm-manual-icon"></i>
-                                <h4>Timesheets (Urenregistratie)</h4>
-                                <p>Bij gewerkte uren, periodieke urenlijsten en wekelijkse of dagelijkse registers.</p>
+                                <h4>Timesheets (Work Logs)</h4>
+                                <p>For hours worked, periodic time logs, and weekly or daily records.</p>
                             </div>
 
                             <div class="dm-manual-card" onclick="openDMImportModal('facturen')">
                                 <span class="dm-badge cashflow">CASHFLOW</span>
                                 <i class="ti ti-file-invoice dm-manual-icon"></i>
-                                <h4>Facturen & Omzet</h4>
-                                <p>Boekhoudrapporten, verzonden facturen, betalingstermijnen en omzethistorie.</p>
+                                <h4>Invoices & Revenue</h4>
+                                <p>Accounting reports, sent invoices, payment deadlines, and revenue history.</p>
                             </div>
 
                             <div class="dm-manual-card" onclick="openDMImportModal('klanten')">
                                 <span class="dm-badge crm">CRM</span>
                                 <i class="ti ti-users dm-manual-icon"></i>
-                                <h4>Klanten Dossier</h4>
-                                <p>Relaties, aangesloten bedrijven, sectorindeling en klantcontactpersonen.</p>
+                                <h4>Client Files</h4>
+                                <p>Relationships, affiliated companies, sectors, and client contact persons.</p>
                             </div>
 
                             <div class="dm-manual-card" onclick="openDMImportModal('projecten')">
                                 <span class="dm-badge contracts">OPERATIONAL CONTRACTS</span>
                                 <i class="ti ti-briefcase dm-manual-icon"></i>
-                                <h4>Project Allocaties</h4>
-                                <p>Nieuwe lopende opdrachten, projectfases en vaste prijs- of T&M afspraken.</p>
+                                <h4>Project Allocations</h4>
+                                <p>New ongoing assignments, project phases, and fixed-price or T&M agreements.</p>
                             </div>
 
                             <div class="dm-manual-card" onclick="openDMImportModal('developers')">
                                 <span class="dm-badge hr">HUMAN RESOURCES</span>
                                 <i class="ti ti-user dm-manual-icon"></i>
-                                <h4>Developers Netwerk</h4>
-                                <p>Freelancers, consultants en inzetbare specialisten met uurtarieven.</p>
+                                <h4>Developers Network</h4>
+                                <p>Freelancers, consultants, and deployable specialists with hourly rates.</p>
                             </div>
                         </div>
                     </div>
@@ -1161,15 +1158,15 @@
                         <div class="dm-danger-layout">
                             <!-- Linkerkolom: scopes -->
                             <div class="dm-danger-left">
-                                <div class="dm-section-label">SYSTEEM OPSCHONING SCOPES</div>
+                                <div class="dm-section-label">SYSTEM PURGE SCOPES</div>
 
                                 <div class="dm-scope-card" id="scope-uren" onclick="selectDMScope('uren')">
                                     <div class="dm-scope-header">
                                         <span class="dm-badge danger">UREN</span>
                                         <span class="dm-scope-tag">Operations</span>
                                     </div>
-                                    <h4>Urenregistraties (Timesheets) periodegewijs</h4>
-                                    <p>Schoont alle goedgekeurde/lopende uren over een bepaald segment permanent.</p>
+                                    <h4>Timesheets (Work Logs) by period</h4>
+                                    <p>Permanently purges all approved/pending hours for a selected period.</p>
                                 </div>
 
                                 <div class="dm-scope-card" id="scope-omzet" onclick="selectDMScope('omzet')">
@@ -1177,8 +1174,8 @@
                                         <span class="dm-badge danger">OMZET</span>
                                         <span class="dm-scope-tag">Cashflow</span>
                                     </div>
-                                    <h4>Facturen & Cashflow records periodegewijs</h4>
-                                    <p>Schoont declaraties, boekingen of testomzetten over periodes permanent.</p>
+                                    <h4>Invoices & Cashflow records by period</h4>
+                                    <p>Permanently purges billings, bookings, or test revenues for a selected period.</p>
                                 </div>
 
                                 <div class="dm-scope-card" id="scope-klant" onclick="selectDMScope('klant')">
@@ -1186,8 +1183,8 @@
                                         <span class="dm-badge danger">KLANT</span>
                                         <span class="dm-scope-tag">Dossier purge</span>
                                     </div>
-                                    <h4>Volledige data van één specifieke klant</h4>
-                                    <p>Gevaarlijk: Verwijdert het klantdossier, uren en omzetrecords.</p>
+                                    <h4>All data of a specific client</h4>
+                                    <p>Dangerous: Deletes client profile, associated hours, and revenue records.</p>
                                 </div>
 
                                 <div class="dm-scope-card" id="scope-cvs" onclick="selectDMScope('cvs')">
@@ -1195,20 +1192,20 @@
                                         <span class="dm-badge danger">CV'S</span>
                                         <span class="dm-scope-tag">Bestanden</span>
                                     </div>
-                                    <h4>CV-bestanden opschonen</h4>
-                                    <p>Verwijdert CV-bestanden uit de opslag. De developers/kandidaten blijven bestaan, alleen hun CV wordt losgekoppeld.</p>
+                                    <h4>Clean up CV files</h4>
+                                    <p>Deletes CV files from storage. Developers/candidates remain; only CVs are unlinked.</p>
                                 </div>
 
-                                <div class="dm-scope-card disabled" id="scope-reset" onclick="selectDMScope('reset')">
+                                <div class="dm-scope-card" id="scope-reset" onclick="selectDMScope('reset')">
                                     <div class="dm-scope-header">
                                         <i class="ti ti-alert-triangle" style="color:#EF4444;"></i>
-                                        <span class="dm-scope-tag critical">Fabrieksstand</span>
+                                        <span class="dm-scope-tag critical">Factory Reset</span>
                                     </div>
                                     <h4>Critical SYSTEM RESET</h4>
                                     <p>Volledige Reemo Operations Reset</p>
                                     <p style="color:#EF4444; font-size:11px; margin-top:4px;">
-                                        Blazen van alle entiteiten, developers, dossiers, CVs en data.
-                                        <br><strong>⚠️ Uitgeschakeld door beheerder</strong>
+                                        Wipe all entities, developers, dossiers, CVs, and data.
+                                        <br><strong>⚠️ Disabled by administrator</strong>
                                     </p>
                                 </div>
                             </div>
@@ -1219,7 +1216,7 @@
                                 <div id="dm-criteria-default" class="dm-criteria-card">
                                     <i class="ti ti-selector" style="font-size:32px; color:#475569;"></i>
                                     <p style="color:#64748B; margin-top:12px;">
-                                        Kies links een van de opschoningsacties om criteria te configureren.
+                                        Choose a purge action on the left to configure criteria.
                                     </p>
                                 </div>
 
@@ -1227,57 +1224,57 @@
                                 <div id="dm-criteria-periode" class="dm-criteria-card" style="display:none;">
                                     <h4 id="dm-criteria-titel">Criteria</h4>
                                     <div class="dm-criteria-row">
-                                        <label>Van</label>
+                                        <label>From</label>
                                         <input type="date" id="dm-periode-van" class="filter-input" style="background:#0a0a0a; border:1px solid #1e1e1e; border-radius:6px; padding:6px; color:white; flex:1;" />
                                     </div>
                                     <div class="dm-criteria-row">
-                                        <label>Tot</label>
+                                        <label>To</label>
                                         <input type="date" id="dm-periode-tot" class="filter-input" style="background:#0a0a0a; border:1px solid #1e1e1e; border-radius:6px; padding:6px; color:white; flex:1;" />
                                     </div>
                                     <button class="btn-danger-eval" onclick="evaluerenImpact()">
-                                        Evalueer & Preview Impact →
+                                        Evaluate & Preview Impact →
                                     </button>
                                 </div>
 
                                 <!-- Criteria voor klant -->
                                 <div id="dm-criteria-klant" class="dm-criteria-card" style="display:none;">
-                                    <h4>Selecteer klant om te verwijderen</h4>
+                                    <h4>Select client to delete</h4>
                                     <select id="dm-klant-select" class="filter-input" style="background:#0a0a0a; border:1px solid #1e1e1e; border-radius:6px; padding:6px; color:white; flex:1; width:100%;">
-                                        <option value="">— Kies een klant —</option>
+                                        <option value="">— Choose a client —</option>
                                     </select>
                                     <button class="btn-danger-eval" onclick="evaluerenImpact()">
-                                        Evalueer & Preview Impact →
+                                        Evaluate & Preview Impact →
                                     </button>
                                 </div>
 
                                  <!-- Criteria voor CV-scope -->
                                 <div id="dm-criteria-cvs" class="dm-criteria-card" style="display:none;">
-                                    <h4 style="margin-bottom:14px;">CV-bestanden opschonen</h4>
+                                    <h4 style="margin-bottom:14px;">Clean up CV files</h4>
                                     <div style="display:flex; flex-direction:column; gap:12px; margin-bottom:16px;">
                                         <label style="display:flex; gap:10px; align-items:center; cursor:pointer; font-size:13px; color:var(--white-80); width:auto; font-weight:normal; margin:0;">
                                             <input type="radio" name="cv-scope-keuze" value="kandidaten" checked style="accent-color:#EF4444; width:16px; height:16px; margin:0;" />
-                                            <span>Alleen CV's van kandidaten (type = candidate)</span>
+                                            <span>Only candidate CVs (type = candidate)</span>
                                         </label>
                                         <label style="display:flex; gap:10px; align-items:center; cursor:pointer; font-size:13px; color:var(--white-80); width:auto; font-weight:normal; margin:0;">
                                             <input type="radio" name="cv-scope-keuze" value="alle" style="accent-color:#EF4444; width:16px; height:16px; margin:0;" />
-                                            <span>Alle CV's (kandidaten én actieve developers)</span>
+                                            <span>All CVs (candidates and active developers)</span>
                                         </label>
                                     </div>
                                     <button class="btn-danger-eval" onclick="evaluerenImpact()">
-                                        Evalueer & Preview Impact →
+                                        Evaluate & Preview Impact →
                                     </button>
                                 </div>
 
                                 <!-- Criteria voor reset -->
                                 <div id="dm-criteria-reset" class="dm-criteria-card dm-criteria-critical" style="display:none;">
                                     <i class="ti ti-alert-triangle" style="font-size:32px; color:#EF4444;"></i>
-                                    <h4 style="color:#EF4444;">Volledige system reset</h4>
+                                    <h4 style="color:#EF4444;">Full System Reset</h4>
                                     <p style="color:#94A3B8; font-size:12px;">
-                                        Deze actie verwijdert ALLE data inclusief developers, klanten, CVs en historische records.
-                                        Dit kan niet ongedaan worden gemaakt.
+                                        This action deletes ALL data, including developers, clients, CVs, and historical records.
+                                        This cannot be undone.
                                     </p>
                                     <button class="btn-danger-eval" onclick="evaluerenImpact()">
-                                        Evalueer & Preview Impact →
+                                        Evaluate & Preview Impact →
                                     </button>
                                 </div>
 
@@ -1287,48 +1284,48 @@
                                         <div class="dm-impact-stat">
                                             <span class="dm-impact-label">TARGET DATA</span>
                                             <span class="dm-impact-value" id="impact-target">—</span>
-                                            <span class="dm-impact-sub" id="impact-target-sub">Rijselectie</span>
+                                            <span class="dm-impact-sub" id="impact-target-sub">Row selection</span>
                                         </div>
                                         <div class="dm-impact-stat">
-                                            <span class="dm-impact-label" id="dm-impact-records-label">AANTAL RECORDS</span>
+                                            <span class="dm-impact-label" id="dm-impact-records-label">NUMBER OF RECORDS</span>
                                             <span class="dm-impact-value" id="impact-records">—</span>
-                                            <span class="dm-impact-sub" id="dm-impact-records-sub">worden onherstelbaar gewist</span>
+                                            <span class="dm-impact-sub" id="dm-impact-records-sub">will be permanently deleted</span>
                                         </div>
                                         <div class="dm-impact-stat">
-                                            <span class="dm-impact-label">GECALCULEERD VERLIES</span>
+                                            <span class="dm-impact-label">CALCULATED LOSS</span>
                                             <span class="dm-impact-value danger" id="impact-verlies">—</span>
-                                            <span class="dm-impact-sub">associatieve waarde</span>
+                                            <span class="dm-impact-sub">associative value</span>
                                         </div>
                                     </div>
 
                                     <div class="dm-cascade-box">
-                                        <span class="dm-section-label">CASCADE RELATIE-IMPACT</span>
-                                        <p id="impact-cascade">De geselecteerde actie heeft impact op gerelateerde records.</p>
+                                        <span class="dm-section-label">CASCADE RELATIONSHIP IMPACT</span>
+                                        <p id="impact-cascade">The selected action has an impact on related records.</p>
                                     </div>
 
                                     <!-- 3 checkboxes -->
                                     <div class="dm-checklist">
-                                        <span class="dm-section-label">BEVEILIGINGS- EN VALIDATIE-CHECKLISTS</span>
+                                        <span class="dm-section-label">SECURITY & VALIDATION CHECKLISTS</span>
                                         <label class="dm-check-item">
                                             <input type="checkbox" id="check-1" onchange="updateVernietigKnop()" />
-                                            Ik bevestig dat deze actie permanent is en niet ongedaan gemaakt kan worden.
+                                            I confirm that this action is permanent and cannot be undone.
                                         </label>
                                         <label class="dm-check-item">
                                             <input type="checkbox" id="check-2" onchange="updateVernietigKnop()" />
-                                            Ik heb de gecalculeerde impactwaarde gecontroleerd en ga akkoord.
+                                            I have verified the calculated impact value and agree.
                                         </label>
                                         <label class="dm-check-item">
                                             <input type="checkbox" id="check-3" onchange="updateVernietigKnop()" />
-                                            Ik verklaar dat ik over de benodigde administratieve bevoegdheden beschik.
+                                            I declare that I possess the necessary administrative privileges.
                                         </label>
                                     </div>
 
                                     <!-- PIN invoer -->
                                     <div class="dm-auth-section">
-                                        <span class="dm-section-label">AUTORISATIE VRIJGEVEN</span>
+                                        <span class="dm-section-label">RELEASE AUTHORIZATION</span>
 
                                         <div style="margin-bottom:12px;">
-                                            <p style="font-size:12px; color:#94A3B8; margin-bottom:8px;">Stap 1 — Voer de beheerderscode in:</p>
+                                            <p style="font-size:12px; color:#94A3B8; margin-bottom:8px;">Step 1 — Enter the administrator PIN:</p>
                                             <div class="dm-pin-row">
                                                 <input type="password" maxlength="1" class="dm-pin-digit" id="pin-1"
                                                        oninput="movePinFocus(this, 'pin-2')" onchange="updateVernietigKnop()" />
@@ -1342,16 +1339,16 @@
                                         </div>
 
                                         <div>
-                                            <p style="font-size:12px; color:#94A3B8; margin-bottom:8px;">Stap 2 — Typ "VERWIJDER" ter bevestiging:</p>
+                                            <p style="font-size:12px; color:#94A3B8; margin-bottom:8px;">Step 2 — Type "DELETE" to confirm:</p>
                                             <input type="text" id="dm-confirm-text" class="filter-input dm-confirm-input" style="background:#0a0a0a; border:1px solid #1e1e1e; border-radius:6px; padding:8px; color:white; width:100%;"
-                                                   placeholder="VERWIJDER" oninput="updateVernietigKnop()" />
+                                                   placeholder="DELETE" oninput="updateVernietigKnop()" />
                                         </div>
                                     </div>
 
                                     <!-- Vernietig knop -->
                                     <button id="btn-permanent-vernietigen" class="btn-danger-final"
                                             disabled onclick="permanentVernietigen()">
-                                        Permanent Vernietigen 🗑️
+                                        Permanently Destroy 🗑️
                                     </button>
                                 </div>
                             </div>

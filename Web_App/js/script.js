@@ -7776,7 +7776,7 @@ async function startDMPreview(files, geforceerdType) {
   files.forEach(f => formData.append('bestanden', f));
   if (geforceerdType) formData.append('type', geforceerdType);
 
-  showToast('Bestanden worden geanalyseerd...', 'info');
+  showToast('Analyzing files...', 'info');
 
   try {
     const data = await apiFetch('/api/data-management/preview', { method: 'POST', body: formData });
@@ -7791,7 +7791,7 @@ async function startDMPreview(files, geforceerdType) {
     toonDMPreviewModal(data.resultaten);
   } catch (err) {
     console.error('Preview error:', err);
-    showToast('Fout bij het laden van preview: ' + err.message, 'error');
+    showToast('Error loading preview: ' + err.message, 'error');
   }
 }
 
@@ -7817,7 +7817,7 @@ function toonDMPreviewModal(resultaten) {
     volgordeHtml = `
       <div style="background:rgba(59,130,246,0.1); border:1px solid rgba(59,130,246,0.2); border-radius:8px; padding:12px 16px; margin-bottom:1.5rem; font-size:12px; color:#93c5fd; display:flex; align-items:center; gap:8px;">
         <i class="ti ti-sort-ascending" style="font-size:16px;"></i> 
-        <span><strong>Verwerkvolgorde:</strong> ${stappen}</span>
+        <span><strong>Processing order:</strong> ${stappen}</span>
       </div>
     `;
   }
@@ -7828,12 +7828,12 @@ function toonDMPreviewModal(resultaten) {
         <div style="background:rgba(239,68,68,0.1); border:1px solid rgba(239,68,68,0.3); border-radius:8px; padding:1.25rem; margin-bottom:12px;">
           <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
             <strong style="color:#f87171; font-size:14px;"><i class="ti ti-alert-triangle"></i> ${res.bestand}</strong>
-            <span class="dm-badge danger">PARSE FOUT</span>
+            <span class="dm-badge danger">PARSE ERROR</span>
           </div>
           <p style="color:#fca5a5; font-size:12px; line-height:1.5; margin-bottom:8px;">${res.fout}</p>
           ${res.gevondenHeaders ? `
             <div style="font-size:11px; color:#94a3b8;">
-              <strong>Gevonden kolommen:</strong> ${res.gevondenHeaders.join(', ')}
+              <strong>Columns found:</strong> ${res.gevondenHeaders.join(', ')}
             </div>
           ` : ''}
         </div>
@@ -7862,7 +7862,7 @@ function toonDMPreviewModal(resultaten) {
             <tbody>
               ${records.map((rec, rIdx) => {
                 const status = duplicaatStatus[rIdx] || 'nieuw';
-                const statusText = status === 'bestaat_al' ? 'Bestaat al' : 'Nieuw';
+                const statusText = status === 'bestaat_al' ? 'Already exists' : 'New';
                 const rowStyle = status === 'bestaat_al' 
                   ? 'background: rgba(245,158,11,0.06);' 
                   : 'background: rgba(34,197,94,0.06);';
@@ -7892,12 +7892,12 @@ function toonDMPreviewModal(resultaten) {
         .join(' &bull; ');
       
       const genegeerdText = (res.onherkendekolommen && res.onherkendekolommen.length > 0)
-        ? ` &nbsp;|&nbsp; <span style="color:#ef4444;">Genegeerd:</span> "${res.onherkendekolommen.join('", "')}"`
+        ? ` &nbsp;|&nbsp; <span style="color:#ef4444;">Ignored:</span> "${res.onherkendekolommen.join('", "')}"`
         : '';
 
       mappingHtml = `
         <div style="font-size:11px; background:#18181b; border:1px solid #27272a; border-radius:6px; padding:8px 12px; margin-top:10px; color:#a1a1aa; line-height:1.4;">
-          <span style="color:#22c55e; font-weight:600;"><i class="ti ti-check"></i> Herkende kolommen:</span> ${mappingItems}${genegeerdText}
+          <span style="color:#22c55e; font-weight:600;"><i class="ti ti-check"></i> Recognized columns:</span> ${mappingItems}${genegeerdText}
         </div>
       `;
     }
@@ -7909,9 +7909,9 @@ function toonDMPreviewModal(resultaten) {
           <span class="dm-badge ${badgeClass === 'timesheets' ? 'operations' : (badgeClass === 'facturen' ? 'cashflow' : (badgeClass === 'klanten' ? 'crm' : (badgeClass === 'projecten' ? 'contracts' : 'hr')))}">${badgeLabel}</span>
         </div>
         <div style="font-size:12px; color:#94a3b8; display:flex; gap:16px;">
-          <span>Totaal rijen: <strong>${res.totaal}</strong></span>
-          <span style="color:#4ade80;">Nieuw: <strong>${res.nieuw}</strong></span>
-          <span style="color:#fbbf24;">Bestaat al: <strong>${res.bestaatAl}</strong></span>
+          <span>Total rows: <strong>${res.totaal}</strong></span>
+          <span style="color:#4ade80;">New: <strong>${res.nieuw}</strong></span>
+          <span style="color:#fbbf24;">Already exists: <strong>${res.bestaatAl}</strong></span>
         </div>
         ${mappingHtml}
         ${tableHtml}
@@ -7951,7 +7951,7 @@ async function bevestigDMImport() {
     .map(id => document.getElementById(id)?.value || '').join('');
 
   if (pin.length !== 4) {
-    showToast('Voer de volledige 4-cijferige code in', 'error');
+    showToast('Please enter the full 4-digit PIN', 'error');
     return;
   }
 
@@ -7963,7 +7963,7 @@ async function bevestigDMImport() {
   formData.append('pin', pin);
   formData.append('overschrijf', overwrite ? 'true' : 'false');
 
-  showToast('Importeren is gestart...', 'info');
+  showToast('Import started...', 'info');
 
   try {
     const data = await apiFetch('/api/data-management/import', { method: 'POST', body: formData });
@@ -7976,7 +7976,7 @@ async function bevestigDMImport() {
     toonDMImportResultaat(data.resultaten);
   } catch (err) {
     console.error('Import error:', err);
-    showToast('Fout tijdens import: ' + err.message, 'error');
+    showToast('Error during import: ' + err.message, 'error');
   }
 }
 
@@ -7991,7 +7991,7 @@ function toonDMImportResultaat(resultaten) {
       return `
         <div style="background:rgba(239,68,68,0.1); border:1px solid rgba(239,68,68,0.3); border-radius:8px; padding:1rem; margin-bottom:10px;">
           <strong style="color:#f87171; display:block; margin-bottom:4px;"><i class="ti ti-alert-triangle"></i> ${res.bestand}</strong>
-          <span style="font-size:12px; color:#fca5a5;">Import mislukt: ${res.fout}</span>
+          <span style="font-size:12px; color:#fca5a5;">Import failed: ${res.fout}</span>
         </div>
       `;
     }
@@ -8007,28 +8007,28 @@ function toonDMImportResultaat(resultaten) {
         </div>
         
         <div style="font-size:12px; color:#cbd5e1; display:flex; gap:16px; margin-bottom:10px;">
-          <span style="color:#4ade80;">Toegevoegd: <strong>${res.toegevoegd}</strong></span>
-          <span style="color:#94a3b8;">Overgeslagen (duplicaten): <strong>${res.overgeslagen}</strong></span>
-          <span style="color:#f87171;">Fouten: <strong>${hasFouten ? res.fouten.length : 0}</strong></span>
+          <span style="color:#4ade80;">Added: <strong>${res.toegevoegd}</strong></span>
+          <span style="color:#94a3b8;">Skipped (duplicates): <strong>${res.overgeslagen}</strong></span>
+          <span style="color:#f87171;">Errors: <strong>${hasFouten ? res.fouten.length : 0}</strong></span>
         </div>
 
         ${hasAutoAangemaakt ? `
           <div style="background:rgba(245,158,11,0.05); border:1px solid rgba(245,158,11,0.25); border-radius:6px; padding:8px 12px; margin-bottom:10px; border-left:3px solid #f59e0b;">
             <span style="font-size:11px; color:#fbbf24; font-weight:700; display:flex; align-items:center; gap:4px; margin-bottom:4px;">
-              ⚡ ${res.autoAangemaakt.length} automatisch aangemaakt:
+              ⚡ ${res.autoAangemaakt.length} automatically created:
             </span>
             <ul style="margin:0; padding-left:16px; font-size:11px; color:#f59e0b; line-height:1.5;">
               ${res.autoAangemaakt.map(item => `<li>${item}</li>`).join('')}
             </ul>
             <span style="font-size:10px; color:#a1a1aa; display:block; margin-top:6px;">
-              ℹ️ Vul de gegevens van auto-aangemaakte records later aan via de Clients/Developers pagina.
+              ℹ️ Update the details of automatically created records later via the Clients/Developers page.
             </span>
           </div>
         ` : ''}
 
         ${hasFouten ? `
           <div style="background:rgba(239,68,68,0.05); border:1px solid rgba(239,68,68,0.2); border-radius:6px; padding:8px 12px;">
-            <span style="font-size:10px; color:#fca5a5; font-weight:700; text-transform:uppercase; display:block; margin-bottom:4px;">Gedetecteerde Import Fouten (Eerste 20):</span>
+            <span style="font-size:10px; color:#fca5a5; font-weight:700; text-transform:uppercase; display:block; margin-bottom:4px;">Detected Import Errors (First 20):</span>
             <ul style="margin:0; padding-left:16px; font-size:11px; color:#f87171; line-height:1.5;">
               ${res.fouten.map(f => `<li>${f}</li>`).join('')}
             </ul>
@@ -8077,7 +8077,7 @@ function selectDMScope(scope) {
 
   // Als reset uitgeschakeld is blokkeer dan
   if (scope === 'reset' && !SYSTEM_RESET_ENABLED) {
-    showToast('System Reset is uitgeschakeld door de beheerder', 'error');
+    showToast('System Reset is disabled by the administrator', 'error');
     return;
   }
 
@@ -8096,7 +8096,7 @@ function selectDMScope(scope) {
 
   // Toon juiste criteria paneel
   if (scope === 'uren' || scope === 'omzet') {
-    const titel = scope === 'uren' ? 'Periode voor urenregistraties' : 'Periode voor facturen';
+    const titel = scope === 'uren' ? 'Period for timesheets' : 'Period for invoices';
     const titelEl = document.getElementById('dm-criteria-titel');
     if (titelEl) titelEl.textContent = titel;
     const periodeEl = document.getElementById('dm-criteria-periode');
@@ -8121,13 +8121,13 @@ async function laadKlantenDropdown() {
     if (!select) return;
     
     const clientsList = data || [];
-    select.innerHTML = '<option value="">— Kies een klant —</option>' +
+    select.innerHTML = '<option value="">— Choose a client —</option>' +
       clientsList.map(k =>
         `<option value="${k.klant_id || k.id || ''}">${k.naam || k.name || ''}</option>`
       ).join('');
   } catch(err) {
-    console.error('Klanten laden mislukt:', err);
-    showToast('Fout bij het laden van klanten', 'error');
+    console.error('Failed to load clients:', err);
+    showToast('Error loading clients', 'error');
   }
 }
 
@@ -8138,14 +8138,14 @@ async function evaluerenImpact() {
     body.van = document.getElementById('dm-periode-van')?.value;
     body.tot = document.getElementById('dm-periode-tot')?.value;
     if (!body.van || !body.tot) {
-      showToast('Fout: Selecteer een van- en tot-datum.', 'error');
+      showToast('Error: Please select a start and end date.', 'error');
       return;
     }
   }
   if (huidigeDMScope === 'klant') {
     body.klant_id = document.getElementById('dm-klant-select')?.value;
     if (!body.klant_id) {
-      showToast('Fout: Gelieve eerst de te verwijderen klant te selecteren.', 'error');
+      showToast('Error: Please select the client to be deleted first.', 'error');
       return;
     }
   }
@@ -8164,24 +8164,24 @@ async function evaluerenImpact() {
     document.getElementById('impact-target-sub').textContent = data.targetSub;
     document.getElementById('impact-records').textContent = data.aantalRecords;
     document.getElementById('impact-verlies').textContent =
-      '€' + Math.round(data.verlies).toLocaleString('nl-NL');
+      '€' + Math.round(data.verlies).toLocaleString('en-US');
     document.getElementById('impact-cascade').textContent = data.cascade;
 
     const recordsLabel = document.getElementById('dm-impact-records-label');
     const recordsSub = document.getElementById('dm-impact-records-sub');
     if (huidigeDMScope === 'cvs') {
-      if (recordsLabel) recordsLabel.textContent = 'BESTANDEN GEVONDEN';
-      if (recordsSub) recordsSub.textContent = 'CV-bestanden gevonden';
+      if (recordsLabel) recordsLabel.textContent = 'FILES FOUND';
+      if (recordsSub) recordsSub.textContent = 'CV files found';
     } else {
-      if (recordsLabel) recordsLabel.textContent = 'AANTAL RECORDS';
-      if (recordsSub) recordsSub.textContent = 'worden onherstelbaar gewist';
+      if (recordsLabel) recordsLabel.textContent = 'NUMBER OF RECORDS';
+      if (recordsSub) recordsSub.textContent = 'will be permanently deleted';
     }
 
     // Update checkbox 2 tekst met het echte bedrag
     const check2Label = document.querySelector('label[for="check-2"], #check-2')?.closest('.dm-check-item');
     if (check2Label) {
       check2Label.innerHTML = `<input type="checkbox" id="check-2" onchange="updateVernietigKnop()" />
-        Ik heb de gecalculeerde impactwaarde van €${Math.round(data.verlies).toLocaleString('nl-NL')} gecontroleerd en ga akkoord.`;
+        I have verified the calculated impact value of €${Math.round(data.verlies).toLocaleString('en-US')} and agree.`;
     }
 
     // Bewaar voor de vernietig-stap
@@ -8199,7 +8199,7 @@ async function evaluerenImpact() {
     const c = document.getElementById('dm-confirm-text'); if (c) c.value = '';
     updateVernietigKnop();
   } catch (err) {
-    showToast(err.message || 'Impact analyse mislukt', 'error');
+    showToast(err.message || 'Impact analysis failed', 'error');
   }
 }
 
@@ -8221,7 +8221,7 @@ function updateVernietigKnop() {
 
   const allesKlaar = check1 && check2 && check3 &&
                      pin.length === 4 &&
-                     confirmText === 'VERWIJDER';
+                     confirmText === 'DELETE';
 
   const btn = document.getElementById('btn-permanent-vernietigen');
   if (btn) {
@@ -8247,7 +8247,7 @@ async function permanentVernietigen() {
 
   const btn = document.getElementById('btn-permanent-vernietigen');
   btn.disabled = true;
-  btn.textContent = 'Bezig met vernietigen...';
+  btn.textContent = 'Purging...';
 
   try {
     const data = await apiFetch('/api/data-management/vernietig', {
@@ -8258,7 +8258,7 @@ async function permanentVernietigen() {
   // Toon resultaat
   const samenvatting = Object.entries(data.verwijderd)
     .map(([k, v]) => `${v} ${k}`).join(', ');
-  showToast(`Vernietiging voltooid: ${samenvatting}`, 'success');
+  showToast(`Purge completed: ${samenvatting}`, 'success');
 
   // Reset de hele sectie en refresh data
   document.getElementById('dm-impact-analyse').style.display = 'none';
@@ -8270,7 +8270,7 @@ async function permanentVernietigen() {
   huidigeDMScope = null;
 
   btn.disabled = true;
-  btn.textContent = 'Permanent Vernietigen 🗑️';
+  btn.textContent = 'Permanently Destroy 🗑️';
 
   // Refresh alle dashboards/lijsten zodat de verwijderde data verdwijnt
   if (typeof renderDashboardStats === 'function') renderDashboardStats();
@@ -8278,9 +8278,9 @@ async function permanentVernietigen() {
   if (typeof loadDevelopers === 'function') loadDevelopers();
   if (typeof loadCVDatabase === 'function') loadCVDatabase();
   } catch (err) {
-    showToast(err.message || 'Vernietiging mislukt', 'error');
+    showToast(err.message || 'Purge failed', 'error');
     btn.disabled = false;
-    btn.textContent = 'Permanent Vernietigen 🗑️';
+    btn.textContent = 'Permanently Destroy 🗑️';
   }
 }
 
