@@ -149,7 +149,7 @@ async function loadClients() {
         developersCount: parseInt(r.developer_count) || 0,
         totalHoursMonth: 0, 
         invoiceStatus: 'Open'
-    })) : (clients.length ? clients : _DEF_CLIENTS);
+    })) : (clients.length ? clients : []);
 }
 
 async function loadDevelopers() {
@@ -174,7 +174,7 @@ async function loadDevelopers() {
             type: r.type,
             status: r.status
         };
-    }) : (developers.length ? developers : _DEF_DEVS);
+    }) : (developers.length ? developers : []);
 }
 
 async function loadTimesheets() {
@@ -184,7 +184,7 @@ async function loadTimesheets() {
         clientName: r.clientName || '—', projectName: r.projectName || '—',
         hoursWorked: parseFloat(r.hoursWorked)||0, bedrag: parseFloat(r.bedrag)||0, status: r.status,
         date: formatDateString(r.date), description: r.description || ''
-    })) : (timesheets.length ? timesheets : _DEF_TS);
+    })) : (timesheets.length ? timesheets : []);
 }
 
 async function loadInvoices() {
@@ -196,7 +196,7 @@ async function loadInvoices() {
         status: r.betalingsstatus || r.status,
         dateSent: formatDateString(r.factuurdatum || r.dateSent),
         paymentDeadline: formatDateString(r.vervaldatum || r.paymentDeadline)
-    })) : (invoices.length ? invoices : _DEF_INV);
+    })) : (invoices.length ? invoices : []);
     if (typeof updateInvoiceStats === 'function') {
         updateInvoiceStats();
     }
@@ -212,7 +212,7 @@ const _DEF_PROJECTS = [
 let projects = [];
 async function loadProjects() {
     const data = await apiFetchSafe('/api/projecten');
-    projects = (data && data.length > 0) ? data : _DEF_PROJECTS;
+    projects = (data && data.length > 0) ? data : [];
 }
 
 // ── Write helpers (POST/PATCH to API, then reload) ────────────────────────────
