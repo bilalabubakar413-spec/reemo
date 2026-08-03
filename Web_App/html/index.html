@@ -1829,18 +1829,16 @@
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem">
                 <div>
                     <label style="display:block;font-size:0.625rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--white-40);margin-bottom:0.4rem">Role / Title *</label>
-                    <div class="filter-select-wrap" style="width:100%">
-                        <select id="ob-role" class="filter-select" style="width:100%">
-                            <option>Senior Frontend</option>
-                            <option>Fullstack Engineer</option>
-                            <option>Backend Developer</option>
-                            <option>DevOps Architect</option>
-                            <option>Junior Developer</option>
-                            <option>Mobile Developer</option>
-                            <option>UI/UX Engineer</option>
-                            <option>Data Engineer</option>
-                        </select>
-                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                    <input id="ob-role" type="text" placeholder="e.g. Frontend, Fullstack, AI Engineer..." class="filter-input" style="width:100%" oninput="syncRoleChips()">
+                    <div id="ob-role-chips" style="display:flex;flex-wrap:wrap;gap:0.35rem;margin-top:0.5rem">
+                        <button type="button" class="role-chip active" onclick="toggleRoleChip('Frontend')">Frontend</button>
+                        <button type="button" class="role-chip" onclick="toggleRoleChip('Fullstack Engineer')">Fullstack Engineer</button>
+                        <button type="button" class="role-chip" onclick="toggleRoleChip('Backend Developer')">Backend Developer</button>
+                        <button type="button" class="role-chip" onclick="toggleRoleChip('DevOps Architect')">DevOps Architect</button>
+                        <button type="button" class="role-chip" onclick="toggleRoleChip('Junior Developer')">Junior Developer</button>
+                        <button type="button" class="role-chip" onclick="toggleRoleChip('Mobile Developer')">Mobile Developer</button>
+                        <button type="button" class="role-chip" onclick="toggleRoleChip('UI/UX Engineer')">UI/UX Engineer</button>
+                        <button type="button" class="role-chip" onclick="toggleRoleChip('Data Engineer')">Data Engineer</button>
                     </div>
                 </div>
                 <div>
@@ -2066,7 +2064,7 @@
                 <div class="filter-select-wrap" style="width:100%">
                     <select id="af-role" class="filter-select" style="width:100%">
                         <option value="">All Roles</option>
-                        <option>Senior Frontend</option>
+                        <option>Frontend</option>
                         <option>Fullstack Engineer</option>
                         <option>Backend Developer</option>
                         <option>DevOps Architect</option>

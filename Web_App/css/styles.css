@@ -749,7 +749,35 @@ body.dev-portal .nav-item.active .nav-icon { color: #34d399; }
     display: flex;
     align-items: center;
     gap: 0.75rem;
-    padding-right: 5rem;
+    padding-right: 6.5rem;
+}
+
+.role-option:hover {
+    background-color: rgba(255,255,255,0.06);
+}
+.role-option.selected {
+    background-color: rgba(37,99,235,0.12);
+}
+
+.role-chip {
+    background-color: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 0.5rem;
+    padding: 0.25rem 0.625rem;
+    font-size: 0.75rem;
+    color: var(--white-60);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+.role-chip:hover {
+    background-color: rgba(255, 255, 255, 0.09);
+    color: var(--white);
+}
+.role-chip.active {
+    background-color: rgba(37, 99, 235, 0.18);
+    border-color: rgba(37, 99, 235, 0.4);
+    color: #60a5fa;
+    font-weight: 600;
 }
 
 .client-logo {

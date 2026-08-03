@@ -37,7 +37,7 @@ const _DEF_CLIENTS = [
     { id:'c5', naam:'Umbrella Corp', sector:'Biotech',    contactpersoon:'Albert Wesker',email:'albert@umbrella.com',developersCount:1, totalHoursMonth:160, invoiceStatus:'Open'   },
 ];
 const _DEF_DEVS = [
-    { id:'d1', naam:'Alex Rivera',   rol:'Senior Frontend',   uurtarief:85,  weekcapaciteit:40, email:'alex@reemo.io'   },
+    { id:'d1', naam:'Alex Rivera',   rol:'Frontend',          uurtarief:85,  weekcapaciteit:40, email:'alex@reemo.io'   },
     { id:'d2', naam:'Sarah Chen',    rol:'Fullstack Engineer', uurtarief:95,  weekcapaciteit:40, email:'sarah@reemo.io'  },
     { id:'d3', naam:'Marcus Thorne', rol:'Backend Developer',  uurtarief:75,  weekcapaciteit:40, email:'marcus@reemo.io' },
     { id:'d4', naam:'Elena Vance',   rol:'DevOps Architect',   uurtarief:110, weekcapaciteit:40, email:'elena@reemo.io'  },
@@ -2953,7 +2953,6 @@ function renderClientsGrid() {
         return `
         <div class="client-card" id="client-card-${id}" style="animation:fadeIn 0.25s ease-out ${i*0.06}s both" onclick="openClientDetails('${id}')">
             <div class="client-card-actions">
-                <span class="status-badge status-approved" style="font-size:0.5rem">${sector}</span>
                 <button onclick="event.stopPropagation(); openContractenModal('${id}', '${(c.naam||c.name||'').replace(/'/g,"\\'")}')" 
                          title="View contracts" class="btn-contract">
                   <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:block">
@@ -4008,6 +4007,12 @@ function openAddProjectModal(klantId) {
     ['proj-f-naam','proj-f-type','proj-f-start','proj-f-eind'].forEach(id => {
         const el = document.getElementById(id); if (el) el.value = '';
     });
+    const submitBtn = document.querySelector('#modal-project-form button[onclick*="submitProjectForm"]');
+    if (submitBtn) {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = '<i data-lucide="check" style="width:14px;height:14px"></i> Create Project';
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+    }
     openModal('modal-project-form');
 }
 
@@ -4036,9 +4041,10 @@ async function submitProjectForm(btnElement) {
         showToast(`✓ Project "${payload.projectnaam}" aangemaakt!`);
     } catch (e) { 
         showToast(`⚠ ${e.message}`); 
+    } finally {
         if (btnElement) {
             btnElement.disabled = false;
-            btnElement.innerHTML = '<i data-lucide="check" style="width:14px;height:14px"></i> Project Aanmaken';
+            btnElement.innerHTML = '<i data-lucide="check" style="width:14px;height:14px"></i> Create Project';
             if (typeof lucide !== 'undefined') lucide.createIcons();
         }
     }
@@ -5448,7 +5454,11 @@ async function initCharts() {
 // ===== MODAL HELPERS =====
 function openModal(id) {
     const m = document.getElementById(id);
-    if (m) { m.style.display = 'flex'; document.body.style.overflow = 'hidden'; }
+    if (m) { 
+        m.style.display = 'flex'; 
+        document.body.style.overflow = 'hidden'; 
+        m.querySelectorAll('button:disabled').forEach(b => { b.disabled = false; });
+    }
     if (typeof lucide !== 'undefined') lucide.createIcons();
 }
 function closeModal(id) {
@@ -5522,8 +5532,42 @@ document.addEventListener('click', e => {
 });
 
 // ===== ONBOARD DEVELOPER =====
+function toggleRoleChip(roleName) {
+    const input = document.getElementById('ob-role');
+    if (!input) return;
+    
+    let currentRoles = input.value.split(',').map(r => r.trim()).filter(Boolean);
+    
+    if (currentRoles.map(r => r.toLowerCase()).includes(roleName.toLowerCase())) {
+        currentRoles = currentRoles.filter(r => r.toLowerCase() !== roleName.toLowerCase());
+    } else {
+        currentRoles.push(roleName);
+    }
+    
+    input.value = currentRoles.join(', ');
+    syncRoleChips();
+}
+
+function syncRoleChips() {
+    const input = document.getElementById('ob-role');
+    if (!input) return;
+    const currentRoles = input.value.split(',').map(r => r.trim().toLowerCase());
+    
+    const chips = document.querySelectorAll('#ob-role-chips .role-chip');
+    chips.forEach(chip => {
+        const chipText = chip.textContent.trim().toLowerCase();
+        if (currentRoles.includes(chipText)) {
+            chip.classList.add('active');
+        } else {
+            chip.classList.remove('active');
+        }
+    });
+}
+
 function openOnboardModal() {
-    // Reset form
+    const roleInput = document.getElementById('ob-role');
+    if (roleInput) roleInput.value = 'Frontend';
+    syncRoleChips();
     ['ob-firstname','ob-lastname','ob-email','ob-rate','ob-skills','ob-startdate','ob-link'].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.value = '';

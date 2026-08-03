@@ -25,7 +25,7 @@ const DEFAULT_CLIENTS = [
 ];
 
 const DEFAULT_DEVELOPERS = [
-    { id: 'd1', name: 'Alex Rivera',   activeProjects: 2, hoursThisWeek: 38, hourlyRate: 85,  role: 'Senior Frontend',    email: 'alex@reemo.io'   },
+    { id: 'd1', name: 'Alex Rivera',   activeProjects: 2, hoursThisWeek: 38, hourlyRate: 85,  role: 'Frontend',           email: 'alex@reemo.io'   },
     { id: 'd2', name: 'Sarah Chen',    activeProjects: 1, hoursThisWeek: 40, hourlyRate: 95,  role: 'Fullstack Engineer',  email: 'sarah@reemo.io'  },
     { id: 'd3', name: 'Marcus Thorne', activeProjects: 1, hoursThisWeek: 35, hourlyRate: 75,  role: 'Backend Developer',   email: 'marcus@reemo.io' },
     { id: 'd4', name: 'Elena Vance',   activeProjects: 3, hoursThisWeek: 42, hourlyRate: 110, role: 'DevOps Architect',    email: 'elena@reemo.io'  },
